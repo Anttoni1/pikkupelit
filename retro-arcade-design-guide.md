@@ -317,17 +317,19 @@ function gameLoop(time) {
 ### Pause
 - Erillinen overlay `z-index: 400`
 - "PAUSE" vilkkuvalla animaatiolla
-- Overlay sisältää "EXIT TO MENU" -napin joka vie `index.html`:ään
+- Overlay sisältää "RESUME" ja "EXIT TO MENU" -napit
 - `P`/`Escape` pausettaa ja jatkaa peliä (paitsi EXIT TO MENU -napista)
+- Näppäimistönavigointi: ↑↓ vaihtaa RESUME / EXIT TO MENU välillä, Enter vahvistaa
 
 **Pause-napin kuuntelijat — TÄRKEÄÄ:**
 PauseBtn tarvitsee sekä `click` että `touchend` — boardWrap kutsuu `e.preventDefault()` touchend:ssä, mikä estää `click`-tapahtuman syntymisen mobiilissa:
 ```javascript
 document.getElementById('pauseBtn').addEventListener('click', e => { e.stopPropagation(); togglePause(); });
 document.getElementById('pauseBtn').addEventListener('touchend', e => { e.stopPropagation(); e.preventDefault(); togglePause(); });
-pauseOv.addEventListener('click', e => { if (e.target.id !== 'menuBtn') togglePause(); });
-pauseOv.addEventListener('touchend', e => { if (e.target.id !== 'menuBtn') { e.preventDefault(); togglePause(); } });
-['click', 'touchend'].forEach(ev => document.getElementById('menuBtn').addEventListener(ev, e => { e.stopPropagation(); e.preventDefault(); window.location.href = 'index.html'; }));
+pauseOv.addEventListener('click', e => { if (!['resumeBtn','menuBtn','confirmYes','confirmNo'].includes(e.target.id) && !e.target.closest('#confirmBox')) togglePause(); });
+pauseOv.addEventListener('touchend', e => { if (!['resumeBtn','menuBtn','confirmYes','confirmNo'].includes(e.target.id) && !e.target.closest('#confirmBox')) { e.preventDefault(); togglePause(); } });
+['click', 'touchend'].forEach(ev => document.getElementById('resumeBtn').addEventListener(ev, e => { e.stopPropagation(); e.preventDefault(); togglePause(); }));
+['click', 'touchend'].forEach(ev => document.getElementById('menuBtn').addEventListener(ev, e => { e.stopPropagation(); e.preventDefault(); showConfirm(); }));
 ```
 
 ### Overlay-kuuntelijoiden vakiokoodi
