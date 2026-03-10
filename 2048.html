@@ -101,6 +101,15 @@ canvas#board{
   cursor:pointer;-webkit-tap-highlight-color:transparent;letter-spacing:2px;
 }
 .pause-menu-btn:active{color:var(--g);border-color:var(--g)}
+.pause-menu-btn.sel{color:var(--amber);border-color:var(--amber);text-shadow:0 0 6px var(--amber)}
+.confirm-box{display:flex;flex-direction:column;align-items:center;gap:16px;padding:24px;border:1px solid var(--gd);background:rgba(7,7,7,0.95)}
+.confirm-q{font-size:8px;letter-spacing:2px;line-height:2}
+.confirm-btns{display:flex;gap:16px}
+.confirm-yes,.confirm-no{font-family:'Press Start 2P',monospace;font-size:8px;padding:10px 18px;border-radius:3px;cursor:pointer;-webkit-tap-highlight-color:transparent;letter-spacing:2px;background:none}
+.confirm-yes{color:var(--amber);border:1px solid var(--amber)}
+.confirm-no{color:var(--gd);border:1px solid var(--gd)}
+.confirm-yes.sel,.confirm-yes:active{background:rgba(255,170,0,0.15);color:#fff;border-color:#fff}
+.confirm-no.sel,.confirm-no:active{background:rgba(51,255,51,0.1);color:var(--g);border-color:var(--g)}
 </style>
 </head>
 <body class="crt">
@@ -144,6 +153,13 @@ canvas#board{
 <div class="pause-overlay hidden" id="pauseOverlay">
   <div class="pause-text">PAUSE</div>
   <button class="pause-menu-btn" id="menuBtn">EXIT TO MENU</button>
+  <div class="confirm-box hidden" id="confirmBox">
+    <div class="confirm-q">EXIT TO MENU?</div>
+    <div class="confirm-btns">
+      <button class="confirm-yes sel" id="confirmYes">YES</button>
+      <button class="confirm-no" id="confirmNo">NO</button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -411,7 +427,22 @@ function showWin() {
 
 // ── Keyboard ──
 document.addEventListener('keydown', e => {
-  if (e.key === 'p' || e.key === 'P') { e.preventDefault(); togglePause(); return; }
+  // Confirm dialog open
+  if (!document.getElementById('confirmBox').classList.contains('hidden')) {
+    if (e.key === 'ArrowLeft' || e.key === 'y' || e.key === 'Y') { e.preventDefault(); confirmSel=0; updateConfirmSel(); }
+    else if (e.key === 'ArrowRight' || e.key === 'n' || e.key === 'N') { e.preventDefault(); confirmSel=1; updateConfirmSel(); }
+    else if (e.key === 'Enter') { e.preventDefault(); if (confirmSel===0) window.location.href='index.html'; else hideConfirm(); }
+    else if (e.key === 'Escape') { e.preventDefault(); hideConfirm(); }
+    return;
+  }
+  // Pause menu navigation
+  if (paused) {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); pauseSel = pauseSel===0 ? 1 : 0; updatePauseSel(); return; }
+    if (e.key === 'Enter') { e.preventDefault(); if (pauseSel===1) showConfirm(); else togglePause(); return; }
+    if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') { e.preventDefault(); togglePause(); return; }
+    return;
+  }
+  if (e.key === 'p' || e.key === 'P' || e.key === 'Escape') { e.preventDefault(); togglePause(); return; }
   if (!gameRunning || paused) return;
   const map = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down' };
   if (map[e.key]) { e.preventDefault(); handleMove(map[e.key]); }
@@ -454,17 +485,33 @@ bw.addEventListener('touchend', e => {
 
 // ── Pause ──
 const pauseOv = document.getElementById('pauseOverlay');
+let pauseSel = 0;
+function updatePauseSel() { document.getElementById('menuBtn').classList.toggle('sel', pauseSel === 1); }
 function togglePause() {
   if (!gameRunning || gameOver) return;
   paused = !paused;
   pauseOv.classList.toggle('hidden', !paused);
   if (!paused) { lastTime = 0; requestAnimationFrame(gameLoop); }
+  else { pauseSel = 0; updatePauseSel(); }
 }
 document.getElementById('pauseBtn').addEventListener('click', e => { e.stopPropagation(); togglePause(); });
 document.getElementById('pauseBtn').addEventListener('touchend', e => { e.stopPropagation(); e.preventDefault(); togglePause(); });
-pauseOv.addEventListener('click', e => { if (e.target.id !== 'menuBtn') togglePause(); });
-pauseOv.addEventListener('touchend', e => { if (e.target.id !== 'menuBtn') { e.preventDefault(); togglePause(); } });
-['click', 'touchend'].forEach(ev => document.getElementById('menuBtn').addEventListener(ev, e => { e.stopPropagation(); e.preventDefault(); window.location.href = 'index.html'; }));
+pauseOv.addEventListener('click', e => { if (e.target.id !== 'menuBtn' && !e.target.closest('#confirmBox')) togglePause(); });
+pauseOv.addEventListener('touchend', e => { if (e.target.id !== 'menuBtn' && !e.target.closest('#confirmBox')) { e.preventDefault(); togglePause(); } });
+// Confirm exit
+let confirmSel=0; // 0=YES 1=NO
+function showConfirm(){
+  document.getElementById('confirmBox').classList.remove('hidden');
+  confirmSel=0;updateConfirmSel();
+}
+function hideConfirm(){document.getElementById('confirmBox').classList.add('hidden');}
+function updateConfirmSel(){
+  document.getElementById('confirmYes').classList.toggle('sel',confirmSel===0);
+  document.getElementById('confirmNo').classList.toggle('sel',confirmSel===1);
+}
+['click', 'touchend'].forEach(ev => document.getElementById('menuBtn').addEventListener(ev, e => { e.stopPropagation(); e.preventDefault(); showConfirm(); }));
+['click', 'touchend'].forEach(ev => document.getElementById('confirmYes').addEventListener(ev, e => { e.stopPropagation(); e.preventDefault(); window.location.href = 'index.html'; }));
+['click', 'touchend'].forEach(ev => document.getElementById('confirmNo').addEventListener(ev, e => { e.stopPropagation(); e.preventDefault(); hideConfirm(); }));
 
 // ── Game loop ──
 function gameLoop(time) {
