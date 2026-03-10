@@ -98,11 +98,13 @@ Ennen kuin pidät peliä valmiina:
 - [ ] `100dvh`, ei scrollausta, `touch-action: none`
 - [ ] Pelialue täyttää kaiken tilan topbarin ja hintin välissä (`flex: 1`)
 - [ ] Touch-ohjaus koko pelialueella — ei alareunan nappeja
-- [ ] Näppäimistötuki (nuolet + Space/ArrowUp + P)
+- [ ] Näppäimistötuki (nuolet + Space/ArrowUp + P/Escape)
 - [ ] Aloitusruutu: pelin nimi + ohjeet + vilkkuva "TAP TO START"
 - [ ] Game over -ruutu: tulokset + "TAP TO RETRY"
 - [ ] Enter/Space käynnistää/yrittää uudelleen overlayilta (pelattavissa ilman hiirtä)
-- [ ] Pause: P-näppäin + pause-nappi, oma overlay — pauseBtn:llä sekä `click` että `touchend` (molemmat tarvitaan mobiilissa), overlay sisältää "EXIT TO MENU" -napin
+- [ ] Pause: P-näppäin + Escape pause/resume, pause-nappi, oma overlay — pauseBtn:llä sekä `click` että `touchend` (molemmat tarvitaan mobiilissa)
+- [ ] Pause overlay -näppäimistönavigointi: ↑↓ vaihtaa valintaa RESUME / EXIT TO MENU välillä (EXIT TO MENU highlightautuu amber-väriseksi), Enter vahvistaa valitun, Escape/P/Escape aina sulkee pausen (resume)
+- [ ] EXIT TO MENU avaa confirm-dialogi ("EXIT TO MENU?") jossa YES/NO valittavissa ←→ nuolilla tai Y/N-näppäimillä, Enter vahvistaa, Escape/N peruuttaa
 - [ ] `beep()`-funktio, ääniefektit keskeisiin tapahtumiin
 - [ ] High score `localStorage`een avaimella `pelinimi_hi`
 - [ ] `resize()`-funktio, kutsutaan `onresize` + `setTimeout(resize, 50/200)`

@@ -207,7 +207,7 @@ Pelikohtaiset funktiot (`moveLeft`, `moveRight`, `softDropAction`, `hardDropActi
 Jokaisella pelillä on myös näppäimistöohjaus. Vakio:
 - **Nuolet:** liikkuminen
 - **Ylänuoli / Välilyönti:** ensisijainen toiminto
-- **P:** pause
+- **P / Escape:** pause ja jatka
 
 ```javascript
 document.addEventListener('keydown', e => {
@@ -318,7 +318,7 @@ function gameLoop(time) {
 - Erillinen overlay `z-index: 400`
 - "PAUSE" vilkkuvalla animaatiolla
 - Overlay sisältää "EXIT TO MENU" -napin joka vie `index.html`:ään
-- Tap/click/`P`-näppäin jatkaa peliä (paitsi EXIT TO MENU -napista)
+- `P`/`Escape` pausettaa ja jatkaa peliä (paitsi EXIT TO MENU -napista)
 
 **Pause-napin kuuntelijat — TÄRKEÄÄ:**
 PauseBtn tarvitsee sekä `click` että `touchend` — boardWrap kutsuu `e.preventDefault()` touchend:ssä, mikä estää `click`-tapahtuman syntymisen mobiilissa:
