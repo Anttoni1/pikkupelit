@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="GAMENAME">
+<title>GAMENAME</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--g:#33ff33;--gd:#1a8c1a;--bg:#070707;--glow:rgba(51,255,51,0.12);--amber:#ffaa00}
+html,body{
+  height:100%;height:100dvh;overflow:hidden;background:#000;touch-action:none;
+  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;
+  -webkit-tap-highlight-color:transparent;
+}
+body{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  font-family:'Press Start 2P',monospace;
+  background:radial-gradient(ellipse at center,#0d0d0d 0%,#000 80%);color:var(--g);
+  padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+.crt::before{
+  content:'';position:fixed;inset:0;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.08) 2px,rgba(0,0,0,0.08) 4px);
+  pointer-events:none;z-index:1000;
+}
+.crt::after{
+  content:'';position:fixed;inset:0;
+  background:radial-gradient(ellipse at center,transparent 55%,rgba(0,0,0,0.65) 100%);
+  pointer-events:none;z-index:1001;
+}
+@keyframes titleGlow{
+  0%,100%{text-shadow:0 0 2px #fff,0 0 8px var(--g),0 0 20px rgba(51,255,51,0.25)}
+  50%{text-shadow:0 0 4px #fff,0 0 12px var(--g),0 0 30px rgba(51,255,51,0.35)}
+}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+
+.game-container{
+  display:flex;flex-direction:column;align-items:center;
+  width:100%;height:100%;height:100dvh;position:relative;
+}
+.topbar{
+  display:flex;justify-content:space-between;align-items:center;
+  width:100%;padding:6px 12px;flex-shrink:0;z-index:10;
+}
+.topbar-left{display:flex;flex-direction:column;gap:2px}
+.title{font-size:14px;letter-spacing:4px;animation:titleGlow 3s ease-in-out infinite}
+.score-text{font-size:7px;text-shadow:0 0 4px var(--g);line-height:1.8}
+.score-text span{color:var(--amber);text-shadow:0 0 4px var(--amber)}
+.topbar-right{display:flex;align-items:center;gap:8px}
+.stat-box{text-align:center}
+.stat-lbl{font-size:5px;letter-spacing:1px;opacity:0.6;text-shadow:0 0 3px var(--g)}
+.stat-val{font-size:9px;color:var(--amber);text-shadow:0 0 5px var(--amber)}
+
+.board-wrap{
+  flex:1;display:flex;align-items:center;justify-content:center;
+  width:100%;position:relative;padding:4px;
+}
+canvas#board{
+  border:2px solid var(--gd);
+  box-shadow:0 0 15px var(--glow),inset 0 0 25px rgba(0,0,0,0.4);
+  image-rendering:pixelated;border-radius:2px;
+}
+.touch-hint{
+  font-size:5px;letter-spacing:1px;opacity:0.3;text-align:center;
+  padding:4px 0 8px 0;flex-shrink:0;text-shadow:0 0 3px var(--g);
+}
+.pause-btn{
+  position:fixed;bottom:max(16px,env(safe-area-inset-bottom,16px));right:16px;
+  font-family:'Press Start 2P',monospace;font-size:9px;color:var(--gd);
+  background:rgba(7,7,7,0.85);border:1px solid var(--gd);padding:8px 12px;border-radius:3px;
+  z-index:20;cursor:pointer;-webkit-tap-highlight-color:transparent;
+}
+.pause-btn:active{color:var(--g);border-color:var(--g)}
+
+.overlay{
+  position:fixed;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  background:rgba(0,0,0,0.88);z-index:500;gap:16px;text-align:center;
+}
+.overlay h1{font-size:22px;letter-spacing:5px;animation:titleGlow 2s ease-in-out infinite;color:#d0ffd0}
+.overlay h2{font-size:13px;color:var(--amber);text-shadow:0 0 8px var(--amber)}
+.overlay .sub{font-size:7px;line-height:2.4;opacity:0.7}
+.overlay .start-hint{font-size:8px;animation:blink 1.2s step-end infinite;margin-top:12px}
+.overlay .final-score{font-size:9px;line-height:2.4}
+.overlay .final-score span{color:var(--amber);text-shadow:0 0 6px var(--amber)}
+.hidden{display:none !important}
+.pause-overlay{
+  position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:rgba(0,0,0,0.85);z-index:400;gap:24px;
+}
+.pause-overlay .pause-text{font-size:14px;letter-spacing:4px;animation:blink 1.5s step-end infinite}
+.pause-menu-btn{
+  font-family:'Press Start 2P',monospace;font-size:8px;color:var(--gd);
+  background:none;border:1px solid var(--gd);padding:10px 16px;border-radius:3px;
+  cursor:pointer;-webkit-tap-highlight-color:transparent;letter-spacing:2px;
+}
+.pause-menu-btn:active{color:var(--g);border-color:var(--g)}
+</style>
+</head>
+<body class="crt">
+
+<!-- Aloitusruutu -->
+<div class="overlay" id="startScreen">
+  <h1>GAMENAME</h1>
+  <div class="sub">← → SWIPE MOVE<br>TAP = ACTION<br>DESCRIBE THE GOAL!</div>
+  <div class="start-hint">TAP TO START</div>
+</div>
+
+<!-- Game over -->
+<div class="overlay hidden" id="gameOver">
+  <h2>GAME OVER</h2>
+  <div class="final-score">SCORE <span id="finalScore">0</span></div>
+  <div class="start-hint">TAP TO RETRY</div>
+</div>
+
+<!-- Peli -->
+<div class="game-container" id="gameUI">
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="title">GAMENAME</div>
+      <div class="score-text">SCORE <span id="score">0</span> &nbsp;HI <span id="hi">0</span></div>
+    </div>
+    <div class="topbar-right">
+      <!-- Lisää pelikohtaiset statit tähän, esim: -->
+      <!-- <div class="stat-box"><div class="stat-lbl">LIVES</div><div class="stat-val" id="lives">3</div></div> -->
+    </div>
+  </div>
+  <div class="board-wrap" id="boardWrap">
+    <canvas id="board" width="300" height="450"></canvas>
+    <button class="pause-btn" id="pauseBtn">PAUSE</button>
+  </div>
+  <div class="touch-hint">SWIPE ←→ MOVE &nbsp; TAP ACTION</div>
+</div>
+
+<!-- Pause overlay -->
+<div class="pause-overlay hidden" id="pauseOverlay">
+  <div class="pause-text">PAUSE</div>
+  <button class="pause-menu-btn" id="menuBtn">EXIT TO MENU</button>
+</div>
+
+<script>
+// ── Vakiot ──────────────────────────────────────────────────────────────────
+const CANVAS_W = 300, CANVAS_H = 450; // muuta pelin mukaan
+// TODO: lisää pelikohtaiset vakiot
+
+// ── Tila ────────────────────────────────────────────────────────────────────
+let scoreVal, hiScore, gameRunning, paused, lastTime;
+// TODO: lisää pelikohtaiset tilamuuttujat
+
+// ── Canvas ──────────────────────────────────────────────────────────────────
+const canvas = document.getElementById('board');
+const ctx = canvas.getContext('2d');
+
+// ── Ääni ────────────────────────────────────────────────────────────────────
+let audioCtx;
+function beep(freq, duration, volume = 0.08) {
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type = 'square'; o.frequency.value = freq; g.gain.value = volume;
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start();
+    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+    o.stop(audioCtx.currentTime + duration);
+  } catch(e) {}
+}
+
+// ── Pelilogiikka ─────────────────────────────────────────────────────────────
+// TODO: lisää pelilogiikka tähän
+
+// ── Piirto ───────────────────────────────────────────────────────────────────
+function draw() {
+  ctx.fillStyle = '#070707';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  // TODO: piirra peli
+}
+
+// ── UI ───────────────────────────────────────────────────────────────────────
+function updateUI() {
+  document.getElementById('score').textContent = scoreVal;
+  if (scoreVal > hiScore) {
+    hiScore = scoreVal;
+    try { localStorage.setItem('gamename_hi', hiScore); } catch(e) {}
+  }
+  document.getElementById('hi').textContent = hiScore;
+}
+
+function showGameOver() {
+  document.getElementById('finalScore').textContent = scoreVal;
+  document.getElementById('gameOver').classList.remove('hidden');
+}
+
+// ── Input ────────────────────────────────────────────────────────────────────
+// TODO: lisää pelikohtaiset toiminnot
+function moveLeft()  { /* TODO */ }
+function moveRight() { /* TODO */ }
+function tapAction() { /* TODO */ }
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'p' || e.key === 'P') { e.preventDefault(); togglePause(); return; }
+  if (!gameRunning || paused) return;
+  switch(e.key) {
+    case 'ArrowLeft':  e.preventDefault(); moveLeft();  break;
+    case 'ArrowRight': e.preventDefault(); moveRight(); break;
+    case 'ArrowUp':
+    case ' ':          e.preventDefault(); tapAction(); break;
+  }
+});
+
+// ── Touch ────────────────────────────────────────────────────────────────────
+const bw = document.getElementById('boardWrap');
+let tx, ty, tt, moved, lastMX, totalDY, startY;
+const SH = 24, SV = 30;
+
+bw.addEventListener('touchstart', e => {
+  if (!gameRunning || paused || e.target.id === 'pauseBtn') return;
+  e.preventDefault();
+  const t = e.touches[0];
+  tx = t.clientX; ty = t.clientY; startY = t.clientY; tt = Date.now();
+  moved = false; lastMX = tx; totalDY = 0;
+}, { passive: false });
+
+bw.addEventListener('touchmove', e => {
+  if (!gameRunning || paused) return;
+  e.preventDefault();
+  const t = e.touches[0];
+  const dx = t.clientX - lastMX, dy = t.clientY - ty;
+  if (Math.abs(dx) > SH) {
+    const s = Math.floor(Math.abs(dx) / SH);
+    for (let i = 0; i < s; i++) dx > 0 ? moveRight() : moveLeft();
+    lastMX += Math.sign(dx) * s * SH; moved = true;
+  }
+  if (dy > SV) {
+    const s = Math.floor(dy / SV);
+    // TODO: soft drop tai muu alas-toiminto
+    ty += s * SV; totalDY += s * SV; moved = true;
+  }
+}, { passive: false });
+
+bw.addEventListener('touchend', e => {
+  if (!gameRunning || paused) return;
+  e.preventDefault();
+  const el = Date.now() - tt, ct = e.changedTouches[0];
+  const fdx = ct.clientX - tx, totalDown = ct.clientY - startY;
+  // Nopea swipe alas = vahva toiminto (hard drop tms.)
+  if (moved && totalDown > 40 && el > 0 && (totalDown / el) > 0.8) { /* TODO: hardDrop */ return; }
+  // Tap = ensisijainen toiminto
+  if (!moved && el < 250 && Math.abs(fdx) < 12 && Math.abs(ct.clientY - startY) < 12) tapAction();
+}, { passive: false });
+
+// ── Pause ────────────────────────────────────────────────────────────────────
+const pauseOv = document.getElementById('pauseOverlay');
+function togglePause() {
+  if (!gameRunning) return;
+  paused = !paused;
+  pauseOv.classList.toggle('hidden', !paused);
+  if (!paused) { lastTime = 0; requestAnimationFrame(gameLoop); }
+}
+document.getElementById('pauseBtn').addEventListener('click', e => { e.stopPropagation(); togglePause(); });
+document.getElementById('pauseBtn').addEventListener('touchend', e => { e.stopPropagation(); e.preventDefault(); togglePause(); });
+pauseOv.addEventListener('click', e => { if (e.target.id !== 'menuBtn') togglePause(); });
+pauseOv.addEventListener('touchend', e => { if (e.target.id !== 'menuBtn') { e.preventDefault(); togglePause(); } });
+['click', 'touchend'].forEach(ev => document.getElementById('menuBtn').addEventListener(ev, e => { e.stopPropagation(); e.preventDefault(); window.location.href = 'index.html'; }));
+
+// ── Game loop ─────────────────────────────────────────────────────────────────
+function gameLoop(time) {
+  if (!gameRunning) { draw(); return; }
+  if (paused) return;
+  const dt = time - (lastTime || time);
+  lastTime = time;
+  // TODO: päivitä pelin tila dt:n perusteella
+  draw();
+  requestAnimationFrame(gameLoop);
+}
+
+// ── Aloitus ───────────────────────────────────────────────────────────────────
+function startGame() {
+  scoreVal = 0; gameRunning = true; paused = false; lastTime = 0;
+  try { hiScore = parseInt(localStorage.getItem('gamename_hi')) || 0; } catch(e) { hiScore = 0; }
+  // TODO: alusta pelikohtainen tila
+  updateUI(); draw();
+  requestAnimationFrame(gameLoop);
+}
+
+['click', 'touchend'].forEach(ev => {
+  document.getElementById('startScreen').addEventListener(ev, e => {
+    e.preventDefault(); document.getElementById('startScreen').classList.add('hidden'); startGame();
+  });
+  document.getElementById('gameOver').addEventListener(ev, e => {
+    e.preventDefault(); document.getElementById('gameOver').classList.add('hidden'); startGame();
+  });
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' || e.key === ' ') {
+    const s = document.getElementById('startScreen'), o = document.getElementById('gameOver');
+    if (!s.classList.contains('hidden')) { e.preventDefault(); s.classList.add('hidden'); startGame(); }
+    else if (!o.classList.contains('hidden')) { e.preventDefault(); o.classList.add('hidden'); startGame(); }
+  }
+});
+
+// ── Resize ────────────────────────────────────────────────────────────────────
+function resize() {
+  const wrap = document.getElementById('boardWrap');
+  const aH = wrap.clientHeight - 8, aW = wrap.clientWidth - 8;
+  const aspect = CANVAS_H / CANVAS_W;
+  let h = aH, w = h / aspect;
+  if (w > aW) { w = aW; h = w * aspect; }
+  canvas.style.width = Math.floor(w) + 'px';
+  canvas.style.height = Math.floor(h) + 'px';
+}
+window.addEventListener('resize', resize);
+setTimeout(resize, 50); setTimeout(resize, 200); resize();
+
+document.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+ctx.fillStyle = '#070707'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+</script>
+</body>
+</html>
