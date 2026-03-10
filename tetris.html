@@ -147,6 +147,7 @@ canvas#board{
 
 <div class="pause-overlay hidden" id="pauseOverlay">
   <div class="pause-text">PAUSE</div>
+  <button class="pause-menu-btn" id="resumeBtn">RESUME</button>
   <button class="pause-menu-btn" id="menuBtn">EXIT TO MENU</button>
   <div class="confirm-box hidden" id="confirmBox">
     <div class="confirm-q">EXIT TO MENU?</div>
@@ -264,11 +265,12 @@ bw.addEventListener('touchend',e=>{
 // Pause
 const pauseOv=document.getElementById('pauseOverlay');
 let pauseSel=0;
-function updatePauseSel(){document.getElementById('menuBtn').classList.toggle('sel',pauseSel===1);}
+function updatePauseSel(){document.getElementById('resumeBtn').classList.toggle('sel',pauseSel===0);document.getElementById('menuBtn').classList.toggle('sel',pauseSel===1);}
 function togglePause(){if(!gameRunning)return;paused=!paused;pauseOv.classList.toggle('hidden',!paused);if(!paused){lastTime=0;requestAnimationFrame(gameLoop);}else{pauseSel=0;updatePauseSel();}}
 document.getElementById('pauseBtn').addEventListener('click',e=>{e.stopPropagation();togglePause();});
-pauseOv.addEventListener('click',e=>{if(e.target.id!=='menuBtn'&&!e.target.closest('#confirmBox'))togglePause();});
-pauseOv.addEventListener('touchend',e=>{if(e.target.id!=='menuBtn'&&!e.target.closest('#confirmBox')){e.preventDefault();togglePause();}});
+pauseOv.addEventListener('click',e=>{if(!['resumeBtn','menuBtn','confirmYes','confirmNo'].includes(e.target.id)&&!e.target.closest('#confirmBox'))togglePause();});
+pauseOv.addEventListener('touchend',e=>{if(!['resumeBtn','menuBtn','confirmYes','confirmNo'].includes(e.target.id)&&!e.target.closest('#confirmBox')){e.preventDefault();togglePause();}});
+['click','touchend'].forEach(ev=>document.getElementById('resumeBtn').addEventListener(ev,e=>{e.stopPropagation();e.preventDefault();togglePause();}));
 // Confirm exit
 let confirmSel=0; // 0=YES 1=NO
 function showConfirm(){
