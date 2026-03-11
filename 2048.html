@@ -170,6 +170,9 @@ const SIZE = 4;
 const PAD = 8;      // outer padding
 const GAP = 6;      // gap between cells
 const CELL = (CW - PAD * 2 - GAP * (SIZE - 1)) / SIZE; // ~67px
+const ANIM_SLIDE_MS = 100;
+const ANIM_POP_MS = 80;
+const ANIM_SPAWN_MS = 100;
 
 const canvas = document.getElementById('board'), ctx = canvas.getContext('2d');
 
@@ -236,21 +239,32 @@ function addRandom(g) {
 
 function slideRow(row) {
   let s = 0;
-  const filtered = row.filter(v => v !== 0);
+  // Track original indices alongside filtered values
+  const filtered = [], origIdx = [];
+  for (let i = 0; i < row.length; i++) {
+    if (row[i] !== 0) { filtered.push(row[i]); origIdx.push(i); }
+  }
   const merged = [];
   const mergeIndices = [];
+  const moves = []; // {from, to, val, merged, mergeFrom?}
+  let dest = 0;
   for (let i = 0; i < filtered.length; i++) {
     if (i + 1 < filtered.length && filtered[i] === filtered[i + 1]) {
-      merged.push(filtered[i] * 2);
-      mergeIndices.push(merged.length - 1);
-      s += filtered[i] * 2;
+      const val = filtered[i] * 2;
+      merged.push(val);
+      mergeIndices.push(dest);
+      s += val;
+      moves.push({ from: origIdx[i], to: dest, val: filtered[i], merged: true, mergeVal: val });
+      moves.push({ from: origIdx[i + 1], to: dest, val: filtered[i + 1], merged: true, mergeVal: val });
       i++;
     } else {
       merged.push(filtered[i]);
+      moves.push({ from: origIdx[i], to: dest, val: filtered[i], merged: false });
     }
+    dest++;
   }
   while (merged.length < SIZE) merged.push(0);
-  return { row: merged, score: s, mergeIndices };
+  return { row: merged, score: s, mergeIndices, moves };
 }
 
 function transpose(g) {
@@ -260,32 +274,38 @@ function transpose(g) {
 function doMove(g, dir) {
   let totalScore = 0;
   let mergedValues = [];
+  let anims = []; // {fromR, fromC, toR, toC, val, merged, mergeVal}
   let newG;
 
-  function collectRow(row) {
+  function collectRow(row, rowIdx, mapCoords) {
     const r = slideRow(row);
     totalScore += r.score;
-    // Collect merged values from mergeIndices
     r.mergeIndices.forEach(i => { if (r.row[i]) mergedValues.push(r.row[i]); });
+    // Convert per-row moves to grid coordinates
+    for (const m of r.moves) {
+      const [fromR, fromC] = mapCoords(rowIdx, m.from);
+      const [toR, toC] = mapCoords(rowIdx, m.to);
+      anims.push({ fromR, fromC, toR, toC, val: m.val, merged: m.merged, mergeVal: m.mergeVal || 0 });
+    }
     return r.row;
   }
 
   if (dir === 'left') {
-    newG = g.map(row => collectRow(row));
+    newG = g.map((row, ri) => collectRow(row, ri, (r, c) => [r, c]));
   } else if (dir === 'right') {
-    newG = g.map(row => collectRow([...row].reverse()).reverse());
+    newG = g.map((row, ri) => collectRow([...row].reverse(), ri, (r, c) => [r, SIZE - 1 - c]).reverse());
   } else if (dir === 'up') {
     let cols = transpose(g);
-    cols = cols.map(col => collectRow(col));
+    cols = cols.map((col, ci) => collectRow(col, ci, (c, r) => [r, c]));
     newG = transpose(cols);
   } else {
     let cols = transpose(g);
-    cols = cols.map(col => collectRow([...col].reverse()).reverse());
+    cols = cols.map((col, ci) => collectRow([...col].reverse(), ci, (c, r) => [SIZE - 1 - r, c]).reverse());
     newG = transpose(cols);
   }
 
   const moved = JSON.stringify(newG) !== JSON.stringify(g);
-  return { grid: newG, score: totalScore, moved, mergedValues };
+  return { grid: newG, score: totalScore, moved, mergedValues, anims };
 }
 
 function canMove(g) {
@@ -308,11 +328,25 @@ function handleMove(dir) {
   const result = doMove(grid, dir);
   if (!result.moved) return;
 
+  // Build animation data before updating grid
+  moveAnimations = result.anims.map(a => ({ ...a, progress: 0 }));
+  mergeAnimations = [];
+  // Collect unique merge destinations
+  const mergeSet = new Set();
+  for (const a of result.anims) {
+    if (a.merged) {
+      const key = a.toR + ',' + a.toC;
+      if (!mergeSet.has(key)) {
+        mergeSet.add(key);
+        mergeAnimations.push({ r: a.toR, c: a.toC, val: a.mergeVal, progress: 0 });
+      }
+    }
+  }
+
   grid = result.grid;
   scoreVal += result.score;
 
   if (result.score > 0) {
-    // C major scale: each consecutive merge climbs one step, slide without merge resets to do
     const SCALE = [261.6, 293.7, 329.6, 349.2, 392.0, 440.0, 493.9, 523.3, 587.3, 659.3, 698.5, 784.0];
     beep(SCALE[comboStep], 0.1, 0.1);
     comboStep = Math.min(comboStep + 1, SCALE.length - 1);
@@ -322,11 +356,14 @@ function handleMove(dir) {
   }
 
   const added = addRandom(grid);
+  newTileAnim = added ? { r: added.r, c: added.c, val: added.val, progress: 0 } : null;
 
   if (scoreVal > hiScore) {
     hiScore = scoreVal;
     try { localStorage.setItem('2048_hi', hiScore); } catch (e) {}
   }
+
+  animating = true;
 
   if (hasWon(grid) && !won && !keepPlaying) {
     won = true;
@@ -383,6 +420,14 @@ function drawTile(x, y, w, h, val) {
   ctx.fillText(txt, x + w / 2, y + h / 2);
 }
 
+function easeOut(t) { return t * (2 - t); }
+
+function drawTileScaled(r, c, val, scale) {
+  const cx = cellX(c) + CELL / 2, cy = cellY(r) + CELL / 2;
+  const sw = CELL * scale, sh = CELL * scale;
+  drawTile(cx - sw / 2, cy - sh / 2, sw, sh, val);
+}
+
 function draw() {
   ctx.fillStyle = '#070707';
   ctx.fillRect(0, 0, CW, CH);
@@ -399,11 +444,56 @@ function draw() {
     }
   }
 
-  // Tiles
-  for (let r = 0; r < SIZE; r++) {
-    for (let c = 0; c < SIZE; c++) {
-      if (grid[r][c] === 0) continue;
-      drawTile(cellX(c), cellY(r), CELL, CELL, grid[r][c]);
+  if (animating) {
+    // Determine which destination cells are being animated
+    const animDests = new Set();
+    for (const a of moveAnimations) animDests.add(a.toR + ',' + a.toC);
+    if (newTileAnim) animDests.add(newTileAnim.r + ',' + newTileAnim.c);
+
+    // Draw static tiles (not involved in animation)
+    for (let r = 0; r < SIZE; r++) {
+      for (let c = 0; c < SIZE; c++) {
+        if (grid[r][c] === 0) continue;
+        if (animDests.has(r + ',' + c)) continue;
+        drawTile(cellX(c), cellY(r), CELL, CELL, grid[r][c]);
+      }
+    }
+
+    const slidesDone = moveAnimations.every(a => a.progress >= 1);
+
+    // Draw sliding tiles
+    for (const a of moveAnimations) {
+      const t = easeOut(Math.min(a.progress, 1));
+      const x = cellX(a.fromC) + (cellX(a.toC) - cellX(a.fromC)) * t;
+      const y = cellY(a.fromR) + (cellY(a.toR) - cellY(a.fromR)) * t;
+      // During slide, show pre-merge value; after slide, merged tiles handled by mergeAnimations
+      if (!slidesDone || !a.merged) {
+        drawTile(x, y, CELL, CELL, a.val);
+      }
+    }
+
+    // Draw merge pop (after slides complete)
+    if (slidesDone) {
+      for (const m of mergeAnimations) {
+        const t = Math.min(m.progress, 1);
+        // Scale: 1.0 -> 1.2 -> 1.0 (parabola)
+        const scale = 1 + 0.2 * Math.sin(t * Math.PI);
+        drawTileScaled(m.r, m.c, m.val, scale);
+      }
+    }
+
+    // Draw new tile spawn (after slides complete)
+    if (slidesDone && newTileAnim) {
+      const scale = easeOut(Math.min(newTileAnim.progress, 1));
+      if (scale > 0.01) drawTileScaled(newTileAnim.r, newTileAnim.c, newTileAnim.val, scale);
+    }
+  } else {
+    // No animation — draw tiles normally
+    for (let r = 0; r < SIZE; r++) {
+      for (let c = 0; c < SIZE; c++) {
+        if (grid[r][c] === 0) continue;
+        drawTile(cellX(c), cellY(r), CELL, CELL, grid[r][c]);
+      }
     }
   }
 }
@@ -519,6 +609,38 @@ function updateConfirmSel(){
 function gameLoop(time) {
   if (!gameRunning) { draw(); return; }
   if (paused) return;
+  const dt = Math.min(time - (lastTime || time), 32);
+  lastTime = time;
+
+  if (animating) {
+    let allDone = true;
+    // Advance slide animations
+    for (const a of moveAnimations) {
+      a.progress = Math.min(a.progress + dt / ANIM_SLIDE_MS, 1);
+      if (a.progress < 1) allDone = false;
+    }
+    // After all slides done, advance merge pop and new tile spawn concurrently
+    const slidesDone = moveAnimations.every(a => a.progress >= 1);
+    if (slidesDone) {
+      for (const a of mergeAnimations) {
+        a.progress = Math.min(a.progress + dt / ANIM_POP_MS, 1);
+        if (a.progress < 1) allDone = false;
+      }
+      if (newTileAnim) {
+        newTileAnim.progress = Math.min(newTileAnim.progress + dt / ANIM_SPAWN_MS, 1);
+        if (newTileAnim.progress < 1) allDone = false;
+      }
+    } else {
+      allDone = false;
+    }
+    if (allDone) {
+      animating = false;
+      moveAnimations = [];
+      mergeAnimations = [];
+      newTileAnim = null;
+    }
+  }
+
   draw();
   requestAnimationFrame(gameLoop);
 }
@@ -534,6 +656,7 @@ function startGame() {
   paused = false;
   lastTime = 0;
   comboStep = 0;
+  moveAnimations = []; mergeAnimations = []; newTileAnim = null; animating = false;
   try { hiScore = parseInt(localStorage.getItem('2048_hi')) || 0; } catch (e) { hiScore = 0; }
   addRandom(grid);
   addRandom(grid);
@@ -575,9 +698,9 @@ document.addEventListener('keydown', e => {
 function resize() {
   const wrap = document.getElementById('boardWrap');
   const aH = wrap.clientHeight - 8, aW = wrap.clientWidth - 8;
-  const ASPECT = CH / CW; // 1:1
-  let w = aW, h = w * ASPECT;
-  if (h > aH) { h = aH; w = h / ASPECT; }
+  const MAX_SZ = 480;
+  let w = Math.min(aW, MAX_SZ), h = w;
+  if (h > Math.min(aH, MAX_SZ)) { h = Math.min(aH, MAX_SZ); w = h; }
   canvas.style.width = Math.floor(w) + 'px';
   canvas.style.height = Math.floor(h) + 'px';
 }
