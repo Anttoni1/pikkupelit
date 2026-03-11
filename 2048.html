@@ -178,19 +178,19 @@ const canvas = document.getElementById('board'), ctx = canvas.getContext('2d');
 
 // Tile colors: value -> { bg, fg, border_light, border_dark }
 const TILE_STYLES = {
-  2:    { bg:'#1a8c1a', fg:'#33ff33', bh:'#33ff33', bd:'#0d5c0d' },
-  4:    { bg:'#1a7c2a', fg:'#33ff33', bh:'#44ff44', bd:'#0d4c1a' },
-  8:    { bg:'#1a6c3a', fg:'#33ff33', bh:'#44ffaa', bd:'#0d3c2a' },
-  16:   { bg:'#0d6c4a', fg:'#33ffcc', bh:'#44ffcc', bd:'#0d3c3a' },
-  32:   { bg:'#0d5c5a', fg:'#33ffdd', bh:'#44ffdd', bd:'#0d3c4a' },
-  64:   { bg:'#1a5c0d', fg:'#66ff33', bh:'#88ff44', bd:'#0d3c0d' },
-  128:  { bg:'#8c6c00', fg:'#ffcc33', bh:'#ffdd44', bd:'#5c4400' },
-  256:  { bg:'#8c5c00', fg:'#ffbb33', bh:'#ffcc44', bd:'#5c3c00' },
-  512:  { bg:'#8c4c00', fg:'#ffaa33', bh:'#ffbb44', bd:'#5c2c00' },
-  1024: { bg:'#8c3c00', fg:'#ff9933', bh:'#ffaa44', bd:'#5c1c00' },
-  2048: { bg:'#8c8c00', fg:'#ffff33', bh:'#ffff66', bd:'#5c5c00' },
-  4096: { bg:'#8c1a1a', fg:'#ff5533', bh:'#ff7744', bd:'#5c0d0d' },
-  8192: { bg:'#5c1a5c', fg:'#ff33ff', bh:'#ff66ff', bd:'#3c0d3c' },
+  2:    { bg:'#0d3d0d', fg:'#33ff33', bh:'#44ff44', bd:'#071f07' },  // very dark green
+  4:    { bg:'#1a7a1a', fg:'#55ff55', bh:'#66ff66', bd:'#0d4d0d' },  // medium green
+  8:    { bg:'#006644', fg:'#00ff99', bh:'#33ffaa', bd:'#004433' },  // teal (hue shift)
+  16:   { bg:'#005577', fg:'#00bbff', bh:'#33ccff', bd:'#003350' },  // cyan-blue
+  32:   { bg:'#336600', fg:'#88ff00', bh:'#aaff33', bd:'#1a4400' },  // lime/yellow-green
+  64:   { bg:'#555500', fg:'#ffff00', bh:'#ffff55', bd:'#333300' },  // yellow (pivot to warm)
+  128:  { bg:'#664400', fg:'#ffaa00', bh:'#ffcc33', bd:'#442800' },  // amber
+  256:  { bg:'#773300', fg:'#ff8800', bh:'#ffaa44', bd:'#551500' },  // orange
+  512:  { bg:'#661100', fg:'#ff4400', bh:'#ff6644', bd:'#440800' },  // red-orange
+  1024: { bg:'#550000', fg:'#ff2222', bh:'#ff5555', bd:'#330000' },  // deep red
+  2048: { bg:'#888800', fg:'#ffff44', bh:'#ffff88', bd:'#555500' },  // bright gold (goal!)
+  4096: { bg:'#550055', fg:'#ff44ff', bh:'#ff77ff', bd:'#380038' },  // magenta
+  8192: { bg:'#1a1a7a', fg:'#7788ff', bh:'#99aaff', bd:'#0d0d4a' },  // deep blue
 };
 
 // ── State ──
