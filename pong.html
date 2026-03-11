@@ -6,8 +6,8 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="GAMENAME">
-<title>GAMENAME</title>
+<meta name="apple-mobile-web-app-title" content="PONG">
+<title>PONG</title>
 <link rel="icon" href="data:,">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
@@ -114,37 +114,40 @@ canvas#board{
 </head>
 <body class="crt">
 
-<!-- Aloitusruutu -->
+<!-- Start screen -->
 <div class="overlay" id="startScreen">
-  <h1>GAMENAME</h1>
-  <div class="sub">← → SWIPE MOVE<br>TAP = ACTION<br>DESCRIBE THE GOAL!</div>
+  <h1>PONG</h1>
+  <div class="sub">← → SWIPE MOVE PADDLE<br>FIRST TO 7 WINS<br>BEAT THE CPU!</div>
   <div class="start-hint">TAP TO START</div>
 </div>
 
 <!-- Game over -->
 <div class="overlay hidden" id="gameOver">
-  <h2>GAME OVER</h2>
-  <div class="final-score">SCORE <span id="finalScore">0</span></div>
+  <h2 id="goTitle">GAME OVER</h2>
+  <div class="final-score">
+    YOU <span id="finalPlayer">0</span> — <span id="finalCpu">0</span> CPU
+  </div>
+  <div class="final-score">TOTAL SCORE <span id="finalScore">0</span></div>
   <div class="start-hint">TAP TO RETRY</div>
 </div>
 
-<!-- Peli -->
+<!-- Game -->
 <div class="game-container" id="gameUI">
   <div class="topbar">
     <div class="topbar-left">
-      <div class="title">GAMENAME</div>
+      <div class="title">PONG</div>
       <div class="score-text">SCORE <span id="score">0</span> &nbsp;HI <span id="hi">0</span></div>
     </div>
     <button class="pause-btn" id="pauseBtn">PAUSE</button>
     <div class="topbar-right">
-      <!-- Lisää pelikohtaiset statit tähän, esim: -->
-      <!-- <div class="stat-box"><div class="stat-lbl">LIVES</div><div class="stat-val" id="lives">3</div></div> -->
+      <div class="stat-box"><div class="stat-lbl">YOU</div><div class="stat-val" id="playerWins">0</div></div>
+      <div class="stat-box"><div class="stat-lbl">CPU</div><div class="stat-val" id="cpuWins">0</div></div>
     </div>
   </div>
   <div class="board-wrap" id="boardWrap">
     <canvas id="board" width="300" height="450"></canvas>
   </div>
-  <div class="touch-hint">SWIPE ←→ MOVE &nbsp; TAP ACTION</div>
+  <div class="touch-hint">SWIPE ←→ MOVE PADDLE</div>
 </div>
 
 <!-- Pause overlay -->
@@ -162,19 +165,32 @@ canvas#board{
 </div>
 
 <script>
-// ── Vakiot ──────────────────────────────────────────────────────────────────
-const CANVAS_W = 300, CANVAS_H = 450; // muuta pelin mukaan
-// TODO: lisää pelikohtaiset vakiot
+// ── Constants ─────────────────────────────────────────────────────────────────
+const CANVAS_W = 300, CANVAS_H = 450;
+const PADDLE_W = 56, PADDLE_H = 8, PADDLE_EDGE = 16;
+const BALL_SIZE = 6;
+const WIN_SCORE = 7;
+const BALL_BASE_SPEED = 0.22; // px/ms
+const BALL_SPEED_INC = 0.012; // per rally hit
+const BALL_MAX_SPEED = 0.42;
+const CPU_BASE_SPEED = 0.14; // px/ms
+const CPU_SPEED_INC = 0.008; // per point scored by player
+const SERVE_DELAY = 800; // ms before auto-serve
 
-// ── Tila ────────────────────────────────────────────────────────────────────
+// ── State ─────────────────────────────────────────────────────────────────────
 let scoreVal, hiScore, gameRunning, paused, lastTime;
-// TODO: lisää pelikohtaiset tilamuuttujat
+let playerX, cpuX; // paddle center X
+let ballX, ballY, ballVX, ballVY, ballSpeed;
+let playerPts, cpuPts;
+let rallyHits;
+let serving, serveTimer, serveDir; // 1=toward player, -1=toward cpu
+let keysDown = {};
 
-// ── Canvas ──────────────────────────────────────────────────────────────────
+// ── Canvas ────────────────────────────────────────────────────────────────────
 const canvas = document.getElementById('board');
 const ctx = canvas.getContext('2d');
 
-// ── Ääni ────────────────────────────────────────────────────────────────────
+// ── Audio ─────────────────────────────────────────────────────────────────────
 let audioCtx;
 function beep(freq, duration, volume = 0.08) {
   try {
@@ -189,36 +205,237 @@ function beep(freq, duration, volume = 0.08) {
   } catch(e) {}
 }
 
-// ── Pelilogiikka ─────────────────────────────────────────────────────────────
-// TODO: lisää pelilogiikka tähän
-
-// ── Piirto ───────────────────────────────────────────────────────────────────
-function draw() {
-  ctx.fillStyle = '#070707';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  // TODO: piirra peli
+// ── Game logic ────────────────────────────────────────────────────────────────
+function resetBall(dir) {
+  ballX = CANVAS_W / 2;
+  ballY = CANVAS_H / 2;
+  ballVX = 0; ballVY = 0;
+  ballSpeed = BALL_BASE_SPEED;
+  rallyHits = 0;
+  serving = true;
+  serveDir = dir;
+  serveTimer = SERVE_DELAY;
 }
 
-// ── UI ───────────────────────────────────────────────────────────────────────
+function serveBall() {
+  const angle = (Math.random() * 0.8 - 0.4); // -0.4 to 0.4 rad
+  ballVX = Math.sin(angle);
+  ballVY = serveDir * Math.cos(angle); // negative = up (toward cpu)
+  const mag = Math.sqrt(ballVX * ballVX + ballVY * ballVY);
+  ballVX = (ballVX / mag);
+  ballVY = (ballVY / mag);
+  serving = false;
+}
+
+function clampPaddle(x) {
+  const half = PADDLE_W / 2;
+  if (x < half) return half;
+  if (x > CANVAS_W - half) return CANVAS_W - half;
+  return x;
+}
+
+function updateBall(dt) {
+  if (serving) {
+    serveTimer -= dt;
+    if (serveTimer <= 0) serveBall();
+    return;
+  }
+
+  const speed = Math.min(ballSpeed + rallyHits * BALL_SPEED_INC, BALL_MAX_SPEED);
+  ballX += ballVX * speed * dt;
+  ballY += ballVY * speed * dt;
+
+  // Wall bounce
+  if (ballX - BALL_SIZE / 2 <= 0) { ballX = BALL_SIZE / 2; ballVX = Math.abs(ballVX); beep(300, 0.03); }
+  if (ballX + BALL_SIZE / 2 >= CANVAS_W) { ballX = CANVAS_W - BALL_SIZE / 2; ballVX = -Math.abs(ballVX); beep(300, 0.03); }
+
+  // Player paddle (bottom)
+  const playerTop = CANVAS_H - PADDLE_EDGE - PADDLE_H;
+  if (ballVY > 0 && ballY + BALL_SIZE / 2 >= playerTop && ballY - BALL_SIZE / 2 < playerTop + PADDLE_H) {
+    if (ballX >= playerX - PADDLE_W / 2 - BALL_SIZE / 2 && ballX <= playerX + PADDLE_W / 2 + BALL_SIZE / 2) {
+      ballY = playerTop - BALL_SIZE / 2;
+      // Angle based on hit position
+      const hit = (ballX - playerX) / (PADDLE_W / 2); // -1 to 1
+      const angle = hit * 1.1; // max ~63 degrees
+      ballVX = Math.sin(angle);
+      ballVY = -Math.cos(angle);
+      const mag = Math.sqrt(ballVX * ballVX + ballVY * ballVY);
+      ballVX /= mag; ballVY /= mag;
+      rallyHits++;
+      beep(440, 0.05);
+    }
+  }
+
+  // CPU paddle (top)
+  const cpuBottom = PADDLE_EDGE + PADDLE_H;
+  if (ballVY < 0 && ballY - BALL_SIZE / 2 <= cpuBottom && ballY + BALL_SIZE / 2 > PADDLE_EDGE) {
+    if (ballX >= cpuX - PADDLE_W / 2 - BALL_SIZE / 2 && ballX <= cpuX + PADDLE_W / 2 + BALL_SIZE / 2) {
+      ballY = cpuBottom + BALL_SIZE / 2;
+      const hit = (ballX - cpuX) / (PADDLE_W / 2);
+      const angle = hit * 1.1;
+      ballVX = Math.sin(angle);
+      ballVY = Math.cos(angle);
+      const mag = Math.sqrt(ballVX * ballVX + ballVY * ballVY);
+      ballVX /= mag; ballVY /= mag;
+      rallyHits++;
+      beep(330, 0.05);
+    }
+  }
+
+  // Score — ball goes off screen
+  if (ballY - BALL_SIZE / 2 > CANVAS_H + 10) {
+    // CPU scores
+    cpuPts++;
+    beep(150, 0.2);
+    updateUI();
+    if (cpuPts >= WIN_SCORE) { endMatch(); return; }
+    resetBall(-1); // serve toward cpu
+  }
+  if (ballY + BALL_SIZE / 2 < -10) {
+    // Player scores
+    playerPts++;
+    scoreVal += 10 + rallyHits * 2;
+    beep(660, 0.1);
+    updateUI();
+    if (playerPts >= WIN_SCORE) { endMatch(); return; }
+    resetBall(1); // serve toward player
+  }
+}
+
+function updateCPU(dt) {
+  if (serving && serveDir < 0) return; // cpu waits while serving toward it? No, move anyway
+  const cpuSpeed = Math.min(CPU_BASE_SPEED + playerPts * CPU_SPEED_INC, 0.28);
+  let targetX = ballX;
+  // Add slight prediction error
+  if (ballVY < 0) {
+    // Ball coming toward CPU — track more precisely
+    targetX = ballX + ballVX * (ballY - PADDLE_EDGE - PADDLE_H) / Math.max(0.1, -ballVY) * 0.3;
+  } else {
+    // Ball going away — drift toward center
+    targetX = CANVAS_W / 2;
+  }
+  const diff = targetX - cpuX;
+  const maxMove = cpuSpeed * dt;
+  if (Math.abs(diff) > 2) {
+    cpuX += Math.sign(diff) * Math.min(Math.abs(diff), maxMove);
+  }
+  cpuX = clampPaddle(cpuX);
+}
+
+function endMatch() {
+  gameRunning = false;
+  if (playerPts >= WIN_SCORE) {
+    scoreVal += 50; // bonus for winning
+    document.getElementById('goTitle').textContent = 'YOU WIN!';
+  } else {
+    document.getElementById('goTitle').textContent = 'GAME OVER';
+  }
+  updateUI();
+  document.getElementById('finalPlayer').textContent = playerPts;
+  document.getElementById('finalCpu').textContent = cpuPts;
+  document.getElementById('finalScore').textContent = scoreVal;
+  document.getElementById('gameOver').classList.remove('hidden');
+  beep(playerPts >= WIN_SCORE ? 880 : 100, 0.4);
+}
+
+// ── Drawing ───────────────────────────────────────────────────────────────────
+function draw() {
+  ctx.fillStyle = '#070707';
+  ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+  // Center dashed line
+  ctx.strokeStyle = 'rgba(26,140,26,0.35)';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([8, 8]);
+  ctx.beginPath();
+  ctx.moveTo(0, CANVAS_H / 2);
+  ctx.lineTo(CANVAS_W, CANVAS_H / 2);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Score display on field
+  ctx.font = '28px "Press Start 2P"';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = 'rgba(26,140,26,0.2)';
+  ctx.fillText(playerPts || '0', CANVAS_W / 4, CANVAS_H / 2 + 60);
+  ctx.fillText(cpuPts || '0', CANVAS_W * 3 / 4, CANVAS_H / 2 - 40);
+
+  // Player paddle (bottom)
+  drawPaddle(playerX, CANVAS_H - PADDLE_EDGE - PADDLE_H, '#33ff33');
+
+  // CPU paddle (top)
+  drawPaddle(cpuX, PADDLE_EDGE, '#33dd33');
+
+  // Ball
+  if (!serving || Math.floor(Date.now() / 200) % 2 === 0) {
+    const bx = Math.floor(ballX - BALL_SIZE / 2);
+    const by = Math.floor(ballY - BALL_SIZE / 2);
+    ctx.fillStyle = '#33ff33';
+    ctx.fillRect(bx, by, BALL_SIZE, BALL_SIZE);
+    // Highlight
+    ctx.fillStyle = 'rgba(102,255,102,0.5)';
+    ctx.fillRect(bx, by, BALL_SIZE, 1);
+    ctx.fillRect(bx, by, 1, BALL_SIZE);
+    // Shadow
+    ctx.fillStyle = 'rgba(0,80,0,0.4)';
+    ctx.fillRect(bx + BALL_SIZE - 1, by + 1, 1, BALL_SIZE - 1);
+    ctx.fillRect(bx + 1, by + BALL_SIZE - 1, BALL_SIZE - 1, 1);
+    // Glow
+    ctx.shadowColor = '#33ff33';
+    ctx.shadowBlur = 8;
+    ctx.fillStyle = 'rgba(51,255,51,0.3)';
+    ctx.fillRect(bx - 2, by - 2, BALL_SIZE + 4, BALL_SIZE + 4);
+    ctx.shadowBlur = 0;
+  }
+
+  // Serve hint
+  if (serving) {
+    ctx.font = '6px "Press Start 2P"';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = 'rgba(51,255,51,0.4)';
+    ctx.fillText('GET READY', CANVAS_W / 2, CANVAS_H / 2 + 4);
+  }
+}
+
+function drawPaddle(cx, y, color) {
+  const px = Math.floor(cx - PADDLE_W / 2);
+  ctx.fillStyle = color;
+  ctx.fillRect(px + 1, y + 1, PADDLE_W - 2, PADDLE_H - 2);
+  // Highlight
+  ctx.fillStyle = 'rgba(200,255,200,0.35)';
+  ctx.fillRect(px + 1, y + 1, PADDLE_W - 2, 2);
+  ctx.fillRect(px + 1, y + 1, 2, PADDLE_H - 2);
+  // Shadow
+  ctx.fillStyle = 'rgba(0,60,0,0.4)';
+  ctx.fillRect(px + PADDLE_W - 3, y + 2, 2, PADDLE_H - 2);
+  ctx.fillRect(px + 2, y + PADDLE_H - 3, PADDLE_W - 3, 2);
+}
+
+// ── UI ────────────────────────────────────────────────────────────────────────
 function updateUI() {
   document.getElementById('score').textContent = scoreVal;
   if (scoreVal > hiScore) {
     hiScore = scoreVal;
-    try { localStorage.setItem('gamename_hi', hiScore); } catch(e) {}
+    try { localStorage.setItem('pong_hi', hiScore); } catch(e) {}
   }
   document.getElementById('hi').textContent = hiScore;
+  document.getElementById('playerWins').textContent = playerPts;
+  document.getElementById('cpuWins').textContent = cpuPts;
 }
 
-function showGameOver() {
-  document.getElementById('finalScore').textContent = scoreVal;
-  document.getElementById('gameOver').classList.remove('hidden');
-}
+// ── Input ─────────────────────────────────────────────────────────────────────
+const PLAYER_SPEED = 0.3; // px/ms
 
-// ── Input ────────────────────────────────────────────────────────────────────
-// TODO: lisää pelikohtaiset toiminnot
-function moveLeft()  { /* TODO */ }
-function moveRight() { /* TODO */ }
-function tapAction() { /* TODO */ }
+function moveLeft()  { playerX = clampPaddle(playerX - 12); }
+function moveRight() { playerX = clampPaddle(playerX + 12); }
+function tapAction() { /* no tap action needed in pong */ }
+
+function handleKeys(dt) {
+  if (!gameRunning || paused) return;
+  const move = PLAYER_SPEED * dt;
+  if (keysDown['ArrowLeft'])  playerX = clampPaddle(playerX - move);
+  if (keysDown['ArrowRight']) playerX = clampPaddle(playerX + move);
+}
 
 document.addEventListener('keydown', e => {
   // Confirm dialog open
@@ -238,15 +455,17 @@ document.addEventListener('keydown', e => {
   }
   if (e.key === 'p' || e.key === 'P' || e.key === 'Escape') { e.preventDefault(); togglePause(); return; }
   if (!gameRunning || paused) return;
-  switch(e.key) {
-    case 'ArrowLeft':  e.preventDefault(); moveLeft();  break;
-    case 'ArrowRight': e.preventDefault(); moveRight(); break;
-    case 'ArrowUp':
-    case ' ':          e.preventDefault(); tapAction(); break;
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+    e.preventDefault();
+    keysDown[e.key] = true;
   }
 });
 
-// ── Touch ────────────────────────────────────────────────────────────────────
+document.addEventListener('keyup', e => {
+  keysDown[e.key] = false;
+});
+
+// ── Touch ─────────────────────────────────────────────────────────────────────
 const bw = document.getElementById('boardWrap');
 let tx, ty, tt, moved, lastMX, totalDY, startY;
 const SH = 24, SV = 30;
@@ -263,16 +482,11 @@ bw.addEventListener('touchmove', e => {
   if (!gameRunning || paused) return;
   e.preventDefault();
   const t = e.touches[0];
-  const dx = t.clientX - lastMX, dy = t.clientY - ty;
+  const dx = t.clientX - lastMX;
   if (Math.abs(dx) > SH) {
     const s = Math.floor(Math.abs(dx) / SH);
     for (let i = 0; i < s; i++) dx > 0 ? moveRight() : moveLeft();
     lastMX += Math.sign(dx) * s * SH; moved = true;
-  }
-  if (dy > SV) {
-    const s = Math.floor(dy / SV);
-    // TODO: soft drop tai muu alas-toiminto
-    ty += s * SV; totalDY += s * SV; moved = true;
   }
 }, { passive: false });
 
@@ -280,14 +494,11 @@ bw.addEventListener('touchend', e => {
   if (!gameRunning || paused) return;
   e.preventDefault();
   const el = Date.now() - tt, ct = e.changedTouches[0];
-  const fdx = ct.clientX - tx, totalDown = ct.clientY - startY;
-  // Nopea swipe alas = vahva toiminto (hard drop tms.)
-  if (moved && totalDown > 40 && el > 0 && (totalDown / el) > 0.8) { /* TODO: hardDrop */ return; }
-  // Tap = ensisijainen toiminto
+  const fdx = ct.clientX - tx;
   if (!moved && el < 250 && Math.abs(fdx) < 12 && Math.abs(ct.clientY - startY) < 12) tapAction();
 }, { passive: false });
 
-// ── Pause ────────────────────────────────────────────────────────────────────
+// ── Pause ─────────────────────────────────────────────────────────────────────
 const pauseOv = document.getElementById('pauseOverlay');
 let pauseSel = 0;
 function updatePauseSel() { document.getElementById('resumeBtn').classList.toggle('sel', pauseSel === 0); document.getElementById('menuBtn').classList.toggle('sel', pauseSel === 1); }
@@ -295,7 +506,7 @@ function togglePause() {
   if (!gameRunning) return;
   paused = !paused;
   pauseOv.classList.toggle('hidden', !paused);
-  if (!paused) { lastTime = 0; requestAnimationFrame(gameLoop); }
+  if (!paused) { keysDown = {}; lastTime = 0; requestAnimationFrame(gameLoop); }
   else { pauseSel = 0; updatePauseSel(); }
 }
 document.getElementById('pauseBtn').addEventListener('click', e => { e.stopPropagation(); togglePause(); });
@@ -304,7 +515,7 @@ pauseOv.addEventListener('click', e => { if (!['resumeBtn','menuBtn','confirmYes
 pauseOv.addEventListener('touchend', e => { if (!['resumeBtn','menuBtn','confirmYes','confirmNo'].includes(e.target.id) && !e.target.closest('#confirmBox')) { e.preventDefault(); togglePause(); } });
 ['click', 'touchend'].forEach(ev => document.getElementById('resumeBtn').addEventListener(ev, e => { e.stopPropagation(); e.preventDefault(); togglePause(); }));
 // Confirm exit
-let confirmSel=0; // 0=YES 1=NO
+let confirmSel=0;
 function showConfirm(){
   document.getElementById('confirmBox').classList.remove('hidden');
   confirmSel=0;updateConfirmSel();
@@ -322,18 +533,24 @@ function updateConfirmSel(){
 function gameLoop(time) {
   if (!gameRunning) { draw(); return; }
   if (paused) return;
-  const dt = time - (lastTime || time);
+  const dt = Math.min(time - (lastTime || time), 32); // cap dt
   lastTime = time;
-  // TODO: päivitä pelin tila dt:n perusteella
+  handleKeys(dt);
+  updateBall(dt);
+  updateCPU(dt);
   draw();
   requestAnimationFrame(gameLoop);
 }
 
-// ── Aloitus ───────────────────────────────────────────────────────────────────
+// ── Start ─────────────────────────────────────────────────────────────────────
 function startGame() {
   scoreVal = 0; gameRunning = true; paused = false; lastTime = 0;
-  try { hiScore = parseInt(localStorage.getItem('gamename_hi')) || 0; } catch(e) { hiScore = 0; }
-  // TODO: alusta pelikohtainen tila
+  try { hiScore = parseInt(localStorage.getItem('pong_hi')) || 0; } catch(e) { hiScore = 0; }
+  playerX = CANVAS_W / 2;
+  cpuX = CANVAS_W / 2;
+  playerPts = 0; cpuPts = 0;
+  keysDown = {};
+  resetBall(-1); // first serve toward cpu
   updateUI(); draw();
   requestAnimationFrame(gameLoop);
 }

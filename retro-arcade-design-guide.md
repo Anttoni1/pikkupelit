@@ -55,7 +55,7 @@ Värit pysyvät samoina kaikissa peleissä. Pelialueella voi käyttää vihreän
 - **Canvas/pelialue:** `border: 2px solid var(--gd)`, `box-shadow: 0 0 15px var(--glow), inset 0 0 25px rgba(0,0,0,0.4)`, `image-rendering: pixelated`
 - **Pienet paneelit (preview yms.):** `border: 1px solid var(--gd)`, `box-shadow: 0 0 4px var(--glow)`
 - **Overlay-ruudut:** `background: rgba(0,0,0,0.88)`, keskitetty flexbox, `z-index: 500`
-- **Pause-nappi:** Topbarin keskellä (vasemman ja oikean välissä), teksti aina `PAUSE` (ei `| |` tai muuta), `color: var(--gd)`, `border: 1px solid var(--gd)`, ei opacity-himmennetty
+- **Pause-nappi:** Topbarissa vasemman ja oikean välissä (ei boardWrapissa), teksti aina `PAUSE` (ei `| |` tai muuta), `color: var(--gd)`, `border: 1px solid var(--gd)`, `background: none`, ei position-temppuja
 
 ### Piirto-tyyli (canvas-blokit)
 Kun peli piirtää ruudukkoblokkeja canvasille:
@@ -105,9 +105,9 @@ document.addEventListener('touchmove', e => e.preventDefault(), { passive: false
 ```
 ┌──────────────────────┐
 │  TOPBAR              │  ← flex-shrink: 0, padding: 6px 12px
-│  Nimi  PAUSE  Stats  │     Vasemmalla: pelin nimi + score
-│                      │     Keskellä: PAUSE-nappi
-│                      │     Oikealla: pelikohtainen info (level, next jne.)
+│  Nimi  PAUSE  Stats  │     Vasemmalla: pelin nimi + score (topbar-left)
+│                      │     Keskellä: PAUSE-nappi (topbar-left ja topbar-right välissä)
+│                      │     Oikealla: pelikohtainen info (topbar-right)
 ├──────────────────────┤
 │                      │
 │                      │
