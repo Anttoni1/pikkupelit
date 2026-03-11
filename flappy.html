@@ -176,13 +176,13 @@ const GROUND_H = 20;
 
 // Level thresholds: reach this score to advance
 const LEVELS = [
-  { score: 0,  speed: 1.0, gap: 100 },  // level 1
-  { score: 5,  speed: 1.1, gap: 96 },   // level 2
-  { score: 10, speed: 1.2, gap: 92 },   // level 3
-  { score: 20, speed: 1.35, gap: 86 },  // level 4
-  { score: 30, speed: 1.5, gap: 80 },   // level 5
-  { score: 45, speed: 1.65, gap: 76 },  // level 6
-  { score: 60, speed: 1.8, gap: 72 },   // level 7
+  { score: 0,  speed: 1.0 },  // level 1
+  { score: 5,  speed: 1.1 },  // level 2
+  { score: 10, speed: 1.2 },  // level 3
+  { score: 20, speed: 1.35 }, // level 4
+  { score: 30, speed: 1.5 },  // level 5
+  { score: 45, speed: 1.65 }, // level 6
+  { score: 60, speed: 1.8 },  // level 7
 ];
 
 // ── State ──────────────────────────────────────────────────────────────────────
@@ -222,7 +222,6 @@ function updateLevel() {
     levelVal = newLevel;
     const cfg = LEVELS[levelVal - 1];
     curSpeed = BASE_PIPE_SPEED * cfg.speed;
-    curGap = cfg.gap;
     document.getElementById('level').textContent = levelVal;
     if (scoreVal > 0) beep(880, 0.15, 0.1); // level up sound
   }
@@ -497,7 +496,7 @@ function startGame() {
   pipes = [];
   pipeTimer = PIPE_SPACING - 80; // first pipe comes soon
   deadTimer = 0;
-  levelVal = 0; curSpeed = BASE_PIPE_SPEED; curGap = LEVELS[0].gap;
+  levelVal = 0; curSpeed = BASE_PIPE_SPEED; curGap = PIPE_GAP;
   updateLevel();
   updateUI(); draw();
   requestAnimationFrame(gameLoop);
