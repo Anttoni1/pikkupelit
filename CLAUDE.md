@@ -13,7 +13,9 @@ Tämä projekti on kokoelma retro-mobiilipelejä. Jokainen peli on yksittäinen 
 ├── tetris.html                    ← Referenssipeli ✓ (älä kopioi pohjana)
 ├── invaders.html                  ← Space Invaders ✓
 ├── breakout.html                  ← Breakout ✓
-└── 2048.html                      ← 2048 ✓
+├── 2048.html                      ← 2048 ✓
+├── asteroids.html                 ← Asteroids ✓
+└── pong.html                      ← Pong ✓
 ```
 
 ## Tärkeimmät säännöt
@@ -43,12 +45,12 @@ Tämä projekti on kokoelma retro-mobiilipelejä. Jokainen peli on yksittäinen 
 
 ### Layout
 ```
-TOPBAR (flex-shrink: 0)
-  vasemmalla: pelin nimi (titleGlow) + SCORE / HI
-  oikealla: pelikohtaiset statit (LEVEL, LIVES, NEXT jne.)
+TOPBAR (flex-shrink: 0, justify-content: space-between)
+  vasemmalla: pelin nimi (titleGlow) + SCORE / HI (topbar-left)
+  keskellä: PAUSE-nappi (topbar-left ja topbar-right välissä)
+  oikealla: pelikohtaiset statit (LEVEL, LIVES, NEXT jne.) (topbar-right)
 BOARD WRAP (flex: 1)
   canvas — kiinteä looginen resoluutio, CSS-koko skaalataan resize():llä
-  pause-nappi — topbarin keskellä (vasemman ja oikean välissä), teksti "PAUSE"
 TOUCH HINT (flex-shrink: 0)
   5px teksti, opacity: 0.3, swipe/tap-ohjeet
 ```
@@ -79,6 +81,8 @@ Web Audio API, square wave, `beep(freq, duration, volume)`. Muista `audioCtx.res
 | Space Invaders | invaders.html | `invaders_hi` |
 | Breakout | breakout.html | `breakout_hi` |
 | 2048 | 2048.html | `2048_hi` |
+| Asteroids | asteroids.html | `asteroids_hi` |
+| Pong | pong.html | `pong_hi` |
 
 ## Pohja ja referenssipeli
 
