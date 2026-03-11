@@ -307,6 +307,24 @@ function wrap(val, max) {
   return val;
 }
 
+// Returns all positions to draw an object at so edge-wrapping looks seamless
+function wrapPositions(x, y, r) {
+  const positions = [{x, y}];
+  const overL = x - r < 0;
+  const overR = x + r > CANVAS_W;
+  const overT = y - r < 0;
+  const overB = y + r > CANVAS_H;
+  if (overL) positions.push({x: x + CANVAS_W, y});
+  if (overR) positions.push({x: x - CANVAS_W, y});
+  if (overT) positions.push({x, y: y + CANVAS_H});
+  if (overB) positions.push({x, y: y - CANVAS_H});
+  if (overL && overT) positions.push({x: x + CANVAS_W, y: y + CANVAS_H});
+  if (overR && overT) positions.push({x: x - CANVAS_W, y: y + CANVAS_H});
+  if (overL && overB) positions.push({x: x + CANVAS_W, y: y - CANVAS_H});
+  if (overR && overB) positions.push({x: x - CANVAS_W, y: y - CANVAS_H});
+  return positions;
+}
+
 function checkBulletAsteroid() {
   for (let bi = bullets.length - 1; bi >= 0; bi--) {
     const b = bullets[bi];
@@ -478,14 +496,14 @@ function update(dt) {
 }
 
 // ── Draw ──────────────────────────────────────────────────────────────────────
-function drawAsteroid(a) {
+function drawAsteroidAt(a, ox, oy) {
   const verts = a.shape.length;
   ctx.beginPath();
   for (let i = 0; i < verts; i++) {
     const ang = a.angle + (i / verts) * Math.PI * 2;
     const r = a.r * a.shape[i];
-    const x = a.x + Math.cos(ang) * r;
-    const y = a.y + Math.sin(ang) * r;
+    const x = ox + Math.cos(ang) * r;
+    const y = oy + Math.sin(ang) * r;
     if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
   }
   ctx.closePath();
@@ -497,13 +515,13 @@ function drawAsteroid(a) {
   ctx.shadowBlur = 0;
 }
 
-function drawShip() {
-  if (ship.dead) return;
-  // Blink during invincibility
-  if (ship.invincible > 0 && Math.floor(ship.invincible * 8) % 2 === 0) return;
+function drawAsteroid(a) {
+  for (const pos of wrapPositions(a.x, a.y, a.r)) drawAsteroidAt(a, pos.x, pos.y);
+}
 
+function drawShipAt(ox, oy) {
   ctx.save();
-  ctx.translate(ship.x, ship.y);
+  ctx.translate(ox, oy);
   ctx.rotate(ship.angle);
 
   ctx.beginPath();
@@ -536,14 +554,23 @@ function drawShip() {
   ctx.restore();
 }
 
+function drawShip() {
+  if (ship.dead) return;
+  // Blink during invincibility
+  if (ship.invincible > 0 && Math.floor(ship.invincible * 8) % 2 === 0) return;
+  for (const pos of wrapPositions(ship.x, ship.y, SHIP_SIZE)) drawShipAt(pos.x, pos.y);
+}
+
 function drawBullet(b) {
-  ctx.beginPath();
-  ctx.arc(b.x, b.y, 2.5, 0, Math.PI * 2);
-  ctx.fillStyle = COL_BULLET;
-  ctx.shadowColor = COL_BULLET;
-  ctx.shadowBlur = 8;
-  ctx.fill();
-  ctx.shadowBlur = 0;
+  for (const pos of wrapPositions(b.x, b.y, 4)) {
+    ctx.beginPath();
+    ctx.arc(pos.x, pos.y, 2.5, 0, Math.PI * 2);
+    ctx.fillStyle = COL_BULLET;
+    ctx.shadowColor = COL_BULLET;
+    ctx.shadowBlur = 8;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  }
 }
 
 function drawParticle(p) {
