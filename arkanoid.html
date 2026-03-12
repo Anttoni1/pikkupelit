@@ -410,7 +410,20 @@ function clearTimedPower() {
   }
   if (activePower === P_LASER) laserMode = false;
   if (activePower === P_STICKY) stickyMode = false;
-  if (activePower === P_SLOW) slowMode = false;
+  if (activePower === P_SLOW) {
+    slowMode = false;
+    // Rescale in-flight balls back to normal speed
+    for (const b of balls) {
+      if (!b.launched) continue;
+      const spd = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
+      if (spd > 0) {
+        const target = getEffectiveBallSpeed(); // slowMode is now false, returns normal speed
+        const factor = target / spd;
+        b.vx *= factor;
+        b.vy *= factor;
+      }
+    }
+  }
   activePower = null;
   powerTimer = 0;
   updateTouchHint();
