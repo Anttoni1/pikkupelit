@@ -12,7 +12,7 @@ Tämä projekti on kokoelma retro-mobiilipelejä. Jokainen peli on yksittäinen 
 ├── index.html                     ← Päävalikko ✓
 ├── tetris.html                    ← Referenssipeli ✓ (älä kopioi pohjana)
 ├── invaders.html                  ← Space Invaders ✓
-├── breakout.html                  ← Breakout ✓
+├── arkanoid.html                  ← Arkanoid ✓
 ├── 2048.html                      ← 2048 ✓
 ├── asteroids.html                 ← Asteroids ✓
 └── pong.html                      ← Pong ✓
@@ -68,7 +68,7 @@ TOUCH HINT (flex-shrink: 0)
 SCORE, HI, LEVEL, LIVES, WAVE, NEXT, GAME OVER, TAP TO START, TAP TO RETRY, PAUSE jne.
 
 ### localStorage-avaimet
-Muoto: `pelinimi_hi` — esim. `tetris_hi`, `invaders_hi`, `breakout_hi`, `2048_hi`
+Muoto: `pelinimi_hi` — esim. `tetris_hi`, `invaders_hi`, `arkanoid_hi`, `2048_hi`
 
 ### Ääni
 Web Audio API, square wave, `beep(freq, duration, volume)`. Muista `audioCtx.resume()` — iOS luo AudioContextin suspended-tilassa.
@@ -79,7 +79,7 @@ Web Audio API, square wave, `beep(freq, duration, volume)`. Muista `audioCtx.res
 |------|----------|-------------|
 | Tetris | tetris.html | `tetris_hi` |
 | Space Invaders | invaders.html | `invaders_hi` |
-| Breakout | breakout.html | `breakout_hi` |
+| Arkanoid | arkanoid.html | `arkanoid_hi` |
 | 2048 | 2048.html | `2048_hi` |
 | Asteroids | asteroids.html | `asteroids_hi` |
 | Pong | pong.html | `pong_hi` |
