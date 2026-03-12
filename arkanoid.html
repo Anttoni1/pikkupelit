@@ -538,8 +538,7 @@ function checkBrickCollision(b) {
           beep(200, 0.06);
         } else if (isSilver(v)) {
           bricks[r][c] = v - 1;
-          if (bricks[r][c] <= 1) {
-            // Silver destroyed — becomes normal then destroyed
+          if (bricks[r][c] <= 0) {
             bricks[r][c] = B_EMPTY;
             scoreVal += 25 * levelVal;
             totalBricksCleared++;
@@ -598,7 +597,7 @@ function checkLaserBrickCollision(laser) {
       if (laser.x >= bx && laser.x <= bx + BRICK_W && laser.y >= by && laser.y <= by + BRICK_H) {
         if (isSilver(v)) {
           bricks[r][c] = v - 1;
-          if (bricks[r][c] <= 1) {
+          if (bricks[r][c] <= 0) {
             bricks[r][c] = B_EMPTY;
             scoreVal += 25 * levelVal;
             totalBricksCleared++;
