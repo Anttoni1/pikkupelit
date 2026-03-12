@@ -104,8 +104,9 @@ Ennen kuin pidät peliä valmiina:
 - [ ] Touch-ohjaus koko pelialueella — ei alareunan nappeja
 - [ ] Näppäimistötuki (nuolet + Space/ArrowUp + P/Escape)
 - [ ] Aloitusruutu: pelin nimi + ohjeet + vilkkuva "TAP TO START"
-- [ ] Game over -ruutu: tulokset + "TAP TO RETRY"
-- [ ] Enter/Space käynnistää/yrittää uudelleen overlayilta (pelattavissa ilman hiirtä)
+- [ ] Game over -ruutu: tulokset + RETRY / EXIT TO MENU -napit (`pause-menu-btn`-tyylillä)
+- [ ] Game over -näppäimistönavigointi: ↑↓ vaihtaa RETRY / EXIT TO MENU välillä, Enter/Space vahvistaa (EXIT TO MENU vie suoraan valikkoon, ei confirm-dialogia)
+- [ ] Enter/Space käynnistää overlayilta (pelattavissa ilman hiirtä)
 - [ ] Pause: P-näppäin + Escape pause/resume, pause-nappi, oma overlay — pauseBtn:llä sekä `click` että `touchend` (molemmat tarvitaan mobiilissa)
 - [ ] Pause overlay -näppäimistönavigointi: ↑↓ vaihtaa valintaa RESUME / EXIT TO MENU välillä (EXIT TO MENU highlightautuu amber-väriseksi), Enter vahvistaa valitun, Escape/P/Escape aina sulkee pausen (resume)
 - [ ] EXIT TO MENU avaa confirm-dialogi ("EXIT TO MENU?") jossa YES/NO valittavissa ←→ nuolilla tai Y/N-näppäimillä, Enter vahvistaa, Escape/N peruuttaa
