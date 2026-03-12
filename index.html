@@ -92,6 +92,7 @@ body{
 .game-name{
   font-size:11px;letter-spacing:2px;
   transition:color 0.1s,text-shadow 0.1s;
+  display:inline-flex;align-items:center;
 }
 .game-item:active .game-name,
 .game-item.selected .game-name{
@@ -107,6 +108,12 @@ body{
   color:var(--gd);
   text-shadow:none;
   opacity:0.5;
+}
+.game-beta{
+  font-size:7px;letter-spacing:1px;color:#ffaa00;
+  border:1px solid #ffaa00;padding:2px 6px;
+  opacity:0.9;margin-left:8px;
+  text-shadow:0 0 4px #ffaa00;
 }
 
 .footer{
@@ -134,7 +141,7 @@ body{
 const GAMES = [
   { name: 'TETRIS',         file: 'tetris.html',   key: 'tetris_hi'   },
   { name: 'SPACE INVADERS', file: 'invaders.html', key: 'invaders_hi' },
-  { name: 'BREAKOUT',       file: 'breakout.html', key: 'breakout_hi' },
+  { name: 'ARKANOID',       file: 'arkanoid.html', key: 'arkanoid_hi', beta: true },
   { name: '2048',           file: '2048.html',     key: '2048_hi'     },
   { name: 'ASTEROIDS',     file: 'asteroids.html',key: 'asteroids_hi'},
   { name: 'PONG',          file: 'pong.html',     key: 'pong_hi'     },
@@ -155,7 +162,7 @@ function render() {
     item.innerHTML =
       '<div class="game-item-left">' +
         '<span class="game-arrow">&#9658;</span>' +
-        '<span class="game-name">' + game.name + '</span>' +
+        '<span class="game-name">' + game.name + (game.beta ? '<span class="game-beta">BETA</span>' : '') + '</span>' +
       '</div>' +
       '<span class="game-score' + (hi ? '' : ' no-score') + '">' +
         (hi ? hi : '---') +
