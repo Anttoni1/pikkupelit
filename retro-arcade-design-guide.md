@@ -1,41 +1,41 @@
 # Retro Arcade — Design & Development Guide
 
-Tämä ohje määrittelee yhtenäisen tyylin ja tekniset käytännöt retro-mobiilipeleille. Jokainen peli on yksittäinen HTML-tiedosto (vanilla HTML/CSS/JS, ei riippuvuuksia). Pelit jaetaan yhteisen valikon kautta.
+This guide defines the consistent style and technical practices for retro mobile games. Each game is a single HTML file (vanilla HTML/CSS/JS, no dependencies). Games are accessed through a shared menu.
 
 ---
 
-## 1. Visuaalinen identiteetti
+## 1. Visual Identity
 
-### CRT-retro-teema
-Kaikki pelit ja valikko noudattavat yhtenäistä CRT-fosfori-estetiikkaa:
+### CRT Retro Theme
+All games and the menu follow a unified CRT phosphor aesthetic:
 
-- **Tausta:** `radial-gradient(ellipse at center, #0d0d0d 0%, #000 80%)`
-- **Scanline-efekti:** `::before` pseudo-elementti — `repeating-linear-gradient` 2px välein, `rgba(0,0,0,0.08)`
-- **Vinjetti:** `::after` pseudo-elementti — `radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.65) 100%)`
-- Molemmat `position: fixed; inset: 0; pointer-events: none; z-index: 1000+`
+- **Background:** `radial-gradient(ellipse at center, #0d0d0d 0%, #000 80%)`
+- **Scanline effect:** `::before` pseudo-element — `repeating-linear-gradient` every 2px, `rgba(0,0,0,0.08)`
+- **Vignette:** `::after` pseudo-element — `radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.65) 100%)`
+- Both: `position: fixed; inset: 0; pointer-events: none; z-index: 1000+`
 
-### Väripaletti (CSS-muuttujat)
+### Color Palette (CSS Variables)
 ```css
 :root {
-  --g: #33ff33;          /* Pääväri — vihreä fosfori */
-  --gd: #1a8c1a;         /* Himmennetty vihreä — reunat, inaktiivinen */
-  --bg: #070707;         /* Pelialueen tausta */
-  --glow: rgba(51,255,51,0.12);  /* Hehku-efekti */
-  --amber: #ffaa00;      /* Korostusväri — pisteet, numerot, aktiiviset valinnat */
+  --g: #33ff33;          /* Primary color — green phosphor */
+  --gd: #1a8c1a;         /* Dimmed green — borders, inactive */
+  --bg: #070707;         /* Game area background */
+  --glow: rgba(51,255,51,0.12);  /* Glow effect */
+  --amber: #ffaa00;      /* Accent color — scores, numbers, active selections */
 }
 ```
 
-Värit pysyvät samoina kaikissa peleissä. Pelialueella voi käyttää vihreän sävyjä vaihteluun:
+Colors stay the same across all games. Green shades can be used for variety within the game area:
 `#33ff33, #33dd33, #00ffaa, #66ff66, #00cc66, #22ff88, #44ffcc`
 
-### Typografia
-- **Fontti:** `'Press Start 2P', monospace` (Google Fonts)
-- **Otsikot:** 14–22px, `letter-spacing: 4–5px`, titleGlow-animaatio
-- **Pisteet/arvot:** `--amber` värillä, `text-shadow: 0 0 4–5px var(--amber)`
-- **Labelit:** 5–7px, `opacity: 0.6`, `letter-spacing: 1–2px`
-- **Hintit:** 5px, `opacity: 0.3`
+### Typography
+- **Font:** `'Press Start 2P', monospace` (Google Fonts)
+- **Titles:** 14–22px, `letter-spacing: 4–5px`, titleGlow animation
+- **Scores/values:** `--amber` color, `text-shadow: 0 0 4–5px var(--amber)`
+- **Labels:** 5–7px, `opacity: 0.6`, `letter-spacing: 1–2px`
+- **Hints:** 5px, `opacity: 0.3`
 
-### Animaatiot
+### Animations
 ```css
 @keyframes titleGlow {
   0%, 100% { text-shadow: 0 0 2px #fff, 0 0 8px var(--g), 0 0 20px rgba(51,255,51,0.25) }
@@ -45,35 +45,35 @@ Värit pysyvät samoina kaikissa peleissä. Pelialueella voi käyttää vihreän
   0%, 100% { opacity: 1 } 50% { opacity: 0 }
 }
 ```
-- Pelin nimi: `titleGlow 3s ease-in-out infinite`
-- "Kosketa aloittaaksesi" -tyyppiset hintit: `blink 1.2s step-end infinite`
-- **Overlay h1:** `color: #d0ffd0` — hieman vaaleampi kuin perusvihreä, yhdessä valkoisen sisäisen glown kanssa erottaa kirjaimet taustahehkusta
+- Game title: `titleGlow 3s ease-in-out infinite`
+- "Tap to start" hints: `blink 1.2s step-end infinite`
+- **Overlay h1:** `color: #d0ffd0` — slightly lighter than the base green; combined with white inner glow, letters stay legible against the background glow
 
-**Huom:** Pelkkä `var(--g)` text-shadowna saman värisen tekstin päällä tekee tekstistä epäselvän hehkuvan möykyn. Valkoinen lähiglow (`0 0 2px #fff`) terävöittää kirjainmuodot, ja ulommat tasot käyttävät läpinäkyvää vihreää.
+**Note:** Using `var(--g)` as a text-shadow on same-colored text creates a blurry glowing blob. White close-glow (`0 0 2px #fff`) sharpens the letterforms; outer layers use transparent green.
 
-### Elementtien tyylit
-- **Canvas/pelialue:** `border: 2px solid var(--gd)`, `box-shadow: 0 0 15px var(--glow), inset 0 0 25px rgba(0,0,0,0.4)`, `image-rendering: pixelated`
-- **Pienet paneelit (preview yms.):** `border: 1px solid var(--gd)`, `box-shadow: 0 0 4px var(--glow)`
-- **Overlay-ruudut:** `background: rgba(0,0,0,0.88)`, keskitetty flexbox, `z-index: 500`
-- **Pause-nappi:** Topbarissa vasemman ja oikean välissä (ei boardWrapissa), teksti aina `PAUSE` (ei `| |` tai muuta), `color: var(--gd)`, `border: 1px solid var(--gd)`, `background: none`, ei position-temppuja
+### Element Styles
+- **Canvas/game area:** `border: 2px solid var(--gd)`, `box-shadow: 0 0 15px var(--glow), inset 0 0 25px rgba(0,0,0,0.4)`, `image-rendering: pixelated`
+- **Small panels (preview etc.):** `border: 1px solid var(--gd)`, `box-shadow: 0 0 4px var(--glow)`
+- **Overlay screens:** `background: rgba(0,0,0,0.88)`, centered flexbox, `z-index: 500`
+- **Pause button:** In the topbar between left and right sections (not inside boardWrap), text always `PAUSE` (not `| |` or other symbols), `color: var(--gd)`, `border: 1px solid var(--gd)`, `background: none`, no position tricks
 
-### Piirto-tyyli (canvas-blokit)
-Kun peli piirtää ruudukkoblokkeja canvasille:
+### Drawing Style (Canvas Blocks)
+When the game draws grid blocks on the canvas:
 ```
-- Täytetty blokki: 1px padding joka reunalla
-- Vaaleat highlight-viivat vasempaan yläkulmaan (2px leveitä)
-- Tummat varjo-viivat oikeaan alakulmaan
-- Väri pelin kontekstin mukaan, vihreän sävyistä
+- Filled block: 1px padding on each side
+- Light highlight lines on top-left corner (2px wide)
+- Dark shadow lines on bottom-right corner
+- Color per game context, from the green palette
 ```
 
 ---
 
-## 2. Layout & mobiilioptimointi
+## 2. Layout & Mobile Optimization
 
-### iPhone-ensisijainen suunnittelu
-Jokainen peli suunnitellaan täyttämään koko näyttö ilman scrollausta.
+### iPhone-First Design
+Every game is designed to fill the entire screen without scrolling.
 
-**Pakolliset meta-tagit:**
+**Required meta tags:**
 ```html
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="mobile-web-app-capable" content="yes">
@@ -81,7 +81,7 @@ Jokainen peli suunnitellaan täyttämään koko näyttö ilman scrollausta.
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 ```
 
-**Pakolliset CSS-säännöt:**
+**Required CSS rules:**
 ```css
 html, body {
   height: 100%; height: 100dvh; overflow: hidden;
@@ -96,39 +96,39 @@ body {
 }
 ```
 
-**Scrollauksen esto:**
+**Prevent scrolling:**
 ```javascript
 document.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
 ```
 
-### Sivun rakenne (pystysuunnassa)
+### Page Structure (Vertical)
 ```
 ┌──────────────────────┐
 │  TOPBAR              │  ← flex-shrink: 0, padding: 6px 12px
-│  Nimi  PAUSE  Stats  │     Vasemmalla: pelin nimi + score (topbar-left)
-│                      │     Keskellä: PAUSE-nappi (topbar-left ja topbar-right välissä)
-│                      │     Oikealla: pelikohtainen info (topbar-right)
+│  Name  PAUSE  Stats  │     Left: game name + score (topbar-left)
+│                      │     Center: PAUSE button (between topbar-left and topbar-right)
+│                      │     Right: game-specific info (topbar-right)
 ├──────────────────────┤
 │                      │
 │                      │
-│   PELIALUE           │  ← flex: 1, täyttää kaiken jäljellä olevan tilan
-│   (canvas)           │     Canvas skaalataan dynaamisesti (CSS width/height)
-│                      │     Looginen resoluutio pysyy vakiona
+│   GAME AREA          │  ← flex: 1, fills all remaining space
+│   (canvas)           │     Canvas scaled dynamically (CSS width/height)
+│                      │     Logical resolution stays constant
 │                      │
 │                      │
 ├──────────────────────┤
-│  TOUCH HINT          │  ← flex-shrink: 0, 5px teksti, opacity: 0.3
+│  TOUCH HINT          │  ← flex-shrink: 0, 5px text, opacity: 0.3
 └──────────────────────┘
 ```
 
-### Pelialueen skaalaus
-Canvas piirretään aina kiinteällä loogisella resoluutiolla. CSS-koko skaalataan täyttämään tila:
+### Game Area Scaling
+Canvas is always drawn at a fixed logical resolution. CSS size is scaled to fill the space:
 ```javascript
 function resize() {
   const wrap = document.getElementById('boardWrap');
   const aH = wrap.clientHeight - 8;
   const aW = wrap.clientWidth - 8;
-  // Sovita aspektisuhteen mukaan — pelin oma logiikka
+  // Fit by aspect ratio — game-specific logic
   let h = aH, w = h / ASPECT;
   if (w > aW) { w = aW; h = w * ASPECT; }
   canvas.style.width = Math.floor(w) + 'px';
@@ -140,28 +140,28 @@ setTimeout(resize, 200);
 resize();
 ```
 
-### EI nappeja
-Pelejä ohjataan swipe-eleillä ja tapeilla. Alareunan nappeja EI käytetä — ne vievät arvokasta tilaa mobiilissa. Poikkeus: pieni pause-nappi.
+### NO Buttons
+Games are controlled with swipe gestures and taps.
 
 ---
 
-## 3. Ohjaus (touch + keyboard)
+## 3. Controls (Touch + Keyboard)
 
-### Touch-ohjaus (koko pelialue)
-Ohjaus sidotaan pelialueen wrapper-elementtiin (`boardWrap`). Koko pelialue on kosketusaluetta.
+### Touch Controls (Full Game Area)
+Controls are bound to the game area wrapper element (`boardWrap`). The entire game area is the touch target.
 
-**Periaatteet:**
-- **Swipe vasen/oikea:** liikuta/ohjaa (toistuva — pidempi veto = enemmän siirtoja)
-- **Swipe alas:** soft drop / nopea toiminto
-- **Nopea swipe alas:** hard drop / vahva toiminto (tunnistetaan nopeudesta, ei pelkästä etäisyydestä)
-- **Tap (lyhyt kosketus, <250ms, vähäinen liike):** käännä / ensisijainen toiminto
-- Kynnysarvot: horisontaalinen ~24px per askel, vertikaalinen ~30px per askel
+**Principles:**
+- **Swipe left/right:** move/steer (repeating — longer swipe = more steps)
+- **Swipe down:** soft drop / quick action
+- **Fast swipe down:** hard drop / strong action (detected by speed, not distance alone)
+- **Tap (short touch, <250ms, minimal movement):** rotate / primary action
+- Thresholds: horizontal ~24px per step, vertical ~30px per step
 
-**Vakiokoodi:**
+**Standard code:**
 ```javascript
 const bw = document.getElementById('boardWrap');
 let tx, ty, tt, moved, lastMX, totalDY;
-const SH = 24, SV = 30, HDSPD = 1.5; // px/ms hard drop -nopeus
+const SH = 24, SV = 30, HDSPD = 1.5; // px/ms hard drop speed
 
 bw.addEventListener('touchstart', e => {
   if (!gameRunning || paused || e.target.id === 'pauseBtn') return;
@@ -201,13 +201,13 @@ bw.addEventListener('touchend', e => {
 }, { passive: false });
 ```
 
-Pelikohtaiset funktiot (`moveLeft`, `moveRight`, `softDropAction`, `hardDropAction`, `tapAction`) vaihtelevat pelin mukaan.
+Game-specific functions (`moveLeft`, `moveRight`, `softDropAction`, `hardDropAction`, `tapAction`) vary per game.
 
-### Näppäimistö (PC-tuki)
-Jokaisella pelillä on myös näppäimistöohjaus. Vakio:
-- **Nuolet:** liikkuminen
-- **Ylänuoli / Välilyönti:** ensisijainen toiminto
-- **P / Escape:** pause ja jatka
+### Keyboard (PC Support)
+Every game also has keyboard controls. Standard:
+- **Arrow keys:** movement
+- **Arrow Up / Space:** primary action
+- **P / Escape:** pause and resume
 
 ```javascript
 document.addEventListener('keydown', e => {
@@ -225,38 +225,38 @@ document.addEventListener('keydown', e => {
 
 ---
 
-## 4. Pelirakenne (vakioarkkitehtuuri)
+## 4. Game Structure (Standard Architecture)
 
-Jokainen peli noudattaa samaa perusrakennetta:
+Every game follows the same base structure:
 
-### HTML-runko
+### HTML Skeleton
 ```
-overlay#startScreen   — Pelin nimi + ohjeet + "TAP TO START"
-overlay#gameOver      — "GAME OVER" + lopputulokset + RETRY/EXIT TO MENU -napit
+overlay#startScreen   — Game name + instructions + "TAP TO START"
+overlay#gameOver      — "GAME OVER" + results + RETRY/EXIT TO MENU buttons
 div.game-container    — Topbar + boardWrap + touchHint
-div#pauseOverlay      — "PAUSE" teksti
+div#pauseOverlay      — "PAUSE" text
 ```
 
-### JavaScript-rakenne
+### JavaScript Structure
 ```
-1. Vakiot (ruudukon koko, värit, muodot)
-2. Pelitilamuuttujat
-3. Ääni (beep-funktio Web Audio API:lla)
-4. Pelilogiikka (grid, collision, spawn, clear jne.)
-5. Piirtofunktiot (draw, drawPreview)
-6. UI-päivitykset (updateUI, showGameOver)
-7. Input-funktiot (move, rotate, drop jne.)
-8. Näppäimistökuuntelija
-9. Touch-kuuntelijat (boardWrap)
-10. Pause-toiminnallisuus
+1. Constants (grid size, colors, shapes)
+2. Game state variables
+3. Audio (beep function via Web Audio API)
+4. Game logic (grid, collision, spawn, clear etc.)
+5. Draw functions (draw, drawPreview)
+6. UI updates (updateUI, showGameOver)
+7. Input functions (move, rotate, drop etc.)
+8. Keyboard listener
+9. Touch listeners (boardWrap)
+10. Pause functionality
 11. Game loop (requestAnimationFrame)
 12. startGame()
-13. Overlay-kuuntelijat (start/retry)
+13. Overlay listeners (start/retry)
 14. resize()
 ```
 
-### Ääniefektit
-Kaikki äänet tuotetaan Web Audio API:lla — square wave -tyyppiset retro-biipit:
+### Sound Effects
+All sounds are produced via Web Audio API — square wave retro beeps:
 ```javascript
 let audioCtx;
 function beep(freq, duration, volume = 0.08) {
@@ -275,23 +275,23 @@ function beep(freq, duration, volume = 0.08) {
   } catch(e) {}
 }
 ```
-**Huom:** `audioCtx.resume()` on pakollinen — iOS Safari ja monet mobiiliselaimet luovat AudioContextin `suspended`-tilassa. Ilman resumea ääntä ei kuulu.
-Tyypilliset äänet: liike 220Hz/50ms, käännös 440Hz/60ms, pudotus 160Hz/100ms, rivin poisto 660Hz/150ms, game over 100Hz/400ms.
+**Note:** `audioCtx.resume()` is required — iOS Safari and many mobile browsers create the AudioContext in `suspended` state. Without resume, no sound plays.
+Typical sounds: move 220Hz/50ms, rotate 440Hz/60ms, drop 160Hz/100ms, line clear 660Hz/150ms, game over 100Hz/400ms.
 
-### High score
-Tallennetaan `localStorage`:een pelikohtaisella avaimella:
+### High Score
+Saved to `localStorage` with a game-specific key:
 ```javascript
-try { localStorage.setItem('PELINIMI_hi', hiScore); } catch(e) {}
+try { localStorage.setItem('GAMENAME_hi', hiScore); } catch(e) {}
 ```
 
-### Game loop
+### Game Loop
 ```javascript
 function gameLoop(time) {
   if (!gameRunning) { draw(); return; }
   if (paused) return;
   const dt = time - (lastTime || time);
   lastTime = time;
-  // Pelilogiikka dt:n perusteella
+  // Game logic based on dt
   draw();
   requestAnimationFrame(gameLoop);
 }
@@ -299,34 +299,34 @@ function gameLoop(time) {
 
 ---
 
-## 5. Overlay-ruudut
+## 5. Overlay Screens
 
-### Aloitusruutu
-- Pelin nimi isolla (`<h1>`, titleGlow)
-- Lyhyet ohjeet (swipe/tap -kuvaukset pelin kontekstissa)
-- "PRESS START" vilkkuvalla animaatiolla (tai "TAP TO START")
-- Kaikki tekstit englanniksi
-- **Käynnistys:** click, touchend JA `Enter`/`Space`-näppäin
+### Start Screen
+- Game name large (`<h1>`, titleGlow)
+- Short instructions (swipe/tap descriptions in game context)
+- "PRESS START" with blink animation (or "TAP TO START")
+- All text in English
+- **Activation:** click, touchend AND `Enter`/`Space` key
 
-### Game over -ruutu
-- "GAME OVER" amber-värillä
-- Lopputulos (pisteet, taso, erityistiedot pelistä riippuen)
-- Kaksi nappia: RETRY ja EXIT TO MENU (samat `pause-menu-btn`-tyylit kuin pause-valikossa)
-- RETRY on oletusvalinta (`sel`-luokka)
-- **Näppäimistönavigointi:** ↑↓ vaihtaa RETRY / EXIT TO MENU välillä, Enter/Space vahvistaa
-- **Touch/click:** napit reagoivat click + touchend -tapahtumiin
-- EXIT TO MENU vie suoraan valikkoon (`window.location.href = 'index.html'`) — ei confirm-dialogia (peli on jo päättynyt)
-- Sama koskee win-ruutuja (CONTINUE + EXIT TO MENU)
+### Game Over Screen
+- "GAME OVER" in amber
+- Final result (score, level, game-specific details)
+- Two buttons: RETRY and EXIT TO MENU (same `pause-menu-btn` styles as pause menu)
+- RETRY is default selection (`sel` class)
+- **Keyboard navigation:** ↑↓ toggles RETRY / EXIT TO MENU, Enter/Space confirms
+- **Touch/click:** buttons respond to click + touchend events
+- EXIT TO MENU goes directly to menu (`window.location.href = 'index.html'`) — no confirm dialog (game is already over)
+- Same applies to win screens (CONTINUE + EXIT TO MENU)
 
 ### Pause
-- Erillinen overlay `z-index: 400`
-- "PAUSE" vilkkuvalla animaatiolla
-- Overlay sisältää "RESUME" ja "EXIT TO MENU" -napit
-- `P`/`Escape` pausettaa ja jatkaa peliä (paitsi EXIT TO MENU -napista)
-- Näppäimistönavigointi: ↑↓ vaihtaa RESUME / EXIT TO MENU välillä, Enter vahvistaa
+- Separate overlay `z-index: 400`
+- "PAUSE" with blink animation
+- Overlay contains "RESUME" and "EXIT TO MENU" buttons
+- `P`/`Escape` pauses and resumes the game (except from EXIT TO MENU button)
+- Keyboard navigation: ↑↓ toggles RESUME / EXIT TO MENU, Enter confirms
 
-**Pause-napin kuuntelijat — TÄRKEÄÄ:**
-PauseBtn tarvitsee sekä `click` että `touchend` — boardWrap kutsuu `e.preventDefault()` touchend:ssä, mikä estää `click`-tapahtuman syntymisen mobiilissa:
+**Pause button listeners — IMPORTANT:**
+pauseBtn needs both `click` and `touchend` — boardWrap calls `e.preventDefault()` on touchend, which prevents the `click` event from firing on mobile:
 ```javascript
 document.getElementById('pauseBtn').addEventListener('click', e => { e.stopPropagation(); togglePause(); });
 document.getElementById('pauseBtn').addEventListener('touchend', e => { e.stopPropagation(); e.preventDefault(); togglePause(); });
@@ -336,12 +336,12 @@ pauseOv.addEventListener('touchend', e => { if (!['resumeBtn','menuBtn','confirm
 ['click', 'touchend'].forEach(ev => document.getElementById('menuBtn').addEventListener(ev, e => { e.stopPropagation(); e.preventDefault(); showConfirm(); }));
 ```
 
-### Overlay-kuuntelijoiden vakiokoodi
+### Standard Overlay Listener Code
 
-Kaikki overlayt tukevat sekä hiirtä, touchia että näppäimistöä — peli on pelattavissa kokonaan ilman hiirtä:
+All overlays support mouse, touch, and keyboard — the game is fully playable without a mouse:
 
 ```javascript
-// Game over -valikko
+// Game over menu
 let goSel = 0; // 0=RETRY, 1=EXIT TO MENU
 function updateGoSel() {
   document.getElementById('goRetryBtn').classList.toggle('sel', goSel === 0);
@@ -365,7 +365,7 @@ function goMenu() { window.location.href = 'index.html'; }
   });
 });
 
-// Näppäimistö — Enter tai Space käynnistää aloitusruudulta
+// Keyboard — Enter or Space starts from the start screen
 document.addEventListener('keydown', e => {
   if (e.key === 'Enter' || e.key === ' ') {
     const start = document.getElementById('startScreen');
@@ -376,7 +376,7 @@ document.addEventListener('keydown', e => {
 });
 ```
 
-Game over -näppäimistönavigointi (↑↓ + Enter) lisätään pääkeydown-kuuntelijaan pauselogiikan jälkeen:
+Game over keyboard navigation (↑↓ + Enter) is added to the main keydown listener after pause logic:
 ```javascript
   // Game over menu navigation
   if (!document.getElementById('gameOver').classList.contains('hidden')) {
@@ -386,65 +386,63 @@ Game over -näppäimistönavigointi (↑↓ + Enter) lisätään pääkeydown-ku
   }
 ```
 
-**Huom:** Jos pelissä on muitakin overlay-ruutuja (esim. "ALL CLEAR" / "YOU WIN"), lisää niille vastaavat napit ja navigointi samalla tavalla.
+**Note:** If a game has additional overlay screens (e.g. "ALL CLEAR" / "YOU WIN"), add equivalent buttons and navigation the same way.
 
 ---
 
-## 6. Tiedostorakenne
+## 6. File Structure
 
 ```
 games/
-├── index.html          ← Päävalikko
+├── index.html          ← Main menu
 ├── tetris.html         ← Tetris
-├── snake.html          ← Snake
-├── breakout.html       ← Breakout
+├── arkanoid.html       ← Arkanoid
 ├── pong.html           ← Pong
-└── ...                 ← Lisää pelejä
+└── ...                 ← More games
 ```
 
-Jokainen peli on itsenäinen HTML-tiedosto — ei jaettuja JS/CSS-tiedostoja. Tämä pitää asiat yksinkertaisina ja jokaisen pelin helposti testattavana ja jaettavana erikseen.
+Every game is a standalone HTML file — no shared JS/CSS files. This keeps things simple and each game easy to test and share independently.
 
 ---
 
-## 7. Päävalikko (index.html)
+## 7. Main Menu (index.html)
 
-Valikko noudattaa samaa CRT-tyyliä. Rakenne:
+The menu follows the same CRT style. Structure:
 
 ```
 ┌──────────────────────┐
 │     RETRO ARCADE     │  ← titleGlow
 ├──────────────────────┤
 │                      │
-│  ► TETRIS      1250  │  ← Pelilistaus, hi-score oikealla
-│  ► SNAKE        890  │     Valittu/hover: --amber korostus
-│  ► BREAKOUT     640  │     Tap/click avaa pelin
-│  ► PONG         ---  │     "---" jos ei hi-scorea
-│                      │
+│  ► TETRIS      1250  │  ← Game listing, hi-score on right
+│  ► ARKANOID     890  │     Selected/hover: --amber highlight
+│  ► PONG         ---  │     Tap/click opens game
+│                      │     "---" if no hi-score
 └──────────────────────┘
 │     SWIPE ↑↓ SELECT
       TAP TO PLAY
 ```
 
-- Pelilista scrollattavissa jos useita pelejä
-- Hi-scoret luetaan `localStorage`:sta (avaimet: `tetris_hi`, `snake_hi` jne.)
-- Navigointi: `window.location.href = 'tetris.html'`
-- Jokaisessa pelissä "takaisin valikkoon" -tapa (esim. pelin otsikkoa painamalla tai pieni ← ikoni)
+- Game list is scrollable if many games
+- Hi-scores are read from `localStorage` (keys: `tetris_hi`, `arkanoid_hi` etc.)
+- Navigation: `window.location.href = 'tetris.html'`
+- Each game has a way back to menu (e.g. EXIT TO MENU in pause/game over)
 
 ---
 
-## 8. Kieli
+## 8. Language
 
-- Kaikki pelien tekstit **englanniksi** — ohjeet, hintit, overlayt, pelitermit
-- Esimerkkejä: "TAP TO START", "TAP TO RETRY", "GAME OVER", "SWIPE ←→ MOVE", "TAP ROTATE", "FAST↓ DROP", "SCORE", "LEVEL", "LINES", "HI", "NEXT", "PAUSE"
-- Englanti on luonteva kieli retro-arcade-kontekstissa ja tekee peleistä universaalisti pelattavia
+- All in-game text **in English** — instructions, hints, overlays, game terms
+- Examples: "TAP TO START", "TAP TO RETRY", "GAME OVER", "SWIPE ←→ MOVE", "TAP ROTATE", "FAST↓ DROP", "SCORE", "LEVEL", "LINES", "HI", "NEXT", "PAUSE"
+- English is the natural language for a retro arcade context and makes games universally playable
 
 ---
 
-## 9. Automaattitestaus (Playwright)
+## 9. Automated Testing (Playwright)
 
-Jokainen peli testataan automaattisesti headless-selaimella ennen julkaisua. Testit ajetaan Playwrightilla (Chromium) ja ne simuloivat oikeaa pelaamista — näppäimistöä, touch-eleitä ja pelitilan manipulointia.
+Every game is tested automatically in a headless browser before release. Tests run with Playwright (Chromium) and simulate real gameplay — keyboard, touch gestures, and direct state manipulation.
 
-### Ympäristö ja setup
+### Environment and Setup
 
 ```javascript
 const { chromium } = require('playwright');
@@ -453,34 +451,34 @@ const path = require('path');
 const browser = await chromium.launch();
 const page = await browser.newPage({
   viewport: { width: 390, height: 844 },  // iPhone 14
-  hasTouch: true                           // Pakollinen touch-testeille
+  hasTouch: true                           // Required for touch tests
 });
-await page.goto('file://' + path.resolve('peli.html'));
+await page.goto('file://' + path.resolve('game.html'));
 await page.waitForTimeout(500);
 ```
 
-### Testikategoriat
+### Test Categories
 
-Jokaisen pelin testiskripti kattaa nämä kategoriat:
+Every game's test script covers these categories:
 
-#### 1. UI-tila ja overlay-ruudut
-- Aloitusruutu näkyy ladattaessa
-- Klikkaus/tap piilottaa aloitusruudun ja käynnistää pelin
-- Game over -ruutu näkyy pelin päättyessä
-- Retry käynnistää pelin uudelleen
+#### 1. UI State and Overlay Screens
+- Start screen is visible on load
+- Click/tap hides the start screen and starts the game
+- Game over screen appears when the game ends
+- Retry restarts the game
 
 ```javascript
-// Esimerkki
+// Example
 const startVisible = await page.isVisible('#startScreen');
 await page.click('#startScreen');
 await page.waitForTimeout(300);
 const startHidden = await page.isHidden('#startScreen');
 ```
 
-#### 2. Alkutila
+#### 2. Initial State
 - `gameRunning === true`, `paused === false`
-- Pisteet 0, oikea elämienmäärä, taso 1
-- Pelikohtaiset alkuarvot (esim. invaderien määrä, tiilien määrä)
+- Score 0, correct number of lives, level 1
+- Game-specific initial values (e.g. invader count, brick count)
 
 ```javascript
 const state = await page.evaluate(() => ({
@@ -488,10 +486,10 @@ const state = await page.evaluate(() => ({
 }));
 ```
 
-#### 3. Näppäimistöohjaus
-- Nuolinäppäimet liikuttavat pelaajaa/palikkaa
-- Ensisijainen toiminto (ylänuoli/välilyönti) toimii
-- Yksittäiset painallukset rekisteröityvät (ei vain keysDown-looppi)
+#### 3. Keyboard Controls
+- Arrow keys move the player/piece
+- Primary action (arrow up/space) works
+- Individual key presses register (not just keysDown loop)
 
 ```javascript
 await page.evaluate(() => { playerX = 150; });
@@ -500,9 +498,9 @@ const after = await page.evaluate(() => playerX);
 // assert after < 150
 ```
 
-#### 4. Pelaajan rajat
-- Pelaaja/maila ei mene pelialueen ulkopuolelle
-- Clamp toimii myös suoralla state-manipulaatiolla (ei vain input-funktioissa)
+#### 4. Player Bounds
+- Player/paddle does not go outside the game area
+- Clamp works also with direct state manipulation (not just input functions)
 
 ```javascript
 await page.evaluate(() => { playerX = -10; });
@@ -511,14 +509,14 @@ const clamped = await page.evaluate(() => playerX);
 // assert clamped >= 0
 ```
 
-#### 5. Pelimekaniikka
-Pelikohtaiset testit jotka varmistavat ydinlogiikan:
-- **Breakout:** pallo kimpoaa mailasta/tiilistä, tiilet tuhoutuvat, taso vaihtuu
-- **Tetris:** palikan pudotus, rivien poisto, collision
-- **Invaders:** ammus osuu invaderiin, pisteytys, invaderit liikkuvat, wave clear
+#### 5. Game Mechanics
+Game-specific tests that verify core logic:
+- **Arkanoid:** ball bounces off paddle/bricks, bricks are destroyed, level advances
+- **Tetris:** piece drops, line clear, collision
+- **Invaders:** bullet hits invader, scoring, invaders move, wave clear
 
 ```javascript
-// Suora osuma — aseta ammus/pallo lähelle kohdetta
+// Direct hit — place bullet/ball near target
 await page.evaluate(() => {
   playerBullet = { x: targetX, y: targetY + 5 };
 });
@@ -530,27 +528,27 @@ for (let i = 0; i < 30; i++) {
 ```
 
 #### 6. Pause
-- P-näppäin aktivoi paussin
-- Overlay näkyy
-- Toinen P jatkaa peliä
+- P key activates pause
+- Overlay is visible
+- Second P resumes the game
 
-#### 7. Elämät ja game over
-- Elämän menetys laskee laskuria
-- Nollassa game over -ruutu näkyy ja `gameRunning === false`
+#### 7. Lives and Game Over
+- Life loss decrements the counter
+- At zero, game over screen appears and `gameRunning === false`
 
 ```javascript
-// Pakota kuolema
+// Force death
 await page.evaluate(() => {
   livesVal = 1;
-  // aseta kuoleman aiheuttava tila
+  // set state that causes death
 });
-// Aja frameja
-// Tarkista: gameRunning === false, gameOver-overlay näkyy
+// Run frames
+// Check: gameRunning === false, gameOver overlay visible
 ```
 
-#### 8. Canvas-resize
-- Eri viewport-koot tuottavat eri canvas CSS-koot
-- Testataan vähintään kahdella koolla (esim. iPhone SE + iPhone 14 Pro Max)
+#### 8. Canvas Resize
+- Different viewport sizes produce different canvas CSS sizes
+- Test with at least two sizes (e.g. iPhone SE + iPhone 14 Pro Max)
 
 ```javascript
 await page.setViewportSize({ width: 320, height: 568 });
@@ -562,49 +560,49 @@ const size2 = await page.evaluate(() => canvas.style.width);
 // assert size1 !== size2
 ```
 
-#### 9. High score
-- `localStorage`-avain tallennetaan kun saadaan pisteitä
-- Avain noudattaa `pelinimi_hi` -muotoa
+#### 9. High Score
+- `localStorage` key is saved when points are earned
+- Key follows the `gamename_hi` format
 
-#### 10. Touch-simulaatio
-- Tap pelialueella suorittaa ensisijaisen toiminnon
-- Konteksti: `hasTouch: true` Playwright-asetuksissa
+#### 10. Touch Simulation
+- Tap on game area performs the primary action
+- Context: `hasTouch: true` in Playwright settings
 
 ```javascript
 const box = await page.locator('#boardWrap').boundingBox();
 await page.touchscreen.tap(box.x + box.width/2, box.y + box.height/2);
 ```
 
-#### 11. Pitkä pelitesti (stressitesti)
-- AI-ohjattu pelaaminen 300–500 framea
-- Tarkistetaan ettei tule NaN-arvoja, jumittuneita tiloja tai kaatumisia
-- Yksinkertainen AI seuraa kohdetta ja suorittaa toimintoja
+#### 11. Long Play Test (Stress Test)
+- AI-driven play for 300–500 frames
+- Check for NaN values, stuck states, or crashes
+- Simple AI follows a target and performs actions
 
 ```javascript
 for (let i = 0; i < 500; i++) {
   const s = await page.evaluate(() => ({
-    gameRunning, playerX, scoreVal, /* pelikohtaiset */ 
+    gameRunning, playerX, scoreVal, /* game-specific */
   }));
   if (!s.gameRunning) break;
-  
-  // NaN-tarkistus
+
+  // NaN check
   if (isNaN(s.playerX)) { anomalies.push('NaN'); break; }
-  
-  // Yksinkertainen AI
+
+  // Simple AI
   if (targetX < s.playerX) await page.keyboard.press('ArrowLeft');
   else if (targetX > s.playerX) await page.keyboard.press('ArrowRight');
-  else await page.keyboard.press('ArrowUp'); // toiminto
-  
+  else await page.keyboard.press('ArrowUp'); // action
+
   await page.evaluate(() => new Promise(r => requestAnimationFrame(r)));
 }
 ```
 
-### Tulostusmuoto
+### Output Format
 
-Testiskripti tulostaa selkeän listan tuloksista:
+The test script prints a clear list of results:
 
 ```
-=== PELINIMI AUTOMATED TEST ===
+=== GAMENAME AUTOMATED TEST ===
 
 [1] Start screen
   ✓ visible
@@ -619,7 +617,7 @@ Testiskripti tulostaa selkeän listan tuloksista:
 === RESULTS: 30 passed, 2 failed ===
 ```
 
-Helper-funktio:
+Helper function:
 ```javascript
 let pass = 0, fail = 0;
 function check(name, ok) {
@@ -628,62 +626,62 @@ function check(name, ok) {
 }
 ```
 
-### Testien ajaminen
+### Running Tests
 
 ```bash
-# Playwright-asennus (kerran)
+# Install Playwright (once)
 npx playwright install chromium
 
-# Testin ajo
-node test-pelinimi.js
+# Run test
+node test-gamename.js
 ```
 
-### Huomioita
+### Notes
 
-- **Frame-by-frame ajo:** Käytä `await page.evaluate(() => new Promise(r => requestAnimationFrame(r)))` yhden framen ajamiseen — tarkempaa kuin `waitForTimeout`
-- **State-manipulaatio:** `page.evaluate()` pääsee suoraan pelin muuttujiin — hyödynnä tätä vaikeiden tilanteiden testaamiseen (aseta pallo lähelle kohdetta, pakota kuolema jne.)
-- **Ajoitusongelmat:** Playwright-framien välissä on overhead (~5–20ms), joten liikkuvien kohteiden osumatesteissä aseta ammus/pallo lähelle kohdetta sen sijaan että odotat luonnollista osumaa
-- **Touch vaatii `hasTouch: true`:** Muuten `page.touchscreen.tap()` heittää virheen
-
----
-
-## 10. Tarkistuslista uudelle pelille
-
-Kun luot uuden pelin, varmista:
-
-- [ ] Yksi HTML-tiedosto, ei ulkoisia riippuvuuksia (paitsi Google Fonts)
-- [ ] CRT-efektit (scanlines, vinjetti) `body.crt`
-- [ ] CSS-muuttujat — käytä samaa palettia
-- [ ] Press Start 2P -fontti
-- [ ] iPhone meta-tagit ja safe area -tuet
-- [ ] Koko näyttö, ei scrollausta, `100dvh`
-- [ ] Pelialue täyttää kaiken tilan topbarin ja hintin välissä
-- [ ] Touch-ohjaus koko pelialueella (ei nappeja)
-- [ ] Näppäimistötuki PC:lle
-- [ ] Aloitusruutu ohjeilla
-- [ ] Game over -ruutu tuloksilla
-- [ ] Overlayt reagoivat Enter/Space-näppäimeen (peli pelattavissa kokonaan näppäimistöllä)
-- [ ] Pause-toiminnallisuus (P-näppäin + nappi)
-- [ ] Ääniefektit (beep-funktio)
-- [ ] High score localStorageen
-- [ ] `resize()`-funktio joka skaalaa canvasin
-- [ ] `requestAnimationFrame`-pohjainen game loop delta-ajalla
-- [ ] Kaikki tekstit englanniksi
-- [ ] LocalStorage-avain muotoa `pelinimi_hi`
-- [ ] Automaattitestit ajettu ja läpi (ks. kohta 9)
+- **Frame-by-frame execution:** Use `await page.evaluate(() => new Promise(r => requestAnimationFrame(r)))` to advance one frame — more precise than `waitForTimeout`
+- **State manipulation:** `page.evaluate()` has direct access to game variables — use this to test difficult situations (place ball near target, force death etc.)
+- **Timing issues:** There is overhead between Playwright frames (~5–20ms), so for moving target collision tests place the bullet/ball near the target rather than waiting for a natural hit
+- **Touch requires `hasTouch: true`:** Otherwise `page.touchscreen.tap()` throws an error
 
 ---
 
-## 11. Referenssitoteutus
+## 10. Checklist for a New Game
 
-Tetris-klooni (`tetris.html`) toimii referenssinä kaikille tuleville peleille. Se demonstroi:
-- CRT-tyylin toteutuksen
-- Topbar-layoutin (nimi + score vasemmalla, level + lines + next-preview oikealla)
-- Koko pelialueen touch-ohjauksen ilman nappeja
-- Canvas-skaalauksen mobiilille
-- 7-bag randomizerin
-- Ghost piece -efektin
-- Lock delay -mekaniikan
-- Overlay-ruutujen rakenteen
+When creating a new game, verify:
 
-Käytä sitä pohjana ja sovella pelin vaatimuksiin.
+- [ ] Single HTML file, no external dependencies (except Google Fonts)
+- [ ] CRT effects (scanlines, vignette) via `body.crt`
+- [ ] CSS variables — use the same palette
+- [ ] Press Start 2P font
+- [ ] iPhone meta tags and safe area support
+- [ ] Full screen, no scrolling, `100dvh`
+- [ ] Game area fills all space between topbar and hint
+- [ ] Touch controls on full game area (no buttons)
+- [ ] Keyboard support for PC
+- [ ] Start screen with instructions
+- [ ] Game over screen with results
+- [ ] Overlays respond to Enter/Space key (game fully playable with keyboard)
+- [ ] Pause functionality (P key + button)
+- [ ] Sound effects (beep function)
+- [ ] High score to localStorage
+- [ ] `resize()` function that scales the canvas
+- [ ] `requestAnimationFrame`-based game loop with delta time
+- [ ] All text in English
+- [ ] localStorage key in format `gamename_hi`
+- [ ] Automated tests run and passing (see section 9)
+
+---
+
+## 11. Reference Implementation
+
+The Tetris clone (`tetris.html`) serves as the reference for all future games. It demonstrates:
+- CRT style implementation
+- Topbar layout (name + score on left, level + lines + next-preview on right)
+- Full game area touch controls without buttons
+- Canvas scaling for mobile
+- 7-bag randomizer
+- Ghost piece effect
+- Lock delay mechanic
+- Overlay screen structure
+
+Use it as a reference and adapt to the game's requirements.
