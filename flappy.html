@@ -444,7 +444,7 @@ function updateConfirmSel(){
 function gameLoop(time) {
   if (!gameRunning) { draw(); return; }
   if (paused) return;
-  const dt = Math.min(time - (lastTime || time), 32); // cap at ~30fps min
+  const dt = Math.min(time - (lastTime || time), 18); // cap at one 60fps frame
   lastTime = time;
 
   // Bird physics
