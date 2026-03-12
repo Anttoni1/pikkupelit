@@ -124,7 +124,8 @@ canvas#board{
 <div class="overlay hidden" id="gameOver">
   <h2>GAME OVER</h2>
   <div class="final-score">SCORE <span id="finalScore">0</span><br>LINES <span id="finalLines">0</span><br>LEVEL <span id="finalLevel">1</span></div>
-  <div class="start-hint">TAP TO RETRY</div>
+  <button class="pause-menu-btn sel" id="goRetryBtn">RETRY</button>
+  <button class="pause-menu-btn" id="goMenuBtn">EXIT TO MENU</button>
 </div>
 
 <div class="game-container" id="gameUI">
@@ -204,7 +205,13 @@ function draw(){
 }
 function drawPreview(){pvCtx.fillStyle='#070707';pvCtx.fillRect(0,0,pvC.width,pvC.height);if(!nextPiece)return;const ox=Math.floor((5-nextPiece[0].length)/2),oy=Math.floor((5-nextPiece.length)/2);for(let y=0;y<nextPiece.length;y++)for(let x=0;x<nextPiece[y].length;x++)if(nextPiece[y][x])drawBlock(pvCtx,ox+x,oy+y,nextPiece[y][x],PB);}
 function updateUI(){document.getElementById('score').textContent=scoreVal;document.getElementById('level').textContent=levelVal;document.getElementById('lines').textContent=linesVal;if(scoreVal>hiScore){hiScore=scoreVal;try{localStorage.setItem('tetris_hi',hiScore)}catch(e){}}document.getElementById('hi').textContent=hiScore;}
-function showGameOver(){document.getElementById('finalScore').textContent=scoreVal;document.getElementById('finalLines').textContent=linesVal;document.getElementById('finalLevel').textContent=levelVal;document.getElementById('gameOver').classList.remove('hidden');}
+function showGameOver(){document.getElementById('finalScore').textContent=scoreVal;document.getElementById('finalLines').textContent=linesVal;document.getElementById('finalLevel').textContent=levelVal;document.getElementById('gameOver').classList.remove('hidden');goSel=0;updateGoSel();}
+
+// Game over menu
+let goSel=0;
+function updateGoSel(){document.getElementById('goRetryBtn').classList.toggle('sel',goSel===0);document.getElementById('goMenuBtn').classList.toggle('sel',goSel===1);}
+function goRetry(){document.getElementById('gameOver').classList.add('hidden');startGame();}
+function goMenu(){window.location.href='index.html';}
 
 function moveL(){if(piece&&!collides(piece,px-1,py)){px--;beep(220,0.05);lockDelay=0;}}
 function moveR(){if(piece&&!collides(piece,px+1,py)){px++;beep(220,0.05);lockDelay=0;}}
@@ -230,6 +237,12 @@ document.addEventListener('keydown',e=>{
     return;
   }
   if(e.key==='p'||e.key==='P'||e.key==='Escape'){e.preventDefault();togglePause();return;}
+  // Game over menu navigation
+  if(!document.getElementById('gameOver').classList.contains('hidden')){
+    if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();goSel=goSel===0?1:0;updateGoSel();}
+    else if(e.key==='Enter'||e.key===' '){e.preventDefault();if(goSel===1)goMenu();else goRetry();}
+    return;
+  }
   if(!gameRunning||paused)return;
   switch(e.key){case'ArrowLeft':e.preventDefault();moveL();break;case'ArrowRight':e.preventDefault();moveR();break;case'ArrowDown':e.preventDefault();if(moveD()){scoreVal++;updateUI();}break;case'ArrowUp':e.preventDefault();rotatePiece();break;case' ':e.preventDefault();hardDrop();break;}
 });
@@ -302,13 +315,13 @@ function startGame(){
 }
 ['click','touchend'].forEach(ev=>{
   document.getElementById('startScreen').addEventListener(ev,e=>{e.preventDefault();document.getElementById('startScreen').classList.add('hidden');startGame();});
-  document.getElementById('gameOver').addEventListener(ev,e=>{e.preventDefault();document.getElementById('gameOver').classList.add('hidden');startGame();});
+  document.getElementById('goRetryBtn').addEventListener(ev,e=>{e.stopPropagation();e.preventDefault();goRetry();});
+  document.getElementById('goMenuBtn').addEventListener(ev,e=>{e.stopPropagation();e.preventDefault();goMenu();});
 });
 document.addEventListener('keydown',e=>{
   if(e.key==='Enter'||e.key===' '){
-    const s=document.getElementById('startScreen'),o=document.getElementById('gameOver');
+    const s=document.getElementById('startScreen');
     if(!s.classList.contains('hidden')){e.preventDefault();s.classList.add('hidden');startGame();}
-    else if(!o.classList.contains('hidden')){e.preventDefault();o.classList.add('hidden');startGame();}
   }
 });
 

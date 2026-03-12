@@ -232,7 +232,7 @@ Jokainen peli noudattaa samaa perusrakennetta:
 ### HTML-runko
 ```
 overlay#startScreen   — Pelin nimi + ohjeet + "TAP TO START"
-overlay#gameOver      — "GAME OVER" + lopputulokset + "TAP TO RETRY"
+overlay#gameOver      — "GAME OVER" + lopputulokset + RETRY/EXIT TO MENU -napit
 div.game-container    — Topbar + boardWrap + touchHint
 div#pauseOverlay      — "PAUSE" teksti
 ```
@@ -311,8 +311,12 @@ function gameLoop(time) {
 ### Game over -ruutu
 - "GAME OVER" amber-värillä
 - Lopputulos (pisteet, taso, erityistiedot pelistä riippuen)
-- "PRESS RETRY" (tai "TAP TO RETRY")
-- **Uudelleen:** click, touchend JA `Enter`/`Space`-näppäin
+- Kaksi nappia: RETRY ja EXIT TO MENU (samat `pause-menu-btn`-tyylit kuin pause-valikossa)
+- RETRY on oletusvalinta (`sel`-luokka)
+- **Näppäimistönavigointi:** ↑↓ vaihtaa RETRY / EXIT TO MENU välillä, Enter/Space vahvistaa
+- **Touch/click:** napit reagoivat click + touchend -tapahtumiin
+- EXIT TO MENU vie suoraan valikkoon (`window.location.href = 'index.html'`) — ei confirm-dialogia (peli on jo päättynyt)
+- Sama koskee win-ruutuja (CONTINUE + EXIT TO MENU)
 
 ### Pause
 - Erillinen overlay `z-index: 400`
@@ -337,6 +341,15 @@ pauseOv.addEventListener('touchend', e => { if (!['resumeBtn','menuBtn','confirm
 Kaikki overlayt tukevat sekä hiirtä, touchia että näppäimistöä — peli on pelattavissa kokonaan ilman hiirtä:
 
 ```javascript
+// Game over -valikko
+let goSel = 0; // 0=RETRY, 1=EXIT TO MENU
+function updateGoSel() {
+  document.getElementById('goRetryBtn').classList.toggle('sel', goSel === 0);
+  document.getElementById('goMenuBtn').classList.toggle('sel', goSel === 1);
+}
+function goRetry() { document.getElementById('gameOver').classList.add('hidden'); startGame(); }
+function goMenu() { window.location.href = 'index.html'; }
+
 // Click & touch
 ['click', 'touchend'].forEach(ev => {
   document.getElementById('startScreen').addEventListener(ev, e => {
@@ -344,28 +357,36 @@ Kaikki overlayt tukevat sekä hiirtä, touchia että näppäimistöä — peli o
     document.getElementById('startScreen').classList.add('hidden');
     startGame();
   });
-  document.getElementById('gameOver').addEventListener(ev, e => {
-    e.preventDefault();
-    document.getElementById('gameOver').classList.add('hidden');
-    startGame();
+  document.getElementById('goRetryBtn').addEventListener(ev, e => {
+    e.stopPropagation(); e.preventDefault(); goRetry();
+  });
+  document.getElementById('goMenuBtn').addEventListener(ev, e => {
+    e.stopPropagation(); e.preventDefault(); goMenu();
   });
 });
 
-// Näppäimistö — Enter tai Space käynnistää/yrittää uudelleen
+// Näppäimistö — Enter tai Space käynnistää aloitusruudulta
 document.addEventListener('keydown', e => {
   if (e.key === 'Enter' || e.key === ' ') {
     const start = document.getElementById('startScreen');
-    const over = document.getElementById('gameOver');
     if (!start.classList.contains('hidden')) {
       e.preventDefault(); start.classList.add('hidden'); startGame();
-    } else if (!over.classList.contains('hidden')) {
-      e.preventDefault(); over.classList.add('hidden'); startGame();
     }
   }
 });
 ```
 
-**Huom:** Jos pelissä on muitakin overlay-ruutuja (esim. "ALL CLEAR"), lisää ne samaan keydown-kuuntelijaan.
+Game over -näppäimistönavigointi (↑↓ + Enter) lisätään pääkeydown-kuuntelijaan pauselogiikan jälkeen:
+```javascript
+  // Game over menu navigation
+  if (!document.getElementById('gameOver').classList.contains('hidden')) {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); goSel = goSel === 0 ? 1 : 0; updateGoSel(); }
+    else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (goSel === 1) goMenu(); else goRetry(); }
+    return;
+  }
+```
+
+**Huom:** Jos pelissä on muitakin overlay-ruutuja (esim. "ALL CLEAR" / "YOU WIN"), lisää niille vastaavat napit ja navigointi samalla tavalla.
 
 ---
 
