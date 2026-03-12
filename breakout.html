@@ -486,15 +486,14 @@ function handleKeyboardInput() {
 
 // ── Touch: full board swipe ──
 const bw = document.getElementById('boardWrap');
-let tx, ty, tt, moved, lastMX, totalDY;
-const SH = 12, SV = 30, HDSPD = 1.5;
+let tx, ty, tt, moved, lastMX;
 
 bw.addEventListener('touchstart', e => {
   if (!gameRunning || paused || e.target.id === 'pauseBtn') return;
   e.preventDefault();
   const t = e.touches[0];
   tx = t.clientX; ty = t.clientY; tt = Date.now();
-  moved = false; lastMX = tx; totalDY = 0;
+  moved = false; lastMX = tx;
 }, { passive: false });
 
 bw.addEventListener('touchmove', e => {
@@ -502,12 +501,10 @@ bw.addEventListener('touchmove', e => {
   e.preventDefault();
   const t = e.touches[0];
   const dx = t.clientX - lastMX;
-  if (Math.abs(dx) > SH) {
-    const s = Math.floor(Math.abs(dx) / SH);
-    if (dx > 0) movePaddleRight(s); else movePaddleLeft(s);
-    lastMX += Math.sign(dx) * s * SH;
-    moved = true;
-  }
+  const scale = CW / canvas.offsetWidth;
+  paddleX = Math.max(0, Math.min(CW - PADDLE_W, paddleX + dx * scale));
+  lastMX = t.clientX;
+  if (Math.abs(t.clientX - tx) > 8) moved = true;
 }, { passive: false });
 
 bw.addEventListener('touchend', e => {

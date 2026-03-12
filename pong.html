@@ -434,8 +434,6 @@ function updateUI() {
 // ── Input ─────────────────────────────────────────────────────────────────────
 const PLAYER_SPEED = 0.3; // px/ms
 
-function moveLeft()  { playerX = clampPaddle(playerX - 12); }
-function moveRight() { playerX = clampPaddle(playerX + 12); }
 function tapAction() { /* no tap action needed in pong */ }
 
 function handleKeys(dt) {
@@ -481,15 +479,14 @@ document.addEventListener('keyup', e => {
 
 // ── Touch ─────────────────────────────────────────────────────────────────────
 const bw = document.getElementById('boardWrap');
-let tx, ty, tt, moved, lastMX, totalDY, startY;
-const SH = 24, SV = 30;
+let tx, ty, tt, moved, lastMX, startY;
 
 bw.addEventListener('touchstart', e => {
   if (!gameRunning || paused || e.target.id === 'pauseBtn') return;
   e.preventDefault();
   const t = e.touches[0];
   tx = t.clientX; ty = t.clientY; startY = t.clientY; tt = Date.now();
-  moved = false; lastMX = tx; totalDY = 0;
+  moved = false; lastMX = tx;
 }, { passive: false });
 
 bw.addEventListener('touchmove', e => {
@@ -497,11 +494,10 @@ bw.addEventListener('touchmove', e => {
   e.preventDefault();
   const t = e.touches[0];
   const dx = t.clientX - lastMX;
-  if (Math.abs(dx) > SH) {
-    const s = Math.floor(Math.abs(dx) / SH);
-    for (let i = 0; i < s; i++) dx > 0 ? moveRight() : moveLeft();
-    lastMX += Math.sign(dx) * s * SH; moved = true;
-  }
+  const scale = CANVAS_W / canvas.offsetWidth;
+  playerX = clampPaddle(playerX + dx * scale);
+  lastMX = t.clientX;
+  if (Math.abs(t.clientX - tx) > 8) moved = true;
 }, { passive: false });
 
 bw.addEventListener('touchend', e => {
