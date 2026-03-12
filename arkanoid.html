@@ -797,7 +797,7 @@ function getSilverColor(hits) {
 
 function getRainbowColor(frame) {
   const hues = ['#ff3333','#ff6600','#ffff33','#33ff33','#33ffff','#6633ff','#ff33ff'];
-  return hues[Math.floor(frame / 4) % hues.length];
+  return hues[Math.floor(frame / 20) % hues.length];
 }
 
 function draw() {
