@@ -362,7 +362,9 @@ function createBall(x, y, vx, vy, launched) {
 function pTop() { return CH - PADDLE_Y_OFFSET - PADDLE_H; }
 
 function resetBallOnPaddle() {
-  balls = [createBall(paddleX + paddleW / 2, pTop() - BALL_R, 0, 0, false)];
+  const b = createBall(paddleX + paddleW / 2, pTop() - BALL_R, 0, 0, false);
+  b.stickyOffset = paddleW * 0.1; // slight right of center → launches right
+  balls = [b];
 }
 
 function launchBall(b) {
