@@ -455,13 +455,13 @@ function applyPowerup(type) {
   }
   if (type === P_ENLARGE) {
     const oldCenter = paddleX + paddleW / 2;
-    paddleW = Math.min(CW, paddleW + 70);
+    paddleW = Math.min(CW, paddleW + 15);
     paddleX = Math.max(0, Math.min(CW - paddleW, oldCenter - paddleW / 2));
     return;
   }
   if (type === P_SHRINK) {
     const oldCenter = paddleX + paddleW / 2;
-    paddleW = Math.max(MIN_PADDLE, paddleW - 35);
+    paddleW = Math.max(MIN_PADDLE, paddleW - 10);
     paddleX = Math.max(0, Math.min(CW - paddleW, oldCenter - paddleW / 2));
     return;
   }
