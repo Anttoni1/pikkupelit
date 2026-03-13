@@ -616,9 +616,6 @@ function drawUFO(x, y) {
   ctx.fillRect(x + 2, y + 4, 20, 2);
   ctx.fillRect(x, y + 6, 24, 2);
   ctx.fillRect(x + 4, y + 8, 4, 2); ctx.fillRect(x + 16, y + 8, 4, 2);
-  // Glow
-  ctx.fillStyle = 'rgba(255,51,51,0.2)';
-  ctx.fillRect(x - 2, y - 2, UFO_W + 4, UFO_H + 4);
 }
 
 function draw() {
@@ -661,9 +658,6 @@ function draw() {
   // UFO
   if (ufo.active) drawUFO(ufo.x, 18);
 
-  // Ground line
-  ctx.fillStyle = '#1a8c1a';
-  ctx.fillRect(0, CH - 6, CW, 1);
 }
 
 // ── UI ──
