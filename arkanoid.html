@@ -524,7 +524,7 @@ function tapAction() {
     if (!b.launched) { launchBall(b); return; }
   }
   // If laser mode, fire
-  if (laserMode && lasers.length < 3) {
+  if (laserMode) {
     lasers.push({ x: paddleX + 8, y: pTop() - 4 });
     lasers.push({ x: paddleX + paddleW - 8, y: pTop() - 4 });
     beep(550, 0.03);
