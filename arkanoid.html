@@ -189,8 +189,8 @@ const B_EMPTY = 0, B_NORMAL = 1, B_GOLD = -1, B_RAINBOW = 5;
 // ── Powerup definitions ──
 const P_ENLARGE = 0, P_SHRINK = 1, P_MULTI = 2, P_LASER = 3, P_STICKY = 4, P_LIFE = 5, P_SLOW = 6;
 const POWERUP_DEFS = [
-  { id: P_ENLARGE, letter: 'E', color: '#33ff33',  timed: true,  dur: 15000 },
-  { id: P_SHRINK,  letter: 'S', color: '#ff3333',  timed: true,  dur: 15000 },
+  { id: P_ENLARGE, letter: 'E', color: '#33ff33',  timed: false },
+  { id: P_SHRINK,  letter: 'S', color: '#ff3333',  timed: false },
   { id: P_MULTI,   letter: 'M', color: '#00ffaa',  timed: false },
   { id: P_LASER,   letter: 'L', color: '#ff6600',  timed: true,  dur: 10000 },
   { id: P_STICKY,  letter: 'C', color: '#ffff33',  timed: true,  dur: 10000 },
@@ -407,11 +407,6 @@ function spawnPowerup(x, y) {
 
 function clearTimedPower() {
   // Revert effects
-  if (activePower === P_ENLARGE || activePower === P_SHRINK) {
-    const oldCenter = paddleX + paddleW / 2;
-    paddleW = PADDLE_DEFAULT_W;
-    paddleX = Math.max(0, Math.min(CW - paddleW, oldCenter - paddleW / 2));
-  }
   if (activePower === P_LASER) laserMode = false;
   if (activePower === P_STICKY) stickyMode = false;
   if (activePower === P_SLOW) {
@@ -438,6 +433,8 @@ function applyPowerup(type) {
   beep(880, 0.1, 0.1);
   scoreVal += 100;
 
+  const MIN_PADDLE = Math.floor(PADDLE_DEFAULT_W / 3);
+
   // Instant powerups
   if (type === P_LIFE) {
     livesVal = Math.min(5, livesVal + 1);
@@ -456,21 +453,25 @@ function applyPowerup(type) {
     balls.push(...newBalls);
     return;
   }
+  if (type === P_ENLARGE) {
+    const oldCenter = paddleX + paddleW / 2;
+    paddleW = Math.min(CW, paddleW + 15);
+    paddleX = Math.max(0, Math.min(CW - paddleW, oldCenter - paddleW / 2));
+    return;
+  }
+  if (type === P_SHRINK) {
+    const oldCenter = paddleX + paddleW / 2;
+    paddleW = Math.max(MIN_PADDLE, paddleW - 10);
+    paddleX = Math.max(0, Math.min(CW - paddleW, oldCenter - paddleW / 2));
+    return;
+  }
 
   // Timed powerup — clear previous
   if (activePower !== null) clearTimedPower();
   activePower = type;
   powerTimer = def.dur;
 
-  if (type === P_ENLARGE) {
-    const oldCenter = paddleX + paddleW / 2;
-    paddleW = 70;
-    paddleX = Math.max(0, Math.min(CW - paddleW, oldCenter - paddleW / 2));
-  } else if (type === P_SHRINK) {
-    const oldCenter = paddleX + paddleW / 2;
-    paddleW = 35;
-    paddleX = Math.max(0, Math.min(CW - paddleW, oldCenter - paddleW / 2));
-  } else if (type === P_LASER) {
+  if (type === P_LASER) {
     laserMode = true;
   } else if (type === P_STICKY) {
     stickyMode = true;
@@ -496,7 +497,6 @@ function clearAllPowerEffects() {
   laserMode = false;
   stickyMode = false;
   slowMode = false;
-  paddleW = PADDLE_DEFAULT_W;
   activePower = null;
   powerTimer = 0;
   lasers = [];
@@ -738,7 +738,8 @@ function update(dt) {
     livesVal--;
     beep(160, 0.2, 0.12);
     clearAllPowerEffects();
-    paddleX = Math.max(0, Math.min(CW - paddleW, paddleX));
+    paddleW = PADDLE_DEFAULT_W;
+    paddleX = (CW - paddleW) / 2;
     updateUI();
     if (livesVal <= 0) {
       gameRunning = false;
@@ -766,6 +767,8 @@ function update(dt) {
     levelVal++;
     ballSpeed = Math.min(5.5, 3 + (levelVal - 1) * 0.1);
     clearAllPowerEffects();
+    paddleW = PADDLE_DEFAULT_W;
+    paddleX = (CW - paddleW) / 2;
     loadLevel();
     resetBallOnPaddle();
     beep(880, 0.2, 0.12);
@@ -956,6 +959,8 @@ function winContinue() {
   levelVal++;
   ballSpeed = Math.min(5.5, 3 + (levelVal - 1) * 0.1);
   clearAllPowerEffects();
+  paddleW = PADDLE_DEFAULT_W;
+  paddleX = (CW - paddleW) / 2;
   loadLevel();
   resetBallOnPaddle();
   gameRunning = true; paused = false; lastTime = 0;
