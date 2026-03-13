@@ -764,7 +764,7 @@ function update(dt) {
     }
 
     levelVal++;
-    ballSpeed = Math.min(5.5, 3 + (levelVal - 1) * 0.2);
+    ballSpeed = Math.min(5.5, 3 + (levelVal - 1) * 0.1);
     clearAllPowerEffects();
     loadLevel();
     resetBallOnPaddle();
@@ -954,7 +954,7 @@ function winContinue() {
   document.getElementById('winScreen').classList.add('hidden');
   // Continue from level 11
   levelVal++;
-  ballSpeed = Math.min(5.5, 3 + (levelVal - 1) * 0.2);
+  ballSpeed = Math.min(5.5, 3 + (levelVal - 1) * 0.1);
   clearAllPowerEffects();
   loadLevel();
   resetBallOnPaddle();
