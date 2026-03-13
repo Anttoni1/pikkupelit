@@ -738,7 +738,8 @@ function update(dt) {
     livesVal--;
     beep(160, 0.2, 0.12);
     clearAllPowerEffects();
-    paddleX = Math.max(0, Math.min(CW - paddleW, paddleX));
+    paddleW = PADDLE_DEFAULT_W;
+    paddleX = (CW - paddleW) / 2;
     updateUI();
     if (livesVal <= 0) {
       gameRunning = false;
