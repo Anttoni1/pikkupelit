@@ -566,23 +566,27 @@ function checkBrickCollision(b) {
           beep(660, 0.06, 0.1);
         }
 
-        // Bounce
-        const prevX = b.x - b.vx * lastDt / 1000 * 60;
-        const prevY = b.y - b.vy * lastDt / 1000 * 60;
-        const wasLeft = prevX < bx;
-        const wasRight = prevX > bx + BRICK_W;
-        const wasAbove = prevY < by;
-        const wasBelow = prevY > by + BRICK_H;
-        if (wasAbove || wasBelow) {
-          b.vy = -b.vy;
-          if (wasAbove) b.y = by - BALL_R;
-          else b.y = by + BRICK_H + BALL_R;
-        } else if (wasLeft || wasRight) {
+        // Bounce: use ball center position relative to brick to determine hit face.
+        // If center is outside horizontally → side hit; outside vertically → top/bottom hit.
+        // This correctly handles gaps: a ball in a gap has its center outside the brick
+        // horizontally, so it bounces off the side rather than incorrectly off the bottom.
+        if (b.x < bx || b.x > bx + BRICK_W) {
           b.vx = -b.vx;
-          if (wasLeft) b.x = bx - BALL_R;
-          else b.x = bx + BRICK_W + BALL_R;
-        } else {
+          b.x = b.x < bx ? bx - BALL_R : bx + BRICK_W + BALL_R;
+        } else if (b.y < by || b.y > by + BRICK_H) {
           b.vy = -b.vy;
+          b.y = b.y < by ? by - BALL_R : by + BRICK_H + BALL_R;
+        } else {
+          // Ball center inside brick (deep penetration) — resolve on min-overlap axis
+          const hOv = b.vx > 0 ? (b.x + BALL_R) - bx : (bx + BRICK_W) - (b.x - BALL_R);
+          const vOv = b.vy > 0 ? (b.y + BALL_R) - by : (by + BRICK_H) - (b.y - BALL_R);
+          if (hOv <= vOv) {
+            const fl = b.vx > 0; b.vx = -b.vx;
+            b.x = fl ? bx - BALL_R : bx + BRICK_W + BALL_R;
+          } else {
+            const ft = b.vy > 0; b.vy = -b.vy;
+            b.y = ft ? by - BALL_R : by + BRICK_H + BALL_R;
+          }
         }
         return true;
       }
