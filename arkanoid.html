@@ -189,13 +189,13 @@ const B_EMPTY = 0, B_NORMAL = 1, B_GOLD = -1, B_RAINBOW = 5;
 // ── Powerup definitions ──
 const P_ENLARGE = 0, P_SHRINK = 1, P_MULTI = 2, P_LASER = 3, P_STICKY = 4, P_LIFE = 5, P_SLOW = 6;
 const POWERUP_DEFS = [
-  { id: P_ENLARGE, letter: 'W', color: '#33ff33',  timed: false },
+  { id: P_ENLARGE, letter: 'E', color: '#33ff33',  timed: false },
   { id: P_SHRINK,  letter: 'S', color: '#ff3333',  timed: false },
   { id: P_MULTI,   letter: 'M', color: '#00ffaa',  timed: false },
   { id: P_LASER,   letter: 'L', color: '#ff6600',  timed: true,  dur: 10000 },
   { id: P_STICKY,  letter: 'C', color: '#ffff33',  timed: true,  dur: 10000 },
   { id: P_LIFE,    letter: '1', color: '#ff33ff',  timed: false },
-  { id: P_SLOW,    letter: 'D', color: '#33ffff',  timed: true,  dur: 10000 },
+  { id: P_SLOW,    letter: 'W', color: '#33ffff',  timed: true,  dur: 10000 },
 ];
 // Weights for random selection (indexed by powerup id)
 const POWERUP_WEIGHTS = [15, 10, 14, 14, 14, 5, 14]; // shrink lower, life rare
