@@ -408,7 +408,13 @@ function spawnPowerup(x, y) {
 function clearTimedPower() {
   // Revert effects
   if (activePower === P_LASER) laserMode = false;
-  if (activePower === P_STICKY) stickyMode = false;
+  if (activePower === P_STICKY) {
+    stickyMode = false;
+    // Release any balls still sitting on the paddle
+    for (const b of balls) {
+      if (!b.launched) launchBall(b);
+    }
+  }
   if (activePower === P_SLOW) {
     slowMode = false;
     // Rescale in-flight balls back to normal speed
