@@ -47,7 +47,7 @@ body{
 }
 .topbar{
   display:flex;flex-direction:column;
-  width:100%;padding:5px 8px 4px;flex-shrink:0;z-index:10;gap:5px;
+  width:100%;padding:5px 0 4px 8px;flex-shrink:0;z-index:10;gap:5px;
 }
 .topbar-title-row{display:flex}
 .title{font-size:11px;letter-spacing:2px;animation:titleGlow 3s ease-in-out infinite}
@@ -59,7 +59,7 @@ body{
 .stat-col{display:flex;flex-direction:column;gap:2px}
 .stat-box{display:flex;align-items:baseline;gap:4px}
 .stat-lbl{font-size:6px;text-shadow:0 0 4px var(--g);line-height:1.8}
-.stat-val{font-size:6px;color:var(--amber);text-shadow:0 0 4px var(--amber);line-height:1.8}
+.stat-val{font-size:6px;color:var(--amber);text-shadow:0 0 4px var(--amber);line-height:1.8;min-width:3ch;display:inline-block;text-align:right}
 .next-box{display:flex;flex-direction:column;align-items:center;gap:2px}
 canvas#preview{border:1px solid var(--gd);box-shadow:0 0 4px var(--glow);image-rendering:pixelated}
 
