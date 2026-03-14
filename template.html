@@ -401,12 +401,13 @@ document.addEventListener('keydown', e => {
 function resize() {
   const wrap = document.getElementById('boardWrap');
   const tb = document.querySelector('.topbar'), th = document.querySelector('.touch-hint');
-  const aH = window.innerHeight - (tb ? tb.offsetHeight : 0) - (th ? th.offsetHeight : 0), aW = wrap.clientWidth;
+  const aH = window.innerHeight - (tb ? tb.offsetHeight : 0) - (th ? th.offsetHeight : 0), aW = window.innerWidth;
   const aspect = CANVAS_H / CANVAS_W;
   let h = aH, w = h / aspect;
   if (w > aW) { w = aW; h = w * aspect; }
   canvas.style.width = Math.floor(w) + 'px';
   canvas.style.height = Math.floor(h) + 'px';
+  document.getElementById('gameUI').style.width = Math.floor(w) + 'px';
 }
 window.addEventListener('resize', resize);
 setTimeout(resize, 50); setTimeout(resize, 200); resize();
