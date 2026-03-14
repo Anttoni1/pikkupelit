@@ -43,7 +43,7 @@ body{
 
 .game-container{
   display:flex;flex-direction:column;align-items:center;
-  width:100%;height:100%;height:100dvh;position:relative;
+  width:100%;height:auto;position:relative;
 }
 .topbar{
   display:flex;justify-content:space-between;align-items:center;
@@ -59,8 +59,8 @@ body{
 .stat-val{font-size:9px;color:var(--amber);text-shadow:0 0 5px var(--amber)}
 
 .board-wrap{
-  flex:1;display:flex;align-items:center;justify-content:center;
-  width:100%;position:relative;padding:4px;
+  flex:1;display:flex;align-items:flex-start;justify-content:center;
+  width:100%;position:relative;padding:0;
 }
 canvas#board{
   border:2px solid var(--gd);
@@ -147,7 +147,7 @@ canvas#board{
     </div>
   </div>
   <div class="board-wrap" id="boardWrap">
-    <canvas id="board" width="300" height="320"></canvas>
+    <canvas id="board" width="300" height="420"></canvas>
   </div>
   <div class="touch-hint" id="touchHint">SWIPE ←→ MOVE &nbsp; TAP LAUNCH</div>
 </div>
@@ -166,21 +166,38 @@ canvas#board{
 </div>
 
 <script>
+// ── ERA system ─────────────────────────────────────────────────────────────────
+const ERA = localStorage.getItem('arcade_era') || '90s';
+(function applyEra() {
+  const vars = ERA === '90s'
+    ? {'--g':'#ffff55','--gd':'#aaaa00','--bg':'#000022','--glow':'rgba(255,255,85,0.1)','--amber':'#ff5555'}
+    : {'--g':'#33ff33','--gd':'#1a8c1a','--bg':'#070707','--glow':'rgba(51,255,51,0.12)','--amber':'#ffaa00'};
+  Object.entries(vars).forEach(([k,v]) => document.documentElement.style.setProperty(k,v));
+  if (ERA === '90s') {
+    const s = document.createElement('style');
+    s.textContent = `.crt::before{background:repeating-linear-gradient(0deg,transparent,transparent 4px,rgba(0,0,0,0.05) 4px,rgba(0,0,0,0.05) 6px)!important}.crt::after{background:radial-gradient(ellipse at center,transparent 60%,rgba(0,0,0,0.4) 100%)!important}body{background:radial-gradient(ellipse at center,#000828 0%,#000010 80%)!important}@keyframes titleGlow{0%,100%{text-shadow:0 0 2px #fff,0 0 8px var(--g),0 0 20px var(--glow)}50%{text-shadow:0 0 4px #fff,0 0 14px var(--g),0 0 30px var(--glow)}}.overlay h1{color:#ffffff!important}.confirm-no.sel,.confirm-no:active{background:rgba(255,255,85,0.1)!important;border-color:var(--g)!important;color:var(--g)!important}`;
+    document.head.appendChild(s);
+  }
+})();
+
 // ── Constants ──
-const CW = 300, CH = 320;
+const CW = 300, CH = 420;
 const BRICK_COLS = 10, MAX_BRICK_ROWS = 12;
 const BRICK_W = 29, BRICK_H = 13, BRICK_PAD = 1;
 const BRICK_OFFSET_X = (CW - BRICK_COLS * (BRICK_W + BRICK_PAD) + BRICK_PAD) / 2;
 const BRICK_OFFSET_Y = 30;
 const PADDLE_DEFAULT_W = 50, PADDLE_H = 8;
 const BALL_R = 4;
-const PADDLE_Y_OFFSET = 55;
+const PADDLE_Y_OFFSET = 155;
 
 const canvas = document.getElementById('board'), ctx = canvas.getContext('2d');
 
 // Row colors for normal bricks
-const ROW_COLORS = ['#33ff33','#00ffaa','#22ff88','#66ff66','#00cc66','#44ffcc',
-                    '#33ff33','#00ffaa','#22ff88','#66ff66','#00cc66','#44ffcc'];
+const ROW_COLORS_80S = ['#33ff33','#66ff66','#ffaa00','#00ffaa','#22ff88','#ffcc00',
+                        '#44ff44','#ff8800','#00cc66','#88ff44','#ffaa33','#33ffaa'];
+const ROW_COLORS_90S = ['#ff5555','#ff9900','#ffff55','#ff55ff','#55ffff','#ff7722',
+                        '#ffcc00','#ff4488','#55aaff','#ffee44','#ff6633','#cc44ff'];
+const ROW_COLORS = ERA === '90s' ? ROW_COLORS_90S : ROW_COLORS_80S;
 
 // Brick types: 0=empty, 1=normal, 2+=silver(hits left), -1=gold, 5=rainbow
 const B_EMPTY = 0, B_NORMAL = 1, B_GOLD = -1, B_RAINBOW = 5;
@@ -189,13 +206,13 @@ const B_EMPTY = 0, B_NORMAL = 1, B_GOLD = -1, B_RAINBOW = 5;
 // ── Powerup definitions ──
 const P_ENLARGE = 0, P_SHRINK = 1, P_MULTI = 2, P_LASER = 3, P_STICKY = 4, P_LIFE = 5, P_SLOW = 6;
 const POWERUP_DEFS = [
-  { id: P_ENLARGE, letter: 'E', color: '#33ff33',  timed: false },
-  { id: P_SHRINK,  letter: 'S', color: '#ff3333',  timed: false },
-  { id: P_MULTI,   letter: 'M', color: '#00ffaa',  timed: false },
-  { id: P_LASER,   letter: 'L', color: '#ff6600',  timed: true,  dur: 10000 },
-  { id: P_STICKY,  letter: 'C', color: '#ffff33',  timed: true,  dur: 10000 },
-  { id: P_LIFE,    letter: '1', color: '#ff33ff',  timed: false },
-  { id: P_SLOW,    letter: 'W', color: '#33ffff',  timed: true,  dur: 10000 },
+  { id: P_ENLARGE, letter: 'E', color: '#55aaff',  color80: '#33ff33',  timed: false },
+  { id: P_SHRINK,  letter: 'S', color: '#ff3333',  color80: '#ff4400',  timed: false },
+  { id: P_MULTI,   letter: 'M', color: '#55ffff',  color80: '#00ffaa',  timed: false },
+  { id: P_LASER,   letter: 'L', color: '#ff4400',  color80: '#ffaa00',  timed: true,  dur: 10000 },
+  { id: P_STICKY,  letter: 'C', color: '#ff55ff',  color80: '#66ff66',  timed: true,  dur: 10000 },
+  { id: P_LIFE,    letter: '1', color: '#ff33ff',  color80: '#ffcc00',  timed: false },
+  { id: P_SLOW,    letter: 'W', color: '#aaffff',  color80: '#44ffaa',  timed: true,  dur: 10000 },
 ];
 // Weights for random selection (indexed by powerup id)
 const POWERUP_WEIGHTS = [15, 10, 14, 14, 14, 5, 14]; // shrink lower, life rare
@@ -313,7 +330,8 @@ function beep(f, d, v = 0.08) {
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     if (audioCtx.state === 'suspended') audioCtx.resume();
     const o = audioCtx.createOscillator(), g = audioCtx.createGain();
-    o.type = 'square'; o.frequency.value = f; g.gain.value = v;
+    o.type = ERA === '90s' ? 'sawtooth' : 'square';
+    o.frequency.value = f; g.gain.value = v;
     o.connect(g); g.connect(audioCtx.destination); o.start();
     g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + d);
     o.stop(audioCtx.currentTime + d);
@@ -795,15 +813,52 @@ function loadLevel() {
 }
 
 // ── Draw ──
+function drawBackground() {
+  if (ERA === '90s') {
+    // Dark blue bg with neon city silhouette at bottom
+    ctx.fillStyle = '#000022'; ctx.fillRect(0, 0, CW, CH);
+    // City skyline — fills the space below the paddle
+    ctx.fillStyle = '#0a0033';
+    const buildings = [
+      {x:0,  w:20,h:55}, {x:22, w:14,h:90}, {x:38, w:26,h:40}, {x:66, w:16,h:110},
+      {x:84, w:24,h:70}, {x:110,w:18,h:130},{x:130,w:32,h:60}, {x:164,w:22,h:145},
+      {x:188,w:16,h:85}, {x:206,w:28,h:50}, {x:236,w:14,h:105},{x:252,w:30,h:75},
+      {x:284,w:16,h:120}
+    ];
+    // Clamp building tops to stay below the paddle
+    const paddleTop = CH - PADDLE_Y_OFFSET - PADDLE_H;
+    for (const b of buildings) {
+      const h = Math.min(b.h, CH - paddleTop - PADDLE_H - 4);
+      ctx.fillRect(b.x, CH - h, b.w, h);
+    }
+    // Neon windows
+    ctx.fillStyle = '#ffff55';
+    for (const b of buildings) {
+      const h = Math.min(b.h, CH - paddleTop - PADDLE_H - 4);
+      for (let wy = CH - h + 6; wy < CH - 4; wy += 10) {
+        for (let wx = b.x + 4; wx < b.x + b.w - 4; wx += 8) {
+          if (Math.abs(wx * 31 + wy * 17) % 3 !== 0) ctx.fillRect(wx, wy, 3, 4);
+        }
+      }
+    }
+  } else {
+    ctx.fillStyle = '#070707'; ctx.fillRect(0, 0, CW, CH);
+  }
+}
 function drawBlock(x, y, w, h, color) {
   ctx.fillStyle = color;
   ctx.fillRect(x + 1, y + 1, w - 2, h - 2);
-  ctx.fillStyle = 'rgba(255,255,255,0.12)';
-  ctx.fillRect(x + 2, y + 2, w - 6, 2);
-  ctx.fillRect(x + 2, y + 2, 2, h - 6);
-  ctx.fillStyle = 'rgba(0,0,0,0.25)';
-  ctx.fillRect(x + 1, y + h - 3, w - 2, 2);
-  ctx.fillRect(x + w - 3, y + 1, 2, h - 2);
+  if (ERA === '90s') {
+    // VGA hard edges
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(x + 1, y + 1, w - 2, 1); ctx.fillRect(x + 1, y + 1, 1, h - 2);
+    ctx.fillStyle = '#000000'; ctx.fillRect(x + 1, y + h - 2, w - 2, 1); ctx.fillRect(x + w - 2, y + 1, 1, h - 2);
+  } else {
+    // 80s semi-transparent
+    ctx.fillStyle = 'rgba(255,255,255,0.12)';
+    ctx.fillRect(x + 2, y + 2, w - 6, 2); ctx.fillRect(x + 2, y + 2, 2, h - 6);
+    ctx.fillStyle = 'rgba(0,0,0,0.25)';
+    ctx.fillRect(x + 1, y + h - 3, w - 2, 2); ctx.fillRect(x + w - 3, y + 1, 2, h - 2);
+  }
 }
 
 function getSilverColor(hits) {
@@ -813,13 +868,14 @@ function getSilverColor(hits) {
 }
 
 function getRainbowColor(frame) {
-  const hues = ['#ff3333','#ff6600','#ffff33','#33ff33','#33ffff','#6633ff','#ff33ff'];
+  const hues = ERA === '90s'
+    ? ['#ff3333','#ff6600','#ffff33','#55ffff','#ff55ff','#ff4488','#cc44ff']
+    : ['#33ff33','#66ff66','#ffaa00','#00ffaa','#ffcc00','#44ff88','#88ff44'];
   return hues[Math.floor(frame / 20) % hues.length];
 }
 
 function draw() {
-  ctx.fillStyle = '#070707';
-  ctx.fillRect(0, 0, CW, CH);
+  drawBackground();
 
   // Bricks
   for (let r = 0; r < brickRows; r++) {
@@ -829,20 +885,36 @@ function draw() {
       const bx = brickX(c), by = brickY(r);
       let color;
       if (v === B_GOLD) {
-        color = '#ffaa00';
-        drawBlock(bx, by, BRICK_W, BRICK_H, color);
-        // Extra gold highlight
-        ctx.fillStyle = 'rgba(255,255,255,0.2)';
-        ctx.fillRect(bx + 3, by + 3, BRICK_W - 8, 2);
+        // Gold: dark border + bright metallic sheen to stand out from yellow bricks
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(bx, by, BRICK_W, BRICK_H);
+        ctx.fillStyle = '#cc7700';
+        ctx.fillRect(bx + 1, by + 1, BRICK_W - 2, BRICK_H - 2);
+        ctx.fillStyle = '#ffdd44';
+        ctx.fillRect(bx + 2, by + 2, BRICK_W - 4, 3);
+        ctx.fillStyle = '#ffaa00';
+        ctx.fillRect(bx + 2, by + 5, BRICK_W - 4, BRICK_H - 7);
+        ctx.fillStyle = '#995500';
+        ctx.fillRect(bx + 2, by + BRICK_H - 3, BRICK_W - 4, 2);
       } else if (v === B_RAINBOW) {
         color = getRainbowColor(rainbowFrame);
         drawBlock(bx, by, BRICK_W, BRICK_H, color);
       } else if (isSilver(v)) {
-        color = getSilverColor(v);
-        drawBlock(bx, by, BRICK_W, BRICK_H, color);
-        // Metallic highlight
-        ctx.fillStyle = 'rgba(255,255,255,0.18)';
-        ctx.fillRect(bx + 3, by + 3, BRICK_W - 8, 2);
+        // Silver: layered metallic look, darkens as hits increase
+        const base = getSilverColor(v);
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(bx, by, BRICK_W, BRICK_H);
+        ctx.fillStyle = base;
+        ctx.fillRect(bx + 1, by + 1, BRICK_W - 2, BRICK_H - 2);
+        // Bright sheen stripe
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(bx + 2, by + 2, BRICK_W - 4, 2);
+        // Mid highlight
+        ctx.fillStyle = 'rgba(255,255,255,0.4)';
+        ctx.fillRect(bx + 2, by + 4, BRICK_W - 4, 2);
+        // Dark shadow bottom
+        ctx.fillStyle = '#333333';
+        ctx.fillRect(bx + 2, by + BRICK_H - 3, BRICK_W - 4, 2);
       } else {
         // Normal
         color = ROW_COLORS[r % ROW_COLORS.length];
@@ -853,9 +925,9 @@ function draw() {
 
   // Paddle
   const pt = pTop();
-  let paddleColor = '#33ff33';
-  if (laserMode) paddleColor = '#ff6600';
-  else if (stickyMode) paddleColor = '#ffff33';
+  let paddleColor = ERA === '90s' ? '#ffdd00' : '#33ff33';
+  if (laserMode) paddleColor = ERA === '90s' ? '#ff4400' : '#ffaa00';
+  else if (stickyMode) paddleColor = ERA === '90s' ? '#ff55ff' : '#66ff66';
   drawBlock(paddleX, pt, paddleW, PADDLE_H, paddleColor);
 
   // Lasers
@@ -869,8 +941,8 @@ function draw() {
 
   // Balls
   for (const b of balls) {
-    ctx.fillStyle = '#33ff33';
-    ctx.shadowColor = 'rgba(51,255,51,0.5)';
+    ctx.fillStyle = ERA === '90s' ? '#ffffff' : '#33ff33';
+    ctx.shadowColor = ERA === '90s' ? 'rgba(255,220,80,0.7)' : 'rgba(51,255,51,0.5)';
     ctx.shadowBlur = 8;
     ctx.beginPath();
     ctx.arc(b.x, b.y, BALL_R, 0, Math.PI * 2);
@@ -878,7 +950,7 @@ function draw() {
     ctx.shadowBlur = 0;
     // Trail
     if (b.launched) {
-      ctx.fillStyle = 'rgba(51,255,51,0.15)';
+      ctx.fillStyle = ERA === '90s' ? 'rgba(255,220,80,0.2)' : 'rgba(51,255,51,0.15)';
       ctx.beginPath();
       ctx.arc(b.x - b.vx * 0.3, b.y - b.vy * 0.3, BALL_R * 0.7, 0, Math.PI * 2);
       ctx.fill();
@@ -888,8 +960,9 @@ function draw() {
   // Powerup capsules
   for (const p of powerups) {
     const def = POWERUP_DEFS[p.type];
-    ctx.fillStyle = def.color;
-    ctx.shadowColor = def.color;
+    const pColor = ERA === '90s' ? def.color : def.color80;
+    ctx.fillStyle = pColor;
+    ctx.shadowColor = pColor;
     ctx.shadowBlur = 6;
     ctx.fillRect(p.x - 10, p.y - 5, 20, 10);
     ctx.shadowBlur = 0;
@@ -909,8 +982,9 @@ function draw() {
   if (activePower !== null) {
     const def = POWERUP_DEFS[activePower];
     const ix = CW - 16, iy = 6;
-    ctx.fillStyle = def.color;
-    ctx.shadowColor = def.color;
+    const aColor = ERA === '90s' ? def.color : def.color80;
+    ctx.fillStyle = aColor;
+    ctx.shadowColor = aColor;
     ctx.shadowBlur = 4;
     ctx.fillRect(ix, iy, 10, 10);
     ctx.shadowBlur = 0;
@@ -1141,7 +1215,8 @@ document.addEventListener('keydown', e => {
 // ── Resize ──
 function resize() {
   const wrap = document.getElementById('boardWrap');
-  const aH = wrap.clientHeight - 8, aW = wrap.clientWidth - 8;
+  const tb = document.querySelector('.topbar'), th = document.querySelector('.touch-hint');
+  const aH = window.innerHeight - (tb ? tb.offsetHeight : 0) - (th ? th.offsetHeight : 0), aW = wrap.clientWidth;
   const ASPECT = CH / CW;
   let w = aW, h = w * ASPECT;
   if (h > aH) { h = aH; w = h / ASPECT; }
@@ -1151,7 +1226,7 @@ function resize() {
 window.addEventListener('resize', resize);
 setTimeout(resize, 50); setTimeout(resize, 200); resize();
 document.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
-ctx.fillStyle = '#070707'; ctx.fillRect(0, 0, CW, CH);
+drawBackground();
 </script>
 </body>
 </html>

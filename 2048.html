@@ -43,7 +43,7 @@ body{
 
 .game-container{
   display:flex;flex-direction:column;align-items:center;
-  width:100%;height:100%;height:100dvh;position:relative;
+  width:100%;height:auto;position:relative;
 }
 .topbar{
   display:flex;justify-content:space-between;align-items:center;
@@ -59,8 +59,8 @@ body{
 .stat-val{font-size:9px;color:var(--amber);text-shadow:0 0 5px var(--amber)}
 
 .board-wrap{
-  flex:1;display:flex;align-items:center;justify-content:center;
-  width:100%;position:relative;padding:4px;
+  flex:1;display:flex;align-items:flex-start;justify-content:center;
+  width:100%;position:relative;padding:0;
 }
 canvas#board{
   border:2px solid var(--gd);
@@ -165,6 +165,20 @@ canvas#board{
 </div>
 
 <script>
+// ── ERA system ─────────────────────────────────────────────────────────────────
+const ERA = localStorage.getItem('arcade_era') || '90s';
+(function applyEra() {
+  const vars = ERA === '90s'
+    ? {'--g':'#55aaff','--gd':'#2255aa','--bg':'#000033','--glow':'rgba(85,170,255,0.12)','--amber':'#ff5555'}
+    : {'--g':'#33ff33','--gd':'#1a8c1a','--bg':'#070707','--glow':'rgba(51,255,51,0.12)','--amber':'#ffaa00'};
+  Object.entries(vars).forEach(([k,v]) => document.documentElement.style.setProperty(k,v));
+  if (ERA === '90s') {
+    const s = document.createElement('style');
+    s.textContent = `.crt::before{background:repeating-linear-gradient(0deg,transparent,transparent 4px,rgba(0,0,0,0.05) 4px,rgba(0,0,0,0.05) 6px)!important}.crt::after{background:radial-gradient(ellipse at center,transparent 60%,rgba(0,0,0,0.4) 100%)!important}body{background:radial-gradient(ellipse at center,#000828 0%,#000010 80%)!important}@keyframes titleGlow{0%,100%{text-shadow:0 0 2px #fff,0 0 8px var(--g),0 0 20px var(--glow)}50%{text-shadow:0 0 4px #fff,0 0 14px var(--g),0 0 30px var(--glow)}}.overlay h1{color:#ffffff!important}.confirm-no.sel,.confirm-no:active{background:rgba(85,170,255,0.1)!important;border-color:var(--g)!important;color:var(--g)!important}`;
+    document.head.appendChild(s);
+  }
+})();
+
 // ── Constants ──
 const CW = 320, CH = 320;
 const SIZE = 4;
@@ -177,22 +191,39 @@ const ANIM_SPAWN_MS = 100;
 
 const canvas = document.getElementById('board'), ctx = canvas.getContext('2d');
 
-// Tile colors: value -> { bg, fg, border_light, border_dark }
-const TILE_STYLES = {
-  2:    { bg:'#0d3d0d', fg:'#33ff33', bh:'#44ff44', bd:'#071f07' },  // very dark green
-  4:    { bg:'#1a7a1a', fg:'#55ff55', bh:'#66ff66', bd:'#0d4d0d' },  // medium green
-  8:    { bg:'#006644', fg:'#00ff99', bh:'#33ffaa', bd:'#004433' },  // teal (hue shift)
-  16:   { bg:'#005577', fg:'#00bbff', bh:'#33ccff', bd:'#003350' },  // cyan-blue
-  32:   { bg:'#336600', fg:'#88ff00', bh:'#aaff33', bd:'#1a4400' },  // lime/yellow-green
-  64:   { bg:'#555500', fg:'#ffff00', bh:'#ffff55', bd:'#333300' },  // yellow (pivot to warm)
-  128:  { bg:'#664400', fg:'#ffaa00', bh:'#ffcc33', bd:'#442800' },  // amber
-  256:  { bg:'#773300', fg:'#ff8800', bh:'#ffaa44', bd:'#551500' },  // orange
-  512:  { bg:'#661100', fg:'#ff4400', bh:'#ff6644', bd:'#440800' },  // red-orange
-  1024: { bg:'#550000', fg:'#ff2222', bh:'#ff5555', bd:'#330000' },  // deep red
-  2048: { bg:'#888800', fg:'#ffff44', bh:'#ffff88', bd:'#555500' },  // bright gold (goal!)
-  4096: { bg:'#550055', fg:'#ff44ff', bh:'#ff77ff', bd:'#380038' },  // magenta
-  8192: { bg:'#1a1a7a', fg:'#7788ff', bh:'#99aaff', bd:'#0d0d4a' },  // deep blue
+// Tile colors 80s: green phosphor palette
+const TILE_STYLES_80S = {
+  2:    { bg:'#0d3d0d', fg:'#33ff33', bh:'#44ff44', bd:'#071f07' },
+  4:    { bg:'#1a7a1a', fg:'#55ff55', bh:'#66ff66', bd:'#0d4d0d' },
+  8:    { bg:'#006644', fg:'#00ff99', bh:'#33ffaa', bd:'#004433' },
+  16:   { bg:'#005577', fg:'#00bbff', bh:'#33ccff', bd:'#003350' },
+  32:   { bg:'#336600', fg:'#88ff00', bh:'#aaff33', bd:'#1a4400' },
+  64:   { bg:'#555500', fg:'#ffff00', bh:'#ffff55', bd:'#333300' },
+  128:  { bg:'#664400', fg:'#ffaa00', bh:'#ffcc33', bd:'#442800' },
+  256:  { bg:'#773300', fg:'#ff8800', bh:'#ffaa44', bd:'#551500' },
+  512:  { bg:'#661100', fg:'#ff4400', bh:'#ff6644', bd:'#440800' },
+  1024: { bg:'#550000', fg:'#ff2222', bh:'#ff5555', bd:'#330000' },
+  2048: { bg:'#888800', fg:'#ffff44', bh:'#ffff88', bd:'#555500' },
+  4096: { bg:'#550055', fg:'#ff44ff', bh:'#ff77ff', bd:'#380038' },
+  8192: { bg:'#1a1a7a', fg:'#7788ff', bh:'#99aaff', bd:'#0d0d4a' },
 };
+// Tile colors 90s: blue-anchored but each tier distinctly different
+const TILE_STYLES_90S = {
+  2:    { bg:'#1a3a7a', fg:'#99bbff', bh:'#bbddff', bd:'#0d2255' },  // steel blue
+  4:    { bg:'#0d6688', fg:'#44ddff', bh:'#88eeff', bd:'#084455' },  // teal
+  8:    { bg:'#0d8866', fg:'#00ffcc', bh:'#66ffdd', bd:'#085544' },  // cyan-green
+  16:   { bg:'#227700', fg:'#88ff44', bh:'#aaff77', bd:'#114400' },  // lime
+  32:   { bg:'#886600', fg:'#ffdd00', bh:'#ffee66', bd:'#554400' },  // yellow
+  64:   { bg:'#996600', fg:'#ffaa00', bh:'#ffcc44', bd:'#664400' },  // amber
+  128:  { bg:'#993300', fg:'#ff6600', bh:'#ff9944', bd:'#662200' },  // orange
+  256:  { bg:'#882200', fg:'#ff3333', bh:'#ff7766', bd:'#551100' },  // red
+  512:  { bg:'#881155', fg:'#ff3399', bh:'#ff77bb', bd:'#550033' },  // hot pink
+  1024: { bg:'#661188', fg:'#dd44ff', bh:'#ee88ff', bd:'#440066' },  // magenta
+  2048: { bg:'#886600', fg:'#ffee00', bh:'#ffff77', bd:'#553d00' },  // bright gold
+  4096: { bg:'#1a55aa', fg:'#ffffff', bh:'#eeeeff', bd:'#0d3377' },  // white on blue
+  8192: { bg:'#002255', fg:'#55aaff', bh:'#88ccff', bd:'#001133' },  // deep blue
+};
+const TILE_STYLES = ERA === '90s' ? TILE_STYLES_90S : TILE_STYLES_80S;
 
 // ── State ──
 let grid, scoreVal, hiScore, gameRunning, paused, gameOver, won, keepPlaying;
@@ -210,7 +241,7 @@ function beep(f, d, v = 0.08) {
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     if (audioCtx.state === 'suspended') audioCtx.resume();
     const o = audioCtx.createOscillator(), g = audioCtx.createGain();
-    o.type = 'square'; o.frequency.value = f; g.gain.value = v;
+    o.type = ERA === '90s' ? 'sawtooth' : 'square'; o.frequency.value = f; g.gain.value = v;
     o.connect(g); g.connect(audioCtx.destination); o.start();
     g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + d);
     o.stop(audioCtx.currentTime + d);
@@ -429,17 +460,28 @@ function drawTileScaled(r, c, val, scale) {
   drawTile(cx - sw / 2, cy - sh / 2, sw, sh, val);
 }
 
+function drawBackground() {
+  if (ERA === '90s') {
+    // Navy bg with subtle grid
+    ctx.fillStyle = '#000033'; ctx.fillRect(0, 0, CW, CH);
+    ctx.strokeStyle = 'rgba(85,170,255,0.06)'; ctx.lineWidth = 1;
+    for (let x = 0; x < CW; x += 16) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,CH); ctx.stroke(); }
+    for (let y = 0; y < CH; y += 16) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(CW,y); ctx.stroke(); }
+  } else {
+    ctx.fillStyle = '#070707'; ctx.fillRect(0, 0, CW, CH);
+  }
+}
+
 function draw() {
-  ctx.fillStyle = '#070707';
-  ctx.fillRect(0, 0, CW, CH);
+  drawBackground();
 
   // Grid background cells
   for (let r = 0; r < SIZE; r++) {
     for (let c = 0; c < SIZE; c++) {
       const x = cellX(c), y = cellY(r);
-      ctx.fillStyle = '#111';
+      ctx.fillStyle = ERA === '90s' ? '#000a22' : '#111';
       ctx.fillRect(x, y, CELL, CELL);
-      ctx.strokeStyle = '#1a3a1a';
+      ctx.strokeStyle = ERA === '90s' ? '#001a44' : '#1a3a1a';
       ctx.lineWidth = 1;
       ctx.strokeRect(x + 0.5, y + 0.5, CELL - 1, CELL - 1);
     }
@@ -716,7 +758,8 @@ document.addEventListener('keydown', e => {
 // ── Resize ──
 function resize() {
   const wrap = document.getElementById('boardWrap');
-  const aH = wrap.clientHeight - 8, aW = wrap.clientWidth - 8;
+  const tb = document.querySelector('.topbar'), th = document.querySelector('.touch-hint');
+  const aH = window.innerHeight - (tb ? tb.offsetHeight : 0) - (th ? th.offsetHeight : 0), aW = wrap.clientWidth;
   const MAX_SZ = 480;
   let w = Math.min(aW, MAX_SZ), h = w;
   if (h > Math.min(aH, MAX_SZ)) { h = Math.min(aH, MAX_SZ); w = h; }
@@ -726,7 +769,7 @@ function resize() {
 window.addEventListener('resize', resize);
 setTimeout(resize, 50); setTimeout(resize, 200); resize();
 document.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
-ctx.fillStyle = '#070707'; ctx.fillRect(0, 0, CW, CH);
+drawBackground();
 </script>
 </body>
 </html>

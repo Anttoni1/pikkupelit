@@ -14,6 +14,7 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{--g:#33ff33;--gd:#1a8c1a;--bg:#070707;--glow:rgba(51,255,51,0.12);--amber:#ffaa00}
+/* era vars overridden by JS on load */
 html,body{
   height:100%;height:100dvh;overflow:hidden;background:#000;touch-action:none;
   -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;
@@ -54,6 +55,19 @@ body{
 }
 .arcade-subtitle{
   font-size:5px;letter-spacing:3px;opacity:0.4;margin-top:8px;
+}
+.era-row{
+  display:flex;align-items:center;gap:10px;margin-top:10px;
+}
+.era-label{
+  font-size:6px;letter-spacing:2px;color:var(--gd);opacity:0.8;
+}
+.era-btn{
+  background:none;border:1px solid var(--gd);color:var(--g);
+  font-family:'Press Start 2P',monospace;font-size:6px;
+  letter-spacing:1px;padding:4px 8px;cursor:pointer;
+  text-shadow:0 0 4px var(--g);
+  -webkit-tap-highlight-color:transparent;
 }
 
 .game-list{
@@ -131,6 +145,10 @@ body{
 <div class="header">
   <div class="arcade-title">RETRO<br>ARCADE</div>
   <div class="arcade-subtitle">SELECT GAME</div>
+  <div class="era-row">
+    <span class="era-label" id="eraLabel">▶ 80s GREEN PHOSPHOR</span>
+    <button class="era-btn" id="eraBtn">SWITCH ERA</button>
+  </div>
 </div>
 
 <div class="game-list" id="gameList"></div>
@@ -138,6 +156,20 @@ body{
 <div class="footer">TAP TO PLAY</div>
 
 <script>
+// ERA system
+const ERA = localStorage.getItem('arcade_era') || '90s';
+(function applyEra() {
+  const vars = ERA === '90s'
+    ? {'--g':'#55aaff','--gd':'#2255aa','--bg':'#000033','--glow':'rgba(85,170,255,0.12)','--amber':'#ff5555'}
+    : {'--g':'#33ff33','--gd':'#1a8c1a','--bg':'#070707','--glow':'rgba(51,255,51,0.12)','--amber':'#ffaa00'};
+  Object.entries(vars).forEach(([k,v]) => document.documentElement.style.setProperty(k,v));
+  if (ERA === '90s') {
+    const s = document.createElement('style');
+    s.textContent = `.crt::before{background:repeating-linear-gradient(0deg,transparent,transparent 4px,rgba(0,0,0,0.05) 4px,rgba(0,0,0,0.05) 6px)!important}.crt::after{background:radial-gradient(ellipse at center,transparent 60%,rgba(0,0,0,0.4) 100%)!important}body{background:radial-gradient(ellipse at center,#000828 0%,#000010 80%)!important}@keyframes titleGlow{0%,100%{text-shadow:0 0 2px #fff,0 0 8px var(--g),0 0 20px var(--glow)}50%{text-shadow:0 0 4px #fff,0 0 14px var(--g),0 0 30px var(--glow)}}.header{border-bottom:2px solid var(--g)!important}.game-item{border-bottom:1px solid rgba(85,170,255,0.15)!important}.game-item:active,.game-item.selected{background:rgba(85,170,255,0.08)!important}.game-item:active .game-name,.game-item.selected .game-name{color:#ffffff!important;text-shadow:0 0 2px #fff,0 0 8px var(--g)!important}.footer{border-top:1px solid rgba(85,170,255,0.15)!important}`;
+    document.head.appendChild(s);
+  }
+})();
+
 const GAMES = [
   { name: 'TETRIS',         file: 'tetris.html',   key: 'tetris_hi'   },
   { name: 'SPACE INVADERS', file: 'invaders.html', key: 'invaders_hi' },
@@ -203,6 +235,14 @@ document.addEventListener('keydown', e => {
 });
 
 document.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+
+// Era toggle
+document.getElementById('eraLabel').textContent = '▶ ' + (ERA === '80s' ? '80s GREEN PHOSPHOR' : '90s VGA DOS');
+['click','touchend'].forEach(ev => document.getElementById('eraBtn').addEventListener(ev, e => {
+  e.preventDefault();
+  localStorage.setItem('arcade_era', ERA === '80s' ? '90s' : '80s');
+  location.reload();
+}));
 
 render();
 </script>

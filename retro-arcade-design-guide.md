@@ -109,13 +109,10 @@ document.addEventListener('touchmove', e => e.preventDefault(), { passive: false
 │                      │     Center: PAUSE button (between topbar-left and topbar-right)
 │                      │     Right: game-specific info (topbar-right)
 ├──────────────────────┤
-│                      │
-│                      │
-│   GAME AREA          │  ← flex: 1, fills all remaining space
-│   (canvas)           │     Canvas scaled dynamically (CSS width/height)
+│  GAME AREA (canvas)  │  ← flex: 1, align-items: flex-start, padding: 0
+│                      │     Canvas sits tight against topbar (no vertical centering)
+│                      │     Canvas scaled dynamically (CSS width/height)
 │                      │     Logical resolution stays constant
-│                      │
-│                      │
 ├──────────────────────┤
 │  TOUCH HINT          │  ← flex-shrink: 0, 5px text, opacity: 0.3
 └──────────────────────┘
@@ -126,8 +123,8 @@ Canvas is always drawn at a fixed logical resolution. CSS size is scaled to fill
 ```javascript
 function resize() {
   const wrap = document.getElementById('boardWrap');
-  const aH = wrap.clientHeight - 8;
-  const aW = wrap.clientWidth - 8;
+  const aH = wrap.clientHeight;
+  const aW = wrap.clientWidth;
   // Fit by aspect ratio — game-specific logic
   let h = aH, w = h / ASPECT;
   if (w > aW) { w = aW; h = w * ASPECT; }
