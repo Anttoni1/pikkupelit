@@ -49,8 +49,9 @@ TOPBAR (flex-shrink: 0, justify-content: space-between)
   vasemmalla: pelin nimi (titleGlow) + SCORE / HI (topbar-left)
   keskellä: PAUSE-nappi (topbar-left ja topbar-right välissä)
   oikealla: pelikohtaiset statit (LEVEL, LIVES, NEXT jne.) (topbar-right)
-BOARD WRAP (flex: 1)
-  canvas — kiinteä looginen resoluutio, CSS-koko skaalataan resize():llä
+BOARD WRAP (flex: 1, align-items: flex-start, padding: 0)
+  canvas — istuu tiivisti topbarin alapuolella (ei pystysuoraa keskitystä)
+  kiinteä looginen resoluutio, CSS-koko skaalataan resize():llä
 TOUCH HINT (flex-shrink: 0)
   5px teksti, opacity: 0.3, swipe/tap-ohjeet
 ```

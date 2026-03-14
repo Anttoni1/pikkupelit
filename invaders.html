@@ -43,7 +43,7 @@ body{
 
 .game-container{
   display:flex;flex-direction:column;align-items:center;
-  width:100%;height:100%;height:100dvh;position:relative;
+  width:100%;height:auto;position:relative;
 }
 .topbar{
   display:flex;justify-content:space-between;align-items:center;
@@ -59,8 +59,8 @@ body{
 .stat-val{font-size:9px;color:var(--amber);text-shadow:0 0 5px var(--amber)}
 
 .board-wrap{
-  flex:1;display:flex;align-items:center;justify-content:center;
-  width:100%;position:relative;padding:4px;
+  flex:1;display:flex;align-items:flex-start;justify-content:center;
+  width:100%;position:relative;padding:0;
 }
 canvas#board{
   border:2px solid var(--gd);
@@ -159,6 +159,20 @@ canvas#board{
 </div>
 
 <script>
+// ── ERA system ─────────────────────────────────────────────────────────────────
+const ERA = localStorage.getItem('arcade_era') || '90s';
+(function applyEra() {
+  const vars = ERA === '90s'
+    ? {'--g':'#55ffff','--gd':'#2299aa','--bg':'#000011','--glow':'rgba(85,255,255,0.12)','--amber':'#ff5555'}
+    : {'--g':'#33ff33','--gd':'#1a8c1a','--bg':'#070707','--glow':'rgba(51,255,51,0.12)','--amber':'#ffaa00'};
+  Object.entries(vars).forEach(([k,v]) => document.documentElement.style.setProperty(k,v));
+  if (ERA === '90s') {
+    const s = document.createElement('style');
+    s.textContent = `.crt::before{background:repeating-linear-gradient(0deg,transparent,transparent 4px,rgba(0,0,0,0.05) 4px,rgba(0,0,0,0.05) 6px)!important}.crt::after{background:radial-gradient(ellipse at center,transparent 60%,rgba(0,0,0,0.4) 100%)!important}body{background:radial-gradient(ellipse at center,#000828 0%,#000010 80%)!important}@keyframes titleGlow{0%,100%{text-shadow:0 0 2px #fff,0 0 8px var(--g),0 0 20px var(--glow)}50%{text-shadow:0 0 4px #fff,0 0 14px var(--g),0 0 30px var(--glow)}}.overlay h1{color:#ffffff!important}.confirm-no.sel,.confirm-no:active{background:rgba(85,255,255,0.1)!important;border-color:var(--g)!important;color:var(--g)!important}`;
+    document.head.appendChild(s);
+  }
+})();
+
 // ── Constants ──
 const CW = 300, CH = 420;
 const canvas = document.getElementById('board'), ctx = canvas.getContext('2d');
@@ -211,12 +225,18 @@ function beep(f, d, v = 0.08) {
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     if (audioCtx.state === 'suspended') audioCtx.resume();
     const o = audioCtx.createOscillator(), g = audioCtx.createGain();
-    o.type = 'square'; o.frequency.value = f; g.gain.value = v;
+    o.type = ERA === '90s' ? 'sawtooth' : 'square';
+    o.frequency.value = f; g.gain.value = v;
     o.connect(g); g.connect(audioCtx.destination); o.start();
     g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + d);
     o.stop(audioCtx.currentTime + d);
   } catch (e) {}
 }
+
+// 90s VGA row colors for aliens
+const ROW_COLORS_90S = ['#ff55ff','#55ffff','#ffff55','#ff5555','#55ff55'];
+// Stable starfield (generated once)
+const STARS = Array.from({length:60}, () => ({x: Math.random()*300, y: Math.random()*200, r: Math.random()<0.2?2:1}));
 
 // ── Invaders ──
 function createInvaders() {
@@ -524,7 +544,7 @@ function playerDeath() {
 
 // ── Drawing ──
 function drawInvader(x, y, row, frame) {
-  const c = ROW_COLORS[row];
+  const c = ERA === '90s' ? ROW_COLORS_90S[row] : ROW_COLORS[row];
   ctx.fillStyle = c;
 
   if (row === 0) {
@@ -601,7 +621,7 @@ function drawPlayer(x, y) {
     }
     return;
   }
-  ctx.fillStyle = '#33ff33';
+  ctx.fillStyle = ERA === '90s' ? '#55ffff' : '#33ff33';
   // Ship body
   ctx.fillRect(x, y + 6, PLAYER_W, 8);
   ctx.fillRect(x + 2, y + 4, PLAYER_W - 4, 2);
@@ -618,9 +638,29 @@ function drawUFO(x, y) {
   ctx.fillRect(x + 4, y + 8, 4, 2); ctx.fillRect(x + 16, y + 8, 4, 2);
 }
 
+function drawBackground() {
+  if (ERA === '90s') {
+    ctx.fillStyle = '#000011'; ctx.fillRect(0, 0, CW, CH);
+    // Stars
+    for (const s of STARS) {
+      ctx.fillStyle = s.r > 1 ? '#aaccff' : '#ffffff';
+      ctx.fillRect(s.x, s.y, s.r, s.r);
+    }
+    // Distant planet
+    ctx.fillStyle = '#221133';
+    ctx.beginPath(); ctx.arc(240, 70, 28, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#331155';
+    ctx.beginPath(); ctx.arc(235, 65, 20, 0, Math.PI*2); ctx.fill();
+    // Planet ring
+    ctx.strokeStyle = '#553377'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.ellipse(240, 70, 38, 8, -0.3, 0, Math.PI*2); ctx.stroke();
+  } else {
+    ctx.fillStyle = '#070707'; ctx.fillRect(0, 0, CW, CH);
+  }
+}
+
 function draw() {
-  ctx.fillStyle = '#070707';
-  ctx.fillRect(0, 0, CW, CH);
+  drawBackground();
 
   // Invaders
   for (let r = 0; r < INV_ROWS; r++)
@@ -630,7 +670,7 @@ function draw() {
 
   // Shields
   for (const sh of shields) {
-    ctx.fillStyle = '#33ff33';
+    ctx.fillStyle = ERA === '90s' ? '#55ffff' : '#33ff33';
     for (let y = 0; y < sh.ph; y++)
       for (let x = 0; x < sh.pw; x++)
         if (sh.grid[y][x])
@@ -642,15 +682,15 @@ function draw() {
 
   // Player bullet
   if (playerBullet) {
-    ctx.fillStyle = '#33ff33';
-    ctx.shadowColor = 'rgba(51,255,51,0.6)';
+    ctx.fillStyle = ERA === '90s' ? '#55ffff' : '#33ff33';
+    ctx.shadowColor = ERA === '90s' ? 'rgba(85,255,255,0.6)' : 'rgba(51,255,51,0.6)';
     ctx.shadowBlur = 6;
     ctx.fillRect(playerBullet.x, playerBullet.y, BULLET_W, BULLET_H);
     ctx.shadowBlur = 0;
   }
 
   // Enemy bullets
-  ctx.fillStyle = '#ffaa00';
+  ctx.fillStyle = ERA === '90s' ? '#ff5555' : '#ffaa00';
   for (const b of enemyBullets) {
     ctx.fillRect(b.x, b.y, ENEMY_BULLET_W, ENEMY_BULLET_H);
   }
@@ -854,7 +894,8 @@ document.addEventListener('keydown', e => {
 // ── Resize ──
 function resize() {
   const wrap = document.getElementById('boardWrap');
-  const aH = wrap.clientHeight - 8, aW = wrap.clientWidth - 8;
+  const tb = document.querySelector('.topbar'), th = document.querySelector('.touch-hint');
+  const aH = window.innerHeight - (tb ? tb.offsetHeight : 0) - (th ? th.offsetHeight : 0), aW = wrap.clientWidth;
   const ASPECT = CH / CW;
   let w = aW, h = w * ASPECT;
   if (h > aH) { h = aH; w = h / ASPECT; }
@@ -864,7 +905,7 @@ function resize() {
 window.addEventListener('resize', resize);
 setTimeout(resize, 50); setTimeout(resize, 200); resize();
 document.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
-ctx.fillStyle = '#070707'; ctx.fillRect(0, 0, CW, CH);
+drawBackground();
 </script>
 </body>
 </html>

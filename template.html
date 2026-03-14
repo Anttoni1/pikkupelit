@@ -43,7 +43,7 @@ body{
 
 .game-container{
   display:flex;flex-direction:column;align-items:center;
-  width:100%;height:100%;height:100dvh;position:relative;
+  width:100%;height:auto;position:relative;
 }
 .topbar{
   display:flex;justify-content:space-between;align-items:center;
@@ -59,8 +59,8 @@ body{
 .stat-val{font-size:9px;color:var(--amber);text-shadow:0 0 5px var(--amber)}
 
 .board-wrap{
-  flex:1;display:flex;align-items:center;justify-content:center;
-  width:100%;position:relative;padding:4px;
+  flex:1;display:flex;align-items:flex-start;justify-content:center;
+  width:100%;position:relative;padding:0;
 }
 canvas#board{
   border:2px solid var(--gd);
@@ -163,6 +163,21 @@ canvas#board{
 </div>
 
 <script>
+// ── ERA system ───────────────────────────────────────────────────────────────
+const ERA = localStorage.getItem('arcade_era') || '90s';
+(function applyEra() {
+  // TODO: replace 90s vars with game-specific palette
+  const vars = ERA === '90s'
+    ? {'--g':'#55aaff','--gd':'#2255aa','--bg':'#000033','--glow':'rgba(85,170,255,0.12)','--amber':'#ff5555'}
+    : {'--g':'#33ff33','--gd':'#1a8c1a','--bg':'#070707','--glow':'rgba(51,255,51,0.12)','--amber':'#ffaa00'};
+  Object.entries(vars).forEach(([k,v]) => document.documentElement.style.setProperty(k,v));
+  if (ERA === '90s') {
+    const s = document.createElement('style');
+    s.textContent = `.crt::before{background:repeating-linear-gradient(0deg,transparent,transparent 4px,rgba(0,0,0,0.05) 4px,rgba(0,0,0,0.05) 6px)!important}.crt::after{background:radial-gradient(ellipse at center,transparent 60%,rgba(0,0,0,0.4) 100%)!important}body{background:radial-gradient(ellipse at center,#000828 0%,#000010 80%)!important}@keyframes titleGlow{0%,100%{text-shadow:0 0 2px #fff,0 0 8px var(--g),0 0 20px var(--glow)}50%{text-shadow:0 0 4px #fff,0 0 14px var(--g),0 0 30px var(--glow)}}.overlay h1{color:#ffffff!important}.confirm-no.sel,.confirm-no:active{background:rgba(85,170,255,0.1)!important;border-color:var(--g)!important;color:var(--g)!important}`;
+    document.head.appendChild(s);
+  }
+})();
+
 // ── Vakiot ──────────────────────────────────────────────────────────────────
 const CANVAS_W = 300, CANVAS_H = 450; // muuta pelin mukaan
 // TODO: lisää pelikohtaiset vakiot
@@ -182,7 +197,8 @@ function beep(freq, duration, volume = 0.08) {
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     if (audioCtx.state === 'suspended') audioCtx.resume();
     const o = audioCtx.createOscillator(), g = audioCtx.createGain();
-    o.type = 'square'; o.frequency.value = freq; g.gain.value = volume;
+    o.type = ERA === '90s' ? 'sawtooth' : 'square';
+    o.frequency.value = freq; g.gain.value = volume;
     o.connect(g); g.connect(audioCtx.destination);
     o.start();
     g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
@@ -193,10 +209,21 @@ function beep(freq, duration, volume = 0.08) {
 // ── Pelilogiikka ─────────────────────────────────────────────────────────────
 // TODO: lisää pelilogiikka tähän
 
+// ── Tausta ───────────────────────────────────────────────────────────────────
+function drawBackground() {
+  if (ERA === '90s') {
+    // TODO: draw game-specific 90s background scene (sky, stars, etc.)
+    ctx.fillStyle = '#000033';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  } else {
+    ctx.fillStyle = '#070707';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+}
+
 // ── Piirto ───────────────────────────────────────────────────────────────────
 function draw() {
-  ctx.fillStyle = '#070707';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  drawBackground();
   // TODO: piirra peli
 }
 
@@ -373,7 +400,8 @@ document.addEventListener('keydown', e => {
 // ── Resize ────────────────────────────────────────────────────────────────────
 function resize() {
   const wrap = document.getElementById('boardWrap');
-  const aH = wrap.clientHeight - 8, aW = wrap.clientWidth - 8;
+  const tb = document.querySelector('.topbar'), th = document.querySelector('.touch-hint');
+  const aH = window.innerHeight - (tb ? tb.offsetHeight : 0) - (th ? th.offsetHeight : 0), aW = wrap.clientWidth;
   const aspect = CANVAS_H / CANVAS_W;
   let h = aH, w = h / aspect;
   if (w > aW) { w = aW; h = w * aspect; }
@@ -384,7 +412,7 @@ window.addEventListener('resize', resize);
 setTimeout(resize, 50); setTimeout(resize, 200); resize();
 
 document.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
-ctx.fillStyle = '#070707'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+drawBackground();
 </script>
 </body>
 </html>
