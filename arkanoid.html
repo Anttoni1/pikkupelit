@@ -1216,12 +1216,13 @@ document.addEventListener('keydown', e => {
 function resize() {
   const wrap = document.getElementById('boardWrap');
   const tb = document.querySelector('.topbar'), th = document.querySelector('.touch-hint');
-  const aH = window.innerHeight - (tb ? tb.offsetHeight : 0) - (th ? th.offsetHeight : 0), aW = wrap.clientWidth;
+  const aH = window.innerHeight - (tb ? tb.offsetHeight : 0) - (th ? th.offsetHeight : 0), aW = window.innerWidth;
   const ASPECT = CH / CW;
   let w = aW, h = w * ASPECT;
   if (h > aH) { h = aH; w = h / ASPECT; }
   canvas.style.width = Math.floor(w) + 'px';
   canvas.style.height = Math.floor(h) + 'px';
+  document.getElementById('gameUI').style.width = Math.floor(w) + 'px';
 }
 window.addEventListener('resize', resize);
 setTimeout(resize, 50); setTimeout(resize, 200); resize();
