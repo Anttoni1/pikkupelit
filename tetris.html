@@ -46,17 +46,21 @@ body{
   width:100%;height:auto;position:relative;
 }
 .topbar{
-  display:flex;justify-content:space-between;align-items:center;
-  width:100%;padding:5px 8px;flex-shrink:0;z-index:10;
+  display:flex;flex-direction:column;
+  width:100%;padding:5px 8px 4px;flex-shrink:0;z-index:10;gap:5px;
 }
-.topbar-left{display:flex;flex-direction:column;gap:2px}
+.topbar-title-row{display:flex}
 .title{font-size:11px;letter-spacing:2px;animation:titleGlow 3s ease-in-out infinite}
+.topbar-stats-row{display:flex;justify-content:space-between;align-items:center}
+.topbar-left{display:flex;flex-direction:column;gap:2px}
 .score-text{font-size:6px;text-shadow:0 0 4px var(--g);line-height:1.8}
 .score-text span{color:var(--amber);text-shadow:0 0 4px var(--amber)}
-.topbar-right{display:flex;align-items:center;gap:6px}
-.stat-box{text-align:center}
-.stat-lbl{font-size:5px;letter-spacing:1px;opacity:0.6;text-shadow:0 0 3px var(--g)}
-.stat-val{font-size:8px;color:var(--amber);text-shadow:0 0 5px var(--amber)}
+.topbar-right{display:flex;align-items:center;gap:8px}
+.stat-col{display:flex;flex-direction:column;gap:2px}
+.stat-box{display:flex;align-items:baseline;gap:4px}
+.stat-lbl{font-size:6px;text-shadow:0 0 4px var(--g);line-height:1.8}
+.stat-val{font-size:6px;color:var(--amber);text-shadow:0 0 4px var(--amber);line-height:1.8}
+.next-box{display:flex;flex-direction:column;align-items:center;gap:2px}
 canvas#preview{border:1px solid var(--gd);box-shadow:0 0 4px var(--glow);image-rendering:pixelated}
 
 .board-wrap{
@@ -130,16 +134,22 @@ canvas#board{
 
 <div class="game-container" id="gameUI">
   <div class="topbar">
-    <div class="topbar-left">
+    <div class="topbar-title-row">
       <div class="title">TETRIS</div>
-      <div class="score-text">SCORE <span id="score">0</span></div>
-      <div class="score-text">HI <span id="hi">0</span></div>
     </div>
-    <button class="pause-btn" id="pauseBtn">PAUSE</button>
-    <div class="topbar-right">
-      <div class="stat-box"><div class="stat-lbl">LV</div><div class="stat-val" id="level">1</div></div>
-      <div class="stat-box"><div class="stat-lbl">LN</div><div class="stat-val" id="lines">0</div></div>
-      <div class="stat-box"><div class="stat-lbl">NEXT</div><canvas id="preview" width="64" height="64"></canvas></div>
+    <div class="topbar-stats-row">
+      <div class="topbar-left">
+        <div class="score-text">SCORE <span id="score">0</span></div>
+        <div class="score-text">HI <span id="hi">0</span></div>
+      </div>
+      <button class="pause-btn" id="pauseBtn">PAUSE</button>
+      <div class="topbar-right">
+        <div class="stat-col">
+          <div class="stat-box"><span class="stat-lbl">LEVEL</span><span class="stat-val" id="level">1</span></div>
+          <div class="stat-box"><span class="stat-lbl">LINES</span><span class="stat-val" id="lines">0</span></div>
+        </div>
+        <div class="next-box"><span class="stat-lbl">NEXT</span><canvas id="preview" width="64" height="64"></canvas></div>
+      </div>
     </div>
   </div>
   <div class="board-wrap" id="boardWrap">
