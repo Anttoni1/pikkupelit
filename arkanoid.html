@@ -928,6 +928,7 @@ function draw() {
   let paddleColor = ERA === '90s' ? '#ffdd00' : '#33ff33';
   if (laserMode) paddleColor = ERA === '90s' ? '#ff4400' : '#ffaa00';
   else if (stickyMode) paddleColor = ERA === '90s' ? '#ff55ff' : '#66ff66';
+  else if (slowMode) paddleColor = ERA === '90s' ? '#aaffff' : '#44ffaa';
   drawBlock(paddleX, pt, paddleW, PADDLE_H, paddleColor);
 
   // Lasers
