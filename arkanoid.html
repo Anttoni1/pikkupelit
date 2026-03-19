@@ -624,9 +624,10 @@ function checkLaserBrickCollision(laser) {
   for (let r = 0; r < brickRows; r++) {
     for (let c = 0; c < BRICK_COLS; c++) {
       const v = bricks[r][c];
-      if (v === B_EMPTY || v === B_GOLD) continue;
+      if (v === B_EMPTY) continue;
       const bx = brickX(c), by = brickY(r);
       if (laser.x >= bx && laser.x <= bx + BRICK_W && laser.y >= by && laser.y <= by + BRICK_H) {
+        if (v === B_GOLD) return true; // laser blocked by gold, consumed without damage
         if (isSilver(v)) {
           bricks[r][c] = v - 1;
           if (bricks[r][c] <= 0) {
@@ -928,6 +929,7 @@ function draw() {
   let paddleColor = ERA === '90s' ? '#ffdd00' : '#33ff33';
   if (laserMode) paddleColor = ERA === '90s' ? '#ff4400' : '#ffaa00';
   else if (stickyMode) paddleColor = ERA === '90s' ? '#ff55ff' : '#66ff66';
+  else if (slowMode) paddleColor = ERA === '90s' ? '#aaffff' : '#44ffaa';
   drawBlock(paddleX, pt, paddleW, PADDLE_H, paddleColor);
 
   // Lasers
