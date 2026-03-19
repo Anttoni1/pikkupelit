@@ -99,7 +99,7 @@ Ennen kuin pidät peliä valmiina:
 - [ ] CRT-efektit `body.crt`-luokalla
 - [ ] Samat CSS-muuttujat (`--g`, `--gd`, `--bg`, `--glow`, `--amber`)
 - [ ] Press Start 2P -fontti
-- [ ] iPhone meta-tagit + `viewport-fit=cover` + safe area insets
+- [ ] iPhone meta-tagit + `viewport-fit=cover` + safe area insets: body `padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)`, topbar `padding-top: calc(Xpx + env(safe-area-inset-top))`
 - [ ] `100dvh`, ei scrollausta, `touch-action: none`
 - [ ] Pelialue täyttää kaiken tilan topbarin ja hintin välissä (`flex: 1`)
 - [ ] Touch-ohjaus koko pelialueella — ei alareunan nappeja
