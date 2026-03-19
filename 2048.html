@@ -146,7 +146,7 @@ canvas#board{
     </div>
   </div>
   <div class="board-wrap" id="boardWrap">
-    <canvas id="board" width="320" height="320"></canvas>
+    <canvas id="board" width="320" height="480"></canvas>
   </div>
   <div class="touch-hint">SWIPE ←→↑↓ SLIDE &nbsp; MERGE TO 2048</div>
 </div>
@@ -180,11 +180,12 @@ const ERA = localStorage.getItem('arcade_era') || '90s';
 })();
 
 // ── Constants ──
-const CW = 320, CH = 320;
+const CW = 320, CH = 480;
 const SIZE = 4;
 const PAD = 8;      // outer padding
 const GAP = 6;      // gap between cells
 const CELL = (CW - PAD * 2 - GAP * (SIZE - 1)) / SIZE; // ~67px
+const GRID_OFFSET_Y = Math.round((CH - (2 * PAD + SIZE * CELL + (SIZE - 1) * GAP)) / 2);
 const ANIM_SLIDE_MS = 100;
 const ANIM_POP_MS = 80;
 const ANIM_SPAWN_MS = 100;
@@ -412,7 +413,7 @@ function handleMove(dir) {
 
 // ── Drawing ──
 function cellX(c) { return PAD + c * (CELL + GAP); }
-function cellY(r) { return PAD + r * (CELL + GAP); }
+function cellY(r) { return GRID_OFFSET_Y + PAD + r * (CELL + GAP); }
 
 function drawTile(x, y, w, h, val) {
   const style = TILE_STYLES[val] || TILE_STYLES[2048];
@@ -757,12 +758,11 @@ document.addEventListener('keydown', e => {
 
 // ── Resize ──
 function resize() {
-  const wrap = document.getElementById('boardWrap');
   const tb = document.querySelector('.topbar'), th = document.querySelector('.touch-hint');
   const aH = window.innerHeight - (tb ? tb.offsetHeight : 0) - (th ? th.offsetHeight : 0), aW = window.innerWidth;
-  const MAX_SZ = 480;
-  let w = Math.min(aW, MAX_SZ), h = w;
-  if (h > Math.min(aH, MAX_SZ)) { h = Math.min(aH, MAX_SZ); w = h; }
+  const aspect = CH / CW;
+  let w = aW, h = w * aspect;
+  if (h > aH) { h = aH; w = h / aspect; }
   canvas.style.width = Math.floor(w) + 'px';
   canvas.style.height = Math.floor(h) + 'px';
   document.getElementById('gameUI').style.width = Math.floor(w) + 'px';
