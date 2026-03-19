@@ -7,26 +7,26 @@ This guide defines the consistent style and technical practices for retro mobile
 ## 1. Visual Identity
 
 ### CRT Retro Theme
-All games and the menu follow a unified CRT phosphor aesthetic:
+All games and the menu follow a unified 90s CRT aesthetic:
 
-- **Background:** `radial-gradient(ellipse at center, #0d0d0d 0%, #000 80%)`
-- **Scanline effect:** `::before` pseudo-element — `repeating-linear-gradient` every 2px, `rgba(0,0,0,0.08)`
-- **Vignette:** `::after` pseudo-element — `radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.65) 100%)`
+- **Background:** `radial-gradient(ellipse at center, #000828 0%, #000010 80%)`
+- **Scanline effect:** `::before` pseudo-element — `repeating-linear-gradient` every 4px, `rgba(0,0,0,0.05)` (light)
+- **Vignette:** `::after` pseudo-element — `radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,0.4) 100%)` (light)
 - Both: `position: fixed; inset: 0; pointer-events: none; z-index: 1000+`
 
 ### Color Palette (CSS Variables)
 ```css
 :root {
-  --g: #33ff33;          /* Primary color — green phosphor */
-  --gd: #1a8c1a;         /* Dimmed green — borders, inactive */
-  --bg: #070707;         /* Game area background */
-  --glow: rgba(51,255,51,0.12);  /* Glow effect */
-  --amber: #ffaa00;      /* Accent color — scores, numbers, active selections */
+  --g: #55aaff;                    /* Primary color — blue */
+  --gd: #2255aa;                   /* Dimmed blue — borders, inactive */
+  --bg: #000033;                   /* Game area background */
+  --glow: rgba(85,170,255,0.12);   /* Glow effect */
+  --amber: #ff5555;                /* Accent color — scores, numbers, active selections */
 }
 ```
 
-Colors stay the same across all games. Green shades can be used for variety within the game area:
-`#33ff33, #33dd33, #00ffaa, #66ff66, #00cc66, #22ff88, #44ffcc`
+Colors stay the same across all games. Blue shades can be used for variety within the game area:
+`#55aaff, #3388ff, #77ccff, #2266cc, #88ddff, #4499ee`
 
 ### Typography
 - **Font:** `'Press Start 2P', monospace` (Google Fonts)
@@ -38,8 +38,8 @@ Colors stay the same across all games. Green shades can be used for variety with
 ### Animations
 ```css
 @keyframes titleGlow {
-  0%, 100% { text-shadow: 0 0 2px #fff, 0 0 8px var(--g), 0 0 20px rgba(51,255,51,0.25) }
-  50% { text-shadow: 0 0 4px #fff, 0 0 12px var(--g), 0 0 30px rgba(51,255,51,0.35) }
+  0%, 100% { text-shadow: 0 0 2px #fff, 0 0 8px var(--g), 0 0 20px var(--glow) }
+  50% { text-shadow: 0 0 4px #fff, 0 0 14px var(--g), 0 0 30px var(--glow) }
 }
 @keyframes blink {
   0%, 100% { opacity: 1 } 50% { opacity: 0 }
@@ -47,9 +47,9 @@ Colors stay the same across all games. Green shades can be used for variety with
 ```
 - Game title: `titleGlow 3s ease-in-out infinite`
 - "Tap to start" hints: `blink 1.2s step-end infinite`
-- **Overlay h1:** `color: #d0ffd0` — slightly lighter than the base green; combined with white inner glow, letters stay legible against the background glow
+- **Overlay h1:** `color: #ffffff` — white for maximum legibility against the glow
 
-**Note:** Using `var(--g)` as a text-shadow on same-colored text creates a blurry glowing blob. White close-glow (`0 0 2px #fff`) sharpens the letterforms; outer layers use transparent green.
+**Note:** Using `var(--g)` as a text-shadow on same-colored text creates a blurry glowing blob. White close-glow (`0 0 2px #fff`) sharpens the letterforms; outer layers use `var(--glow)`.
 
 ### Element Styles
 - **Canvas/game area:** `border: 2px solid var(--gd)`, `box-shadow: 0 0 15px var(--glow), inset 0 0 25px rgba(0,0,0,0.4)`, `image-rendering: pixelated`
@@ -268,7 +268,7 @@ function beep(freq, duration, volume = 0.08) {
     if (audioCtx.state === 'suspended') audioCtx.resume();
     const o = audioCtx.createOscillator();
     const g = audioCtx.createGain();
-    o.type = 'square';
+    o.type = 'sawtooth';
     o.frequency.value = freq;
     g.gain.value = volume;
     o.connect(g); g.connect(audioCtx.destination);

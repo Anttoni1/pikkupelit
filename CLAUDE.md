@@ -31,17 +31,17 @@ Tämä projekti on kokoelma retro-mobiilipelejä. Jokainen peli on yksittäinen 
 ### Visuaalinen identiteetti (ei neuvoteltavissa)
 ```css
 :root {
-  --g: #33ff33;                    /* pääväri */
-  --gd: #1a8c1a;                   /* himmennetty vihreä */
-  --bg: #070707;                   /* tausta */
-  --glow: rgba(51,255,51,0.12);    /* hehku */
-  --amber: #ffaa00;                /* korostus: pisteet, arvot */
+  --g: #55aaff;                       /* pääväri — sininen */
+  --gd: #2255aa;                      /* himmennetty sininen — reunat, inaktiiviset */
+  --bg: #000033;                      /* tausta */
+  --glow: rgba(85,170,255,0.12);      /* hehku */
+  --amber: #ff5555;                   /* korostus: pisteet, arvot */
 }
 ```
 - Fontti: `'Press Start 2P', monospace`
-- CRT-efektit: scanlines (`::before`) + vinjetti (`::after`) `body.crt`-luokalla
+- CRT-efektit: scanlines (`::before`, 4px välein, kevyt) + vinjetti (`::after`, kevyt) `body.crt`-luokalla
 - Canvas: `border: 2px solid var(--gd)`, `box-shadow: 0 0 15px var(--glow)`
-- Overlay h1: `color: #d0ffd0` (ei `var(--g)` — teksti muuttuisi epäselväksi hehkuksi)
+- Overlay h1: `color: #ffffff`
 
 ### Layout
 ```

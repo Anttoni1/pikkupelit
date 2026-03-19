@@ -13,8 +13,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-:root{--g:#33ff33;--gd:#1a8c1a;--bg:#070707;--glow:rgba(51,255,51,0.12);--amber:#ffaa00}
-/* era vars overridden by JS on load */
+:root{--g:#55aaff;--gd:#2255aa;--bg:#000033;--glow:rgba(85,170,255,0.12);--amber:#ff5555}
 html,body{
   height:100%;height:100dvh;overflow:hidden;background:#000;touch-action:none;
   -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;
@@ -23,22 +22,22 @@ html,body{
 body{
   display:flex;flex-direction:column;
   font-family:'Press Start 2P',monospace;
-  background:radial-gradient(ellipse at center,#0d0d0d 0%,#000 80%);color:var(--g);
+  background:radial-gradient(ellipse at center,#000828 0%,#000010 80%);color:var(--g);
   padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
 .crt::before{
   content:'';position:fixed;inset:0;
-  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.08) 2px,rgba(0,0,0,0.08) 4px);
+  background:repeating-linear-gradient(0deg,transparent,transparent 4px,rgba(0,0,0,0.05) 4px,rgba(0,0,0,0.05) 6px);
   pointer-events:none;z-index:1000;
 }
 .crt::after{
   content:'';position:fixed;inset:0;
-  background:radial-gradient(ellipse at center,transparent 55%,rgba(0,0,0,0.65) 100%);
+  background:radial-gradient(ellipse at center,transparent 60%,rgba(0,0,0,0.4) 100%);
   pointer-events:none;z-index:1001;
 }
 @keyframes titleGlow{
-  0%,100%{text-shadow:0 0 2px #fff,0 0 8px var(--g),0 0 20px rgba(51,255,51,0.25)}
-  50%{text-shadow:0 0 4px #fff,0 0 12px var(--g),0 0 30px rgba(51,255,51,0.35)}
+  0%,100%{text-shadow:0 0 2px #fff,0 0 8px var(--g),0 0 20px var(--glow)}
+  50%{text-shadow:0 0 4px #fff,0 0 14px var(--g),0 0 30px var(--glow)}
 }
 @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
 
@@ -46,7 +45,7 @@ body{
   flex-shrink:0;
   display:flex;flex-direction:column;align-items:center;
   padding:20px 16px 12px;
-  border-bottom:1px solid var(--gd);
+  border-bottom:2px solid var(--g);
 }
 .arcade-title{
   font-size:18px;letter-spacing:5px;
@@ -56,20 +55,6 @@ body{
 .arcade-subtitle{
   font-size:5px;letter-spacing:3px;opacity:0.4;margin-top:8px;
 }
-.era-row{
-  display:flex;align-items:center;gap:10px;margin-top:10px;
-}
-.era-label{
-  font-size:6px;letter-spacing:2px;color:var(--gd);opacity:0.8;
-}
-.era-btn{
-  background:none;border:1px solid var(--gd);color:var(--g);
-  font-family:'Press Start 2P',monospace;font-size:6px;
-  letter-spacing:1px;padding:4px 8px;cursor:pointer;
-  text-shadow:0 0 4px var(--g);
-  -webkit-tap-highlight-color:transparent;
-}
-
 .game-list{
   flex:1;overflow-y:auto;overflow-x:hidden;
   padding:8px 0;
@@ -82,14 +67,14 @@ body{
   display:flex;align-items:center;justify-content:space-between;
   padding:14px 20px;
   cursor:pointer;
-  border-bottom:1px solid rgba(26,140,26,0.2);
+  border-bottom:1px solid rgba(85,170,255,0.15);
   transition:background 0.1s;
   -webkit-tap-highlight-color:transparent;
   position:relative;
 }
 .game-item:active,
 .game-item.selected{
-  background:rgba(51,255,51,0.06);
+  background:rgba(85,170,255,0.08);
 }
 .game-item-left{
   display:flex;align-items:center;gap:12px;
@@ -110,7 +95,7 @@ body{
 }
 .game-item:active .game-name,
 .game-item.selected .game-name{
-  color:#d0ffd0;
+  color:#ffffff;
   text-shadow:0 0 2px #fff,0 0 8px var(--g);
 }
 .game-score{
@@ -136,7 +121,7 @@ body{
   padding:8px 0 12px;
   font-size:5px;letter-spacing:2px;opacity:0.3;
   text-shadow:0 0 3px var(--g);
-  border-top:1px solid rgba(26,140,26,0.2);
+  border-top:1px solid rgba(85,170,255,0.15);
 }
 </style>
 </head>
@@ -145,10 +130,6 @@ body{
 <div class="header">
   <div class="arcade-title">RETRO<br>ARCADE</div>
   <div class="arcade-subtitle">SELECT GAME</div>
-  <div class="era-row">
-    <span class="era-label" id="eraLabel">▶ 80s GREEN PHOSPHOR</span>
-    <button class="era-btn" id="eraBtn">SWITCH ERA</button>
-  </div>
 </div>
 
 <div class="game-list" id="gameList"></div>
@@ -156,20 +137,6 @@ body{
 <div class="footer">TAP TO PLAY</div>
 
 <script>
-// ERA system
-const ERA = localStorage.getItem('arcade_era') || '90s';
-(function applyEra() {
-  const vars = ERA === '90s'
-    ? {'--g':'#55aaff','--gd':'#2255aa','--bg':'#000033','--glow':'rgba(85,170,255,0.12)','--amber':'#ff5555'}
-    : {'--g':'#33ff33','--gd':'#1a8c1a','--bg':'#070707','--glow':'rgba(51,255,51,0.12)','--amber':'#ffaa00'};
-  Object.entries(vars).forEach(([k,v]) => document.documentElement.style.setProperty(k,v));
-  if (ERA === '90s') {
-    const s = document.createElement('style');
-    s.textContent = `.crt::before{background:repeating-linear-gradient(0deg,transparent,transparent 4px,rgba(0,0,0,0.05) 4px,rgba(0,0,0,0.05) 6px)!important}.crt::after{background:radial-gradient(ellipse at center,transparent 60%,rgba(0,0,0,0.4) 100%)!important}body{background:radial-gradient(ellipse at center,#000828 0%,#000010 80%)!important}@keyframes titleGlow{0%,100%{text-shadow:0 0 2px #fff,0 0 8px var(--g),0 0 20px var(--glow)}50%{text-shadow:0 0 4px #fff,0 0 14px var(--g),0 0 30px var(--glow)}}.header{border-bottom:2px solid var(--g)!important}.game-item{border-bottom:1px solid rgba(85,170,255,0.15)!important}.game-item:active,.game-item.selected{background:rgba(85,170,255,0.08)!important}.game-item:active .game-name,.game-item.selected .game-name{color:#ffffff!important;text-shadow:0 0 2px #fff,0 0 8px var(--g)!important}.footer{border-top:1px solid rgba(85,170,255,0.15)!important}`;
-    document.head.appendChild(s);
-  }
-})();
-
 const GAMES = [
   { name: 'TETRIS',         file: 'tetris.html',   key: 'tetris_hi'   },
   { name: 'SPACE INVADERS', file: 'invaders.html', key: 'invaders_hi' },
@@ -235,14 +202,6 @@ document.addEventListener('keydown', e => {
 });
 
 document.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
-
-// Era toggle
-document.getElementById('eraLabel').textContent = '▶ ' + (ERA === '80s' ? '80s GREEN PHOSPHOR' : '90s VGA DOS');
-['click','touchend'].forEach(ev => document.getElementById('eraBtn').addEventListener(ev, e => {
-  e.preventDefault();
-  localStorage.setItem('arcade_era', ERA === '80s' ? '90s' : '80s');
-  location.reload();
-}));
 
 render();
 </script>

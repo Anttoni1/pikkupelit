@@ -13,7 +13,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-:root{--g:#33ff33;--gd:#1a8c1a;--bg:#070707;--glow:rgba(51,255,51,0.12);--amber:#ffaa00}
+:root{--g:#ffffff;--gd:#aaaacc;--bg:#6699ff;--glow:rgba(255,255,255,0.1);--amber:#ffdd00}
 html,body{
   height:100%;height:100dvh;overflow:hidden;background:#000;touch-action:none;
   -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;
@@ -22,22 +22,22 @@ html,body{
 body{
   display:flex;flex-direction:column;align-items:center;
   font-family:'Press Start 2P',monospace;
-  background:radial-gradient(ellipse at center,#0d0d0d 0%,#000 80%);color:var(--g);
+  background:radial-gradient(ellipse at center,#000828 0%,#000010 80%);color:var(--g);
   padding:0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
 .crt::before{
   content:'';position:fixed;inset:0;
-  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.08) 2px,rgba(0,0,0,0.08) 4px);
+  background:repeating-linear-gradient(0deg,transparent,transparent 4px,rgba(0,0,0,0.05) 4px,rgba(0,0,0,0.05) 6px);
   pointer-events:none;z-index:1000;
 }
 .crt::after{
   content:'';position:fixed;inset:0;
-  background:radial-gradient(ellipse at center,transparent 55%,rgba(0,0,0,0.65) 100%);
+  background:radial-gradient(ellipse at center,transparent 60%,rgba(0,0,0,0.4) 100%);
   pointer-events:none;z-index:1001;
 }
 @keyframes titleGlow{
-  0%,100%{text-shadow:0 0 2px #fff,0 0 8px var(--g),0 0 20px rgba(51,255,51,0.25)}
-  50%{text-shadow:0 0 4px #fff,0 0 12px var(--g),0 0 30px rgba(51,255,51,0.35)}
+  0%,100%{text-shadow:0 0 2px #fff,0 0 8px var(--g),0 0 20px var(--glow)}
+  50%{text-shadow:0 0 4px #fff,0 0 14px var(--g),0 0 30px var(--glow)}
 }
 @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
 
@@ -83,7 +83,7 @@ canvas#board{
   align-items:center;justify-content:center;
   background:rgba(0,0,0,0.88);z-index:500;gap:16px;text-align:center;
 }
-.overlay h1{font-size:22px;letter-spacing:5px;animation:titleGlow 2s ease-in-out infinite;color:#d0ffd0}
+.overlay h1{font-size:22px;letter-spacing:5px;animation:titleGlow 2s ease-in-out infinite;color:#ffffff}
 .overlay h2{font-size:13px;color:var(--amber);text-shadow:0 0 8px var(--amber)}
 .overlay .sub{font-size:7px;line-height:2.4;opacity:0.7}
 .overlay .start-hint{font-size:8px;animation:blink 1.2s step-end infinite;margin-top:12px}
@@ -109,7 +109,7 @@ canvas#board{
 .confirm-yes{color:var(--amber);border:1px solid var(--amber)}
 .confirm-no{color:var(--gd);border:1px solid var(--gd)}
 .confirm-yes.sel,.confirm-yes:active{background:rgba(255,170,0,0.15);color:#fff;border-color:#fff}
-.confirm-no.sel,.confirm-no:active{background:rgba(51,255,51,0.1);color:var(--g);border-color:var(--g)}
+.confirm-no.sel,.confirm-no:active{background:rgba(255,255,255,0.1);color:var(--g);border-color:var(--g)}
 </style>
 </head>
 <body class="crt">
@@ -163,20 +163,6 @@ canvas#board{
 </div>
 
 <script>
-// ── ERA system ─────────────────────────────────────────────────────────────────
-const ERA = localStorage.getItem('arcade_era') || '90s';
-(function applyEra() {
-  const vars = ERA === '90s'
-    ? {'--g':'#ffffff','--gd':'#aaaacc','--bg':'#6699ff','--glow':'rgba(255,255,255,0.1)','--amber':'#ffdd00'}
-    : {'--g':'#33ff33','--gd':'#1a8c1a','--bg':'#070707','--glow':'rgba(51,255,51,0.12)','--amber':'#ffaa00'};
-  Object.entries(vars).forEach(([k,v]) => document.documentElement.style.setProperty(k,v));
-  if (ERA === '90s') {
-    const s = document.createElement('style');
-    s.textContent = `.crt::before{background:repeating-linear-gradient(0deg,transparent,transparent 4px,rgba(0,0,0,0.05) 4px,rgba(0,0,0,0.05) 6px)!important}.crt::after{background:radial-gradient(ellipse at center,transparent 60%,rgba(0,0,0,0.4) 100%)!important}body{background:radial-gradient(ellipse at center,#000828 0%,#000010 80%)!important}@keyframes titleGlow{0%,100%{text-shadow:0 0 2px #fff,0 0 8px var(--g),0 0 20px var(--glow)}50%{text-shadow:0 0 4px #fff,0 0 14px var(--g),0 0 30px var(--glow)}}.overlay h1{color:#ffffff!important}.confirm-no.sel,.confirm-no:active{background:rgba(255,255,255,0.1)!important;border-color:var(--g)!important;color:var(--g)!important}`;
-    document.head.appendChild(s);
-  }
-})();
-
 // ── Seeded PRNG ────────────────────────────────────────────────────────────────
 function mulberry32(seed) {
   return function() {
@@ -230,7 +216,7 @@ function beep(freq, duration, volume = 0.08) {
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     if (audioCtx.state === 'suspended') audioCtx.resume();
     const o = audioCtx.createOscillator(), g = audioCtx.createGain();
-    o.type = ERA === '90s' ? 'sawtooth' : 'square';
+    o.type = 'sawtooth';
     o.frequency.value = freq; g.gain.value = volume;
     o.connect(g); g.connect(audioCtx.destination);
     o.start();
@@ -300,54 +286,36 @@ function drawBird() {
   const angle = Math.max(-0.4, Math.min(0.6, birdVel * 3));
   ctx.rotate(angle);
 
-  if (ERA === '90s') {
-    // Pixel bird: yellow body, orange beak, white belly, dark eye, wing
-    // Body (golden yellow)
-    ctx.fillStyle = '#ffcc00';
-    ctx.fillRect(-BIRD_W/2 + 1, -BIRD_H/2 + 1, BIRD_W - 5, BIRD_H - 2);
-    // Belly highlight (lighter yellow / cream)
-    ctx.fillStyle = '#ffee88';
-    ctx.fillRect(-BIRD_W/2 + 2, -BIRD_H/2 + 4, 4, 4);
-    // Wing (darker amber)
-    ctx.fillStyle = '#dd8800';
-    ctx.fillRect(-BIRD_W/2 + 2, -BIRD_H/2 + 2, 5, 3);
-    // Wing highlight edge
-    ctx.fillStyle = '#ffdd44';
-    ctx.fillRect(-BIRD_W/2 + 2, -BIRD_H/2 + 2, 5, 1);
-    // Tail feathers (dark amber, left side)
-    ctx.fillStyle = '#bb6600';
-    ctx.fillRect(-BIRD_W/2, -BIRD_H/2 + 3, 2, 5);
-    ctx.fillRect(-BIRD_W/2 + 1, -BIRD_H/2 + 2, 1, 1);
-    ctx.fillRect(-BIRD_W/2 + 1, -BIRD_H/2 + 8, 1, 2);
-    // Eye (dark)
-    ctx.fillStyle = '#111111';
-    ctx.fillRect(BIRD_W/2 - 6, -BIRD_H/2 + 2, 3, 3);
-    // Eye shine
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(BIRD_W/2 - 5, -BIRD_H/2 + 2, 1, 1);
-    // Beak — orange, protrudes right
-    ctx.fillStyle = '#ff7700';
-    ctx.fillRect(BIRD_W/2 - 4, -BIRD_H/2 + 3, 5, 3);
-    ctx.fillRect(BIRD_W/2 - 4, -BIRD_H/2 + 4, 5, 1); // lower jaw slightly shorter
-    ctx.fillStyle = '#ffaa44';
-    ctx.fillRect(BIRD_W/2 - 4, -BIRD_H/2 + 3, 5, 1); // top beak highlight
-  } else {
-    // 80s green phosphor bird
-    ctx.fillStyle = '#33ff33';
-    ctx.fillRect(-BIRD_W/2 + 1, -BIRD_H/2 + 1, BIRD_W - 2, BIRD_H - 2);
-    ctx.fillStyle = '#66ff66';
-    ctx.fillRect(-BIRD_W/2 + 1, -BIRD_H/2 + 1, BIRD_W - 2, 2);
-    ctx.fillRect(-BIRD_W/2 + 1, -BIRD_H/2 + 1, 2, BIRD_H - 2);
-    ctx.fillStyle = '#1a8c1a';
-    ctx.fillRect(-BIRD_W/2 + 1, BIRD_H/2 - 3, BIRD_W - 2, 2);
-    ctx.fillRect(BIRD_W/2 - 3, -BIRD_H/2 + 1, 2, BIRD_H - 2);
-    // Eye
-    ctx.fillStyle = '#070707';
-    ctx.fillRect(BIRD_W/2 - 6, -BIRD_H/2 + 2, 3, 3);
-    // Beak — protrudes right of body
-    ctx.fillStyle = '#ffaa00';
-    ctx.fillRect(BIRD_W/2 - 1, -1, 5, 3);
-  }
+  // Pixel bird: yellow body, orange beak, white belly, dark eye, wing
+  // Body (golden yellow)
+  ctx.fillStyle = '#ffcc00';
+  ctx.fillRect(-BIRD_W/2 + 1, -BIRD_H/2 + 1, BIRD_W - 5, BIRD_H - 2);
+  // Belly highlight (lighter yellow / cream)
+  ctx.fillStyle = '#ffee88';
+  ctx.fillRect(-BIRD_W/2 + 2, -BIRD_H/2 + 4, 4, 4);
+  // Wing (darker amber)
+  ctx.fillStyle = '#dd8800';
+  ctx.fillRect(-BIRD_W/2 + 2, -BIRD_H/2 + 2, 5, 3);
+  // Wing highlight edge
+  ctx.fillStyle = '#ffdd44';
+  ctx.fillRect(-BIRD_W/2 + 2, -BIRD_H/2 + 2, 5, 1);
+  // Tail feathers (dark amber, left side)
+  ctx.fillStyle = '#bb6600';
+  ctx.fillRect(-BIRD_W/2, -BIRD_H/2 + 3, 2, 5);
+  ctx.fillRect(-BIRD_W/2 + 1, -BIRD_H/2 + 2, 1, 1);
+  ctx.fillRect(-BIRD_W/2 + 1, -BIRD_H/2 + 8, 1, 2);
+  // Eye (dark)
+  ctx.fillStyle = '#111111';
+  ctx.fillRect(BIRD_W/2 - 6, -BIRD_H/2 + 2, 3, 3);
+  // Eye shine
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(BIRD_W/2 - 5, -BIRD_H/2 + 2, 1, 1);
+  // Beak — orange, protrudes right
+  ctx.fillStyle = '#ff7700';
+  ctx.fillRect(BIRD_W/2 - 4, -BIRD_H/2 + 3, 5, 3);
+  ctx.fillRect(BIRD_W/2 - 4, -BIRD_H/2 + 4, 5, 1); // lower jaw slightly shorter
+  ctx.fillStyle = '#ffaa44';
+  ctx.fillRect(BIRD_W/2 - 4, -BIRD_H/2 + 3, 5, 1); // top beak highlight
 
   ctx.restore();
 }
@@ -357,95 +325,63 @@ function drawPipe(p) {
   const botY = p.topH + g;
   const botH = CANVAS_H - GROUND_H - botY;
 
-  if (ERA === '90s') {
-    // SMB-style bright green pipes with hard pixel edges
-    const PC = '#00aa00', PH = '#00dd00', PS = '#006600', PCap = '#00bb00';
-    // Top pipe body
-    ctx.fillStyle = PC; ctx.fillRect(p.x, 0, PIPE_W, p.topH);
-    ctx.fillStyle = PH; ctx.fillRect(p.x + 1, 0, 3, p.topH);
-    ctx.fillStyle = PS; ctx.fillRect(p.x + PIPE_W - 4, 0, 3, p.topH);
-    // Top cap (wider, hard edges)
-    ctx.fillStyle = PCap; ctx.fillRect(p.x - 4, p.topH - 10, PIPE_W + 8, 10);
-    ctx.fillStyle = PH; ctx.fillRect(p.x - 4, p.topH - 10, PIPE_W + 8, 2);
-    ctx.fillStyle = PS; ctx.fillRect(p.x - 4, p.topH - 2, PIPE_W + 8, 2);
+  // SMB-style bright green pipes with hard pixel edges
+  const PC = '#00aa00', PH = '#00dd00', PS = '#006600', PCap = '#00bb00';
+  // Top pipe body
+  ctx.fillStyle = PC; ctx.fillRect(p.x, 0, PIPE_W, p.topH);
+  ctx.fillStyle = PH; ctx.fillRect(p.x + 1, 0, 3, p.topH);
+  ctx.fillStyle = PS; ctx.fillRect(p.x + PIPE_W - 4, 0, 3, p.topH);
+  // Top cap (wider, hard edges)
+  ctx.fillStyle = PCap; ctx.fillRect(p.x - 4, p.topH - 10, PIPE_W + 8, 10);
+  ctx.fillStyle = PH; ctx.fillRect(p.x - 4, p.topH - 10, PIPE_W + 8, 2);
+  ctx.fillStyle = PS; ctx.fillRect(p.x - 4, p.topH - 2, PIPE_W + 8, 2);
 
-    // Bottom pipe body
-    ctx.fillStyle = PC; ctx.fillRect(p.x, botY, PIPE_W, botH);
-    ctx.fillStyle = PH; ctx.fillRect(p.x + 1, botY, 3, botH);
-    ctx.fillStyle = PS; ctx.fillRect(p.x + PIPE_W - 4, botY, 3, botH);
-    // Bottom cap
-    ctx.fillStyle = PCap; ctx.fillRect(p.x - 4, botY, PIPE_W + 8, 10);
-    ctx.fillStyle = PH; ctx.fillRect(p.x - 4, botY, PIPE_W + 8, 2);
-    ctx.fillStyle = PS; ctx.fillRect(p.x - 4, botY + 8, PIPE_W + 8, 2);
-  } else {
-    // 80s green phosphor pipes
-    ctx.fillStyle = '#1a8c1a'; ctx.fillRect(p.x, 0, PIPE_W, p.topH);
-    ctx.fillStyle = '#33dd33'; ctx.fillRect(p.x + 1, 0, 2, p.topH);
-    ctx.fillStyle = '#22cc22'; ctx.fillRect(p.x - 3, p.topH - 8, PIPE_W + 6, 8);
-    ctx.fillStyle = '#33ff33'; ctx.fillRect(p.x - 3, p.topH - 8, PIPE_W + 6, 2);
-
-    ctx.fillStyle = '#1a8c1a'; ctx.fillRect(p.x, botY, PIPE_W, botH);
-    ctx.fillStyle = '#33dd33'; ctx.fillRect(p.x + 1, botY, 2, botH);
-    ctx.fillStyle = '#22cc22'; ctx.fillRect(p.x - 3, botY, PIPE_W + 6, 8);
-    ctx.fillStyle = '#33ff33'; ctx.fillRect(p.x - 3, botY, PIPE_W + 6, 2);
-  }
-}
-
-function drawGround() {
-  const gy = CANVAS_H - GROUND_H;
-  ctx.fillStyle = '#1a8c1a';
-  ctx.fillRect(0, gy, CANVAS_W, GROUND_H);
-  ctx.fillStyle = '#33ff33';
-  ctx.fillRect(0, gy, CANVAS_W, 2);
-  // Ground pattern
-  ctx.fillStyle = '#0d5c0d';
-  for (let x = 0; x < CANVAS_W; x += 12) {
-    ctx.fillRect(x, gy + 6, 6, 2);
-    ctx.fillRect(x + 6, gy + 12, 6, 2);
-  }
+  // Bottom pipe body
+  ctx.fillStyle = PC; ctx.fillRect(p.x, botY, PIPE_W, botH);
+  ctx.fillStyle = PH; ctx.fillRect(p.x + 1, botY, 3, botH);
+  ctx.fillStyle = PS; ctx.fillRect(p.x + PIPE_W - 4, botY, 3, botH);
+  // Bottom cap
+  ctx.fillStyle = PCap; ctx.fillRect(p.x - 4, botY, PIPE_W + 8, 10);
+  ctx.fillStyle = PH; ctx.fillRect(p.x - 4, botY, PIPE_W + 8, 2);
+  ctx.fillStyle = PS; ctx.fillRect(p.x - 4, botY + 8, PIPE_W + 8, 2);
 }
 
 // Cloud positions (stable, generated once)
 const CLOUDS = [{x:20,y:30,w:50},{x:110,y:18,w:40},{x:165,y:50,w:55},{x:60,y:55,w:36}];
 
 function drawBackground() {
-  if (ERA === '90s') {
-    // Sky gradient
-    const sky = ctx.createLinearGradient(0, 0, 0, CANVAS_H - GROUND_H);
-    sky.addColorStop(0, '#5588ee');
-    sky.addColorStop(1, '#99ccff');
-    ctx.fillStyle = sky;
-    ctx.fillRect(0, 0, CANVAS_W, CANVAS_H - GROUND_H);
+  // Sky gradient
+  const sky = ctx.createLinearGradient(0, 0, 0, CANVAS_H - GROUND_H);
+  sky.addColorStop(0, '#5588ee');
+  sky.addColorStop(1, '#99ccff');
+  ctx.fillStyle = sky;
+  ctx.fillRect(0, 0, CANVAS_W, CANVAS_H - GROUND_H);
 
-    // VGA-style pixel clouds with layered shading
-    for (const c of CLOUDS) {
-      const x = c.x, y = c.y, w = c.w;
-      // 1) Drop shadow — light blue, 1px down+right offset
-      ctx.fillStyle = '#aabbdd';
-      ctx.fillRect(x + 1, y + 1, w, 8);
-      ctx.fillRect(x + 7, y - 5, w - 12, 8);
-      ctx.fillRect(x + 13, y - 9, w - 24, 6);
-      // 2) Main body — white
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(x, y, w, 8);
-      ctx.fillRect(x + 6, y - 6, w - 12, 8);
-      ctx.fillRect(x + 12, y - 10, w - 24, 6);
-      // 3) Pure white highlight on topmost peak
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(x + 14, y - 10, w - 28, 2);
-      // 4) Light grey bottom strip — puffy rounded underside
-      ctx.fillStyle = '#ccddee';
-      ctx.fillRect(x + 2, y + 5, w - 4, 3);
-      // 5) Darker right-side shade on main bump
-      ctx.fillStyle = '#bbccdd';
-      ctx.fillRect(x + w - 8, y, 5, 7);
-      // 6) Inner shadow on mid-level bump right edge
-      ctx.fillStyle = '#bbccdd';
-      ctx.fillRect(x + w - 14, y - 5, 3, 6);
-    }
-  } else {
-    ctx.fillStyle = '#070707';
-    ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+  // VGA-style pixel clouds with layered shading
+  for (const c of CLOUDS) {
+    const x = c.x, y = c.y, w = c.w;
+    // 1) Drop shadow — light blue, 1px down+right offset
+    ctx.fillStyle = '#aabbdd';
+    ctx.fillRect(x + 1, y + 1, w, 8);
+    ctx.fillRect(x + 7, y - 5, w - 12, 8);
+    ctx.fillRect(x + 13, y - 9, w - 24, 6);
+    // 2) Main body — white
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(x, y, w, 8);
+    ctx.fillRect(x + 6, y - 6, w - 12, 8);
+    ctx.fillRect(x + 12, y - 10, w - 24, 6);
+    // 3) Pure white highlight on topmost peak
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(x + 14, y - 10, w - 28, 2);
+    // 4) Light grey bottom strip — puffy rounded underside
+    ctx.fillStyle = '#ccddee';
+    ctx.fillRect(x + 2, y + 5, w - 4, 3);
+    // 5) Darker right-side shade on main bump
+    ctx.fillStyle = '#bbccdd';
+    ctx.fillRect(x + w - 8, y, 5, 7);
+    // 6) Inner shadow on mid-level bump right edge
+    ctx.fillStyle = '#bbccdd';
+    ctx.fillRect(x + w - 14, y - 5, 3, 6);
   }
 }
 
@@ -476,7 +412,7 @@ function draw() {
   for (const p of pipes) drawPipe(p);
 
   // Ground
-  if (ERA === '90s') drawGround90s(); else drawGround();
+  drawGround90s();
 
   // Bird
   drawBird();
