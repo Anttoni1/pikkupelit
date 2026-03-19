@@ -61,13 +61,9 @@ body{
   width:100%;position:relative;padding:0;
 }
 canvas#board{
-  border:2px solid var(--gd);border-bottom:none;
+  border:2px solid var(--gd);
   box-shadow:0 0 15px var(--glow),inset 0 0 25px rgba(0,0,0,0.4);
-  image-rendering:pixelated;border-radius:2px 2px 0 0;
-}
-#ctrlCanvas{
-  display:block;image-rendering:pixelated;flex-shrink:0;
-  border:1px solid var(--gd);border-top:none;border-radius:0 0 2px 2px;
+  image-rendering:pixelated;border-radius:2px;
 }
 .touch-hint{
   font-size:5px;letter-spacing:1px;opacity:0.3;text-align:center;
@@ -149,7 +145,6 @@ canvas#board{
   <div class="board-wrap" id="boardWrap">
     <canvas id="board" width="480" height="640"></canvas>
   </div>
-  <canvas id="ctrlCanvas" width="480" height="100"></canvas>
   <div class="touch-hint">LEFT TAP FIRE &nbsp;|&nbsp; RIGHT JOYSTICK STEER+THRUST</div>
 </div>
 
@@ -220,9 +215,6 @@ const keys = {};
 // ── Canvas ───────────────────────────────────────────────────────────────────
 const canvas = document.getElementById('board');
 const ctx = canvas.getContext('2d');
-const CTRL_W = 480, CTRL_H = 100;
-const ctrlCanvas = document.getElementById('ctrlCanvas');
-const ctrlCtx = ctrlCanvas.getContext('2d');
 
 // ── Audio ────────────────────────────────────────────────────────────────────
 let audioCtx;
@@ -656,49 +648,6 @@ function drawFireZone() {
   ctx.stroke();
 }
 
-function drawCtrlJoystick() {
-  if (!stick.active) return;
-  const r = ctrlCanvas.getBoundingClientRect();
-  const sx = CTRL_W / r.width, sy = CTRL_H / r.height;
-  const bx = (stick.baseX - r.left) * sx, by = (stick.baseY - r.top) * sy;
-  const kx = stick.dx * sx, ky = stick.dy * sy;
-
-  ctrlCtx.beginPath();
-  ctrlCtx.arc(bx, by, STICK_RADIUS * sx, 0, Math.PI * 2);
-  ctrlCtx.strokeStyle = 'rgba(51,255,51,0.15)';
-  ctrlCtx.lineWidth = 1;
-  ctrlCtx.stroke();
-
-  ctrlCtx.beginPath();
-  ctrlCtx.arc(bx + kx, by + ky, 14 * sx, 0, Math.PI * 2);
-  ctrlCtx.fillStyle = 'rgba(51,255,51,0.18)';
-  ctrlCtx.fill();
-  ctrlCtx.strokeStyle = 'rgba(51,255,51,0.45)';
-  ctrlCtx.lineWidth = 1.5;
-  ctrlCtx.stroke();
-}
-
-function drawCtrlFireZone() {
-  if (!leftTouch.active) return;
-  const r = ctrlCanvas.getBoundingClientRect();
-  const sx = CTRL_W / r.width, sy = CTRL_H / r.height;
-  const cx = (leftTouch.startX - r.left) * sx, cy = (leftTouch.startY - r.top) * sy;
-
-  ctrlCtx.beginPath();
-  ctrlCtx.arc(cx, cy, 22 * sx, 0, Math.PI * 2);
-  ctrlCtx.fillStyle = 'rgba(255,170,0,0.12)';
-  ctrlCtx.fill();
-  ctrlCtx.strokeStyle = 'rgba(255,170,0,0.4)';
-  ctrlCtx.lineWidth = 1.5;
-  ctrlCtx.stroke();
-}
-
-function drawControls() {
-  ctrlCtx.clearRect(0, 0, CTRL_W, CTRL_H);
-  drawCtrlJoystick();
-  drawCtrlFireZone();
-}
-
 // Stable starfield for 90s background
 const STARS_A = Array.from({length:80}, () => ({x:Math.random()*480,y:Math.random()*640,r:Math.random()<0.15?2:1,c:Math.random()<0.3?'#aaccff':Math.random()<0.5?'#ffccaa':'#ffffff'}));
 
@@ -729,7 +678,6 @@ function draw() {
   drawJoystick();
   drawFireZone();
   drawWaveClear();
-  drawControls();
 }
 
 // ── UI ────────────────────────────────────────────────────────────────────────
@@ -954,22 +902,16 @@ document.addEventListener('keydown', e => {
   }
 }, true);
 
-ctrlCanvas.addEventListener('touchstart', e => {
-  e.preventDefault(); // ensure scroll is blocked; input handled by document-level handler via bubbling
-}, { passive: false });
-
 // ── Resize ────────────────────────────────────────────────────────────────────
 function resize() {
+  const wrap = document.getElementById('boardWrap');
   const tb = document.querySelector('.topbar'), th = document.querySelector('.touch-hint');
-  const ctrlCssH = Math.round(window.innerWidth * CTRL_H / CTRL_W);
-  const aH = window.innerHeight - (tb ? tb.offsetHeight : 0) - (th ? th.offsetHeight : 0) - ctrlCssH, aW = window.innerWidth;
+  const aH = window.innerHeight - (tb ? tb.offsetHeight : 0) - (th ? th.offsetHeight : 0), aW = window.innerWidth;
   const aspect = CANVAS_H / CANVAS_W;
   let h = aH, w = h / aspect;
   if (w > aW) { w = aW; h = w * aspect; }
   canvas.style.width = Math.floor(w) + 'px';
   canvas.style.height = Math.floor(h) + 'px';
-  ctrlCanvas.style.width = Math.floor(w) + 'px';
-  ctrlCanvas.style.height = Math.round(w * CTRL_H / CTRL_W) + 'px';
   document.getElementById('gameUI').style.width = Math.floor(w) + 'px';
 }
 window.addEventListener('resize', resize);
