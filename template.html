@@ -13,7 +13,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-:root{--g:#33ff33;--gd:#1a8c1a;--bg:#070707;--glow:rgba(51,255,51,0.12);--amber:#ffaa00}
+:root{--g:#55aaff;--gd:#2255aa;--bg:#000033;--glow:rgba(85,170,255,0.12);--amber:#ff5555}
 html,body{
   height:100%;height:100dvh;overflow:hidden;background:#000;touch-action:none;
   -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;
@@ -22,22 +22,22 @@ html,body{
 body{
   display:flex;flex-direction:column;align-items:center;
   font-family:'Press Start 2P',monospace;
-  background:radial-gradient(ellipse at center,#0d0d0d 0%,#000 80%);color:var(--g);
+  background:radial-gradient(ellipse at center,#000828 0%,#000010 80%);color:var(--g);
   padding:0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
 .crt::before{
   content:'';position:fixed;inset:0;
-  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.08) 2px,rgba(0,0,0,0.08) 4px);
+  background:repeating-linear-gradient(0deg,transparent,transparent 4px,rgba(0,0,0,0.05) 4px,rgba(0,0,0,0.05) 6px);
   pointer-events:none;z-index:1000;
 }
 .crt::after{
   content:'';position:fixed;inset:0;
-  background:radial-gradient(ellipse at center,transparent 55%,rgba(0,0,0,0.65) 100%);
+  background:radial-gradient(ellipse at center,transparent 60%,rgba(0,0,0,0.4) 100%);
   pointer-events:none;z-index:1001;
 }
 @keyframes titleGlow{
-  0%,100%{text-shadow:0 0 2px #fff,0 0 8px var(--g),0 0 20px rgba(51,255,51,0.25)}
-  50%{text-shadow:0 0 4px #fff,0 0 12px var(--g),0 0 30px rgba(51,255,51,0.35)}
+  0%,100%{text-shadow:0 0 2px #fff,0 0 8px var(--g),0 0 20px var(--glow)}
+  50%{text-shadow:0 0 4px #fff,0 0 14px var(--g),0 0 30px var(--glow)}
 }
 @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
 
@@ -83,7 +83,7 @@ canvas#board{
   align-items:center;justify-content:center;
   background:rgba(0,0,0,0.88);z-index:500;gap:16px;text-align:center;
 }
-.overlay h1{font-size:22px;letter-spacing:5px;animation:titleGlow 2s ease-in-out infinite;color:#d0ffd0}
+.overlay h1{font-size:22px;letter-spacing:5px;animation:titleGlow 2s ease-in-out infinite;color:#ffffff}
 .overlay h2{font-size:13px;color:var(--amber);text-shadow:0 0 8px var(--amber)}
 .overlay .sub{font-size:7px;line-height:2.4;opacity:0.7}
 .overlay .start-hint{font-size:8px;animation:blink 1.2s step-end infinite;margin-top:12px}
@@ -109,7 +109,7 @@ canvas#board{
 .confirm-yes{color:var(--amber);border:1px solid var(--amber)}
 .confirm-no{color:var(--gd);border:1px solid var(--gd)}
 .confirm-yes.sel,.confirm-yes:active{background:rgba(255,170,0,0.15);color:#fff;border-color:#fff}
-.confirm-no.sel,.confirm-no:active{background:rgba(51,255,51,0.1);color:var(--g);border-color:var(--g)}
+.confirm-no.sel,.confirm-no:active{background:rgba(85,170,255,0.1);color:var(--g);border-color:var(--g)}
 </style>
 </head>
 <body class="crt">
@@ -163,21 +163,6 @@ canvas#board{
 </div>
 
 <script>
-// ── ERA system ───────────────────────────────────────────────────────────────
-const ERA = localStorage.getItem('arcade_era') || '90s';
-(function applyEra() {
-  // TODO: replace 90s vars with game-specific palette
-  const vars = ERA === '90s'
-    ? {'--g':'#55aaff','--gd':'#2255aa','--bg':'#000033','--glow':'rgba(85,170,255,0.12)','--amber':'#ff5555'}
-    : {'--g':'#33ff33','--gd':'#1a8c1a','--bg':'#070707','--glow':'rgba(51,255,51,0.12)','--amber':'#ffaa00'};
-  Object.entries(vars).forEach(([k,v]) => document.documentElement.style.setProperty(k,v));
-  if (ERA === '90s') {
-    const s = document.createElement('style');
-    s.textContent = `.crt::before{background:repeating-linear-gradient(0deg,transparent,transparent 4px,rgba(0,0,0,0.05) 4px,rgba(0,0,0,0.05) 6px)!important}.crt::after{background:radial-gradient(ellipse at center,transparent 60%,rgba(0,0,0,0.4) 100%)!important}body{background:radial-gradient(ellipse at center,#000828 0%,#000010 80%)!important}@keyframes titleGlow{0%,100%{text-shadow:0 0 2px #fff,0 0 8px var(--g),0 0 20px var(--glow)}50%{text-shadow:0 0 4px #fff,0 0 14px var(--g),0 0 30px var(--glow)}}.overlay h1{color:#ffffff!important}.confirm-no.sel,.confirm-no:active{background:rgba(85,170,255,0.1)!important;border-color:var(--g)!important;color:var(--g)!important}`;
-    document.head.appendChild(s);
-  }
-})();
-
 // ── Vakiot ──────────────────────────────────────────────────────────────────
 const CANVAS_W = 300, CANVAS_H = 450; // muuta pelin mukaan
 // TODO: lisää pelikohtaiset vakiot
@@ -197,7 +182,7 @@ function beep(freq, duration, volume = 0.08) {
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     if (audioCtx.state === 'suspended') audioCtx.resume();
     const o = audioCtx.createOscillator(), g = audioCtx.createGain();
-    o.type = ERA === '90s' ? 'sawtooth' : 'square';
+    o.type = 'sawtooth';
     o.frequency.value = freq; g.gain.value = volume;
     o.connect(g); g.connect(audioCtx.destination);
     o.start();
@@ -211,14 +196,9 @@ function beep(freq, duration, volume = 0.08) {
 
 // ── Tausta ───────────────────────────────────────────────────────────────────
 function drawBackground() {
-  if (ERA === '90s') {
-    // TODO: draw game-specific 90s background scene (sky, stars, etc.)
-    ctx.fillStyle = '#000033';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-  } else {
-    ctx.fillStyle = '#070707';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-  }
+  // TODO: draw game-specific background scene (sky, stars, etc.)
+  ctx.fillStyle = '#000033';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
 }
 
 // ── Piirto ───────────────────────────────────────────────────────────────────
