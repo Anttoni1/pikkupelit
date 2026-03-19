@@ -760,8 +760,8 @@ function screenToCanvas(sx, sy) {
   };
 }
 
-bw.addEventListener('touchstart', e => {
-  if (e.target.id === 'pauseBtn') return;
+document.addEventListener('touchstart', e => {
+  if (e.target.closest('.topbar')) return;
   e.preventDefault();
   if (!gameRunning || paused) return;
   for (const t of e.changedTouches) {
@@ -784,7 +784,7 @@ bw.addEventListener('touchstart', e => {
   }
 }, { passive: false });
 
-bw.addEventListener('touchmove', e => {
+document.addEventListener('touchmove', e => {
   e.preventDefault();
   if (!gameRunning || paused) return;
   for (const t of e.changedTouches) {
@@ -799,7 +799,7 @@ bw.addEventListener('touchmove', e => {
   }
 }, { passive: false });
 
-bw.addEventListener('touchend', e => {
+document.addEventListener('touchend', e => {
   e.preventDefault();
   if (!gameRunning || paused) return;
   for (const t of e.changedTouches) {
@@ -816,7 +816,7 @@ bw.addEventListener('touchend', e => {
   }
 }, { passive: false });
 
-bw.addEventListener('touchcancel', e => {
+document.addEventListener('touchcancel', e => {
   for (const t of e.changedTouches) {
     if (t.identifier === stick.id) { stick.active = false; stick.dx = 0; stick.dy = 0; }
     if (t.identifier === leftTouch.id) leftTouch.active = false;
