@@ -91,7 +91,8 @@ html, body {
   -webkit-tap-highlight-color: transparent;
 }
 body {
-  padding: env(safe-area-inset-top) env(safe-area-inset-right)
+  /* top inset is handled by .topbar to avoid overlap with iOS status bar in PWA mode */
+  padding: 0 env(safe-area-inset-right)
            env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
 ```
@@ -104,7 +105,7 @@ document.addEventListener('touchmove', e => e.preventDefault(), { passive: false
 ### Page Structure (Vertical)
 ```
 ┌──────────────────────┐
-│  TOPBAR              │  ← flex-shrink: 0, padding: 6px 12px
+│  TOPBAR              │  ← flex-shrink: 0, padding: calc(6px + env(safe-area-inset-top)) 12px 6px
 │  Name  PAUSE  Stats  │     Left: game name + score (topbar-left)
 │                      │     Center: PAUSE button (between topbar-left and topbar-right)
 │                      │     Right: game-specific info (topbar-right)
