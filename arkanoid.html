@@ -13,7 +13,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-:root{--g:#33ff33;--gd:#1a8c1a;--bg:#070707;--glow:rgba(51,255,51,0.12);--amber:#ffaa00}
+:root{--g:#ffff55;--gd:#aaaa00;--bg:#000022;--glow:rgba(255,255,85,0.1);--amber:#ff5555}
 html,body{
   height:100%;height:100dvh;overflow:hidden;background:#000;touch-action:none;
   -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;
@@ -22,22 +22,22 @@ html,body{
 body{
   display:flex;flex-direction:column;align-items:center;
   font-family:'Press Start 2P',monospace;
-  background:radial-gradient(ellipse at center,#0d0d0d 0%,#000 80%);color:var(--g);
+  background:radial-gradient(ellipse at center,#000828 0%,#000010 80%);color:var(--g);
   padding:0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
 .crt::before{
   content:'';position:fixed;inset:0;
-  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.08) 2px,rgba(0,0,0,0.08) 4px);
+  background:repeating-linear-gradient(0deg,transparent,transparent 4px,rgba(0,0,0,0.05) 4px,rgba(0,0,0,0.05) 6px);
   pointer-events:none;z-index:1000;
 }
 .crt::after{
   content:'';position:fixed;inset:0;
-  background:radial-gradient(ellipse at center,transparent 55%,rgba(0,0,0,0.65) 100%);
+  background:radial-gradient(ellipse at center,transparent 60%,rgba(0,0,0,0.4) 100%);
   pointer-events:none;z-index:1001;
 }
 @keyframes titleGlow{
-  0%,100%{text-shadow:0 0 2px #fff,0 0 8px var(--g),0 0 20px rgba(51,255,51,0.25)}
-  50%{text-shadow:0 0 4px #fff,0 0 12px var(--g),0 0 30px rgba(51,255,51,0.35)}
+  0%,100%{text-shadow:0 0 2px #fff,0 0 8px var(--g),0 0 20px var(--glow)}
+  50%{text-shadow:0 0 4px #fff,0 0 14px var(--g),0 0 30px var(--glow)}
 }
 @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
 
@@ -83,7 +83,7 @@ canvas#board{
   align-items:center;justify-content:center;
   background:rgba(0,0,0,0.88);z-index:500;gap:16px;text-align:center;
 }
-.overlay h1{font-size:22px;letter-spacing:5px;animation:titleGlow 2s ease-in-out infinite;color:#d0ffd0}
+.overlay h1{font-size:22px;letter-spacing:5px;animation:titleGlow 2s ease-in-out infinite;color:#ffffff}
 .overlay h2{font-size:13px;color:var(--amber);text-shadow:0 0 8px var(--amber)}
 .overlay .sub{font-size:7px;line-height:2.4;opacity:0.7}
 .overlay .start-hint{font-size:8px;animation:blink 1.2s step-end infinite;margin-top:12px}
@@ -109,7 +109,7 @@ canvas#board{
 .confirm-yes{color:var(--amber);border:1px solid var(--amber)}
 .confirm-no{color:var(--gd);border:1px solid var(--gd)}
 .confirm-yes.sel,.confirm-yes:active{background:rgba(255,170,0,0.15);color:#fff;border-color:#fff}
-.confirm-no.sel,.confirm-no:active{background:rgba(51,255,51,0.1);color:var(--g);border-color:var(--g)}
+.confirm-no.sel,.confirm-no:active{background:rgba(255,255,85,0.1);color:var(--g);border-color:var(--g)}
 </style>
 </head>
 <body class="crt">
@@ -166,20 +166,6 @@ canvas#board{
 </div>
 
 <script>
-// ── ERA system ─────────────────────────────────────────────────────────────────
-const ERA = localStorage.getItem('arcade_era') || '90s';
-(function applyEra() {
-  const vars = ERA === '90s'
-    ? {'--g':'#ffff55','--gd':'#aaaa00','--bg':'#000022','--glow':'rgba(255,255,85,0.1)','--amber':'#ff5555'}
-    : {'--g':'#33ff33','--gd':'#1a8c1a','--bg':'#070707','--glow':'rgba(51,255,51,0.12)','--amber':'#ffaa00'};
-  Object.entries(vars).forEach(([k,v]) => document.documentElement.style.setProperty(k,v));
-  if (ERA === '90s') {
-    const s = document.createElement('style');
-    s.textContent = `.crt::before{background:repeating-linear-gradient(0deg,transparent,transparent 4px,rgba(0,0,0,0.05) 4px,rgba(0,0,0,0.05) 6px)!important}.crt::after{background:radial-gradient(ellipse at center,transparent 60%,rgba(0,0,0,0.4) 100%)!important}body{background:radial-gradient(ellipse at center,#000828 0%,#000010 80%)!important}@keyframes titleGlow{0%,100%{text-shadow:0 0 2px #fff,0 0 8px var(--g),0 0 20px var(--glow)}50%{text-shadow:0 0 4px #fff,0 0 14px var(--g),0 0 30px var(--glow)}}.overlay h1{color:#ffffff!important}.confirm-no.sel,.confirm-no:active{background:rgba(255,255,85,0.1)!important;border-color:var(--g)!important;color:var(--g)!important}`;
-    document.head.appendChild(s);
-  }
-})();
-
 // ── Constants ──
 const CW = 300, CH = 420;
 const BRICK_COLS = 10, MAX_BRICK_ROWS = 12;
@@ -192,12 +178,9 @@ const PADDLE_Y_OFFSET = 155;
 
 const canvas = document.getElementById('board'), ctx = canvas.getContext('2d');
 
-// Row colors for normal bricks
-const ROW_COLORS_80S = ['#33ff33','#66ff66','#ffaa00','#00ffaa','#22ff88','#ffcc00',
-                        '#44ff44','#ff8800','#00cc66','#88ff44','#ffaa33','#33ffaa'];
-const ROW_COLORS_90S = ['#ff5555','#ff9900','#ffff55','#ff55ff','#55ffff','#ff7722',
-                        '#ffcc00','#ff4488','#55aaff','#ffee44','#ff6633','#cc44ff'];
-const ROW_COLORS = ERA === '90s' ? ROW_COLORS_90S : ROW_COLORS_80S;
+// Row colors for normal bricks (90s VGA palette)
+const ROW_COLORS = ['#ff5555','#ff9900','#ffff55','#ff55ff','#55ffff','#ff7722',
+                    '#ffcc00','#ff4488','#55aaff','#ffee44','#ff6633','#cc44ff'];
 
 // Brick types: 0=empty, 1=normal, 2+=silver(hits left), -1=gold, 5=rainbow
 const B_EMPTY = 0, B_NORMAL = 1, B_GOLD = -1, B_RAINBOW = 5;
@@ -330,7 +313,7 @@ function beep(f, d, v = 0.08) {
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     if (audioCtx.state === 'suspended') audioCtx.resume();
     const o = audioCtx.createOscillator(), g = audioCtx.createGain();
-    o.type = ERA === '90s' ? 'sawtooth' : 'square';
+    o.type = 'sawtooth';
     o.frequency.value = f; g.gain.value = v;
     o.connect(g); g.connect(audioCtx.destination); o.start();
     g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + d);
@@ -815,51 +798,39 @@ function loadLevel() {
 
 // ── Draw ──
 function drawBackground() {
-  if (ERA === '90s') {
-    // Dark blue bg with neon city silhouette at bottom
-    ctx.fillStyle = '#000022'; ctx.fillRect(0, 0, CW, CH);
-    // City skyline — fills the space below the paddle
-    ctx.fillStyle = '#0a0033';
-    const buildings = [
-      {x:0,  w:20,h:55}, {x:22, w:14,h:90}, {x:38, w:26,h:40}, {x:66, w:16,h:110},
-      {x:84, w:24,h:70}, {x:110,w:18,h:130},{x:130,w:32,h:60}, {x:164,w:22,h:145},
-      {x:188,w:16,h:85}, {x:206,w:28,h:50}, {x:236,w:14,h:105},{x:252,w:30,h:75},
-      {x:284,w:16,h:120}
-    ];
-    // Clamp building tops to stay below the paddle
-    const paddleTop = CH - PADDLE_Y_OFFSET - PADDLE_H;
-    for (const b of buildings) {
-      const h = Math.min(b.h, CH - paddleTop - PADDLE_H - 4);
-      ctx.fillRect(b.x, CH - h, b.w, h);
-    }
-    // Neon windows
-    ctx.fillStyle = '#ffff55';
-    for (const b of buildings) {
-      const h = Math.min(b.h, CH - paddleTop - PADDLE_H - 4);
-      for (let wy = CH - h + 6; wy < CH - 4; wy += 10) {
-        for (let wx = b.x + 4; wx < b.x + b.w - 4; wx += 8) {
-          if (Math.abs(wx * 31 + wy * 17) % 3 !== 0) ctx.fillRect(wx, wy, 3, 4);
-        }
+  // Dark blue bg with neon city silhouette at bottom
+  ctx.fillStyle = '#000022'; ctx.fillRect(0, 0, CW, CH);
+  // City skyline — fills the space below the paddle
+  ctx.fillStyle = '#0a0033';
+  const buildings = [
+    {x:0,  w:20,h:55}, {x:22, w:14,h:90}, {x:38, w:26,h:40}, {x:66, w:16,h:110},
+    {x:84, w:24,h:70}, {x:110,w:18,h:130},{x:130,w:32,h:60}, {x:164,w:22,h:145},
+    {x:188,w:16,h:85}, {x:206,w:28,h:50}, {x:236,w:14,h:105},{x:252,w:30,h:75},
+    {x:284,w:16,h:120}
+  ];
+  // Clamp building tops to stay below the paddle
+  const paddleTop = CH - PADDLE_Y_OFFSET - PADDLE_H;
+  for (const b of buildings) {
+    const h = Math.min(b.h, CH - paddleTop - PADDLE_H - 4);
+    ctx.fillRect(b.x, CH - h, b.w, h);
+  }
+  // Neon windows
+  ctx.fillStyle = '#ffff55';
+  for (const b of buildings) {
+    const h = Math.min(b.h, CH - paddleTop - PADDLE_H - 4);
+    for (let wy = CH - h + 6; wy < CH - 4; wy += 10) {
+      for (let wx = b.x + 4; wx < b.x + b.w - 4; wx += 8) {
+        if (Math.abs(wx * 31 + wy * 17) % 3 !== 0) ctx.fillRect(wx, wy, 3, 4);
       }
     }
-  } else {
-    ctx.fillStyle = '#070707'; ctx.fillRect(0, 0, CW, CH);
   }
 }
 function drawBlock(x, y, w, h, color) {
   ctx.fillStyle = color;
   ctx.fillRect(x + 1, y + 1, w - 2, h - 2);
-  if (ERA === '90s') {
-    // VGA hard edges
-    ctx.fillStyle = '#ffffff'; ctx.fillRect(x + 1, y + 1, w - 2, 1); ctx.fillRect(x + 1, y + 1, 1, h - 2);
-    ctx.fillStyle = '#000000'; ctx.fillRect(x + 1, y + h - 2, w - 2, 1); ctx.fillRect(x + w - 2, y + 1, 1, h - 2);
-  } else {
-    // 80s semi-transparent
-    ctx.fillStyle = 'rgba(255,255,255,0.12)';
-    ctx.fillRect(x + 2, y + 2, w - 6, 2); ctx.fillRect(x + 2, y + 2, 2, h - 6);
-    ctx.fillStyle = 'rgba(0,0,0,0.25)';
-    ctx.fillRect(x + 1, y + h - 3, w - 2, 2); ctx.fillRect(x + w - 3, y + 1, 2, h - 2);
-  }
+  // VGA hard edges
+  ctx.fillStyle = '#ffffff'; ctx.fillRect(x + 1, y + 1, w - 2, 1); ctx.fillRect(x + 1, y + 1, 1, h - 2);
+  ctx.fillStyle = '#000000'; ctx.fillRect(x + 1, y + h - 2, w - 2, 1); ctx.fillRect(x + w - 2, y + 1, 1, h - 2);
 }
 
 function getSilverColor(hits) {
@@ -869,9 +840,7 @@ function getSilverColor(hits) {
 }
 
 function getRainbowColor(frame) {
-  const hues = ERA === '90s'
-    ? ['#ff3333','#ff6600','#ffff33','#55ffff','#ff55ff','#ff4488','#cc44ff']
-    : ['#33ff33','#66ff66','#ffaa00','#00ffaa','#ffcc00','#44ff88','#88ff44'];
+  const hues = ['#ff3333','#ff6600','#ffff33','#55ffff','#ff55ff','#ff4488','#cc44ff'];
   return hues[Math.floor(frame / 20) % hues.length];
 }
 
@@ -926,10 +895,10 @@ function draw() {
 
   // Paddle
   const pt = pTop();
-  let paddleColor = ERA === '90s' ? '#ffdd00' : '#33ff33';
-  if (laserMode) paddleColor = ERA === '90s' ? '#ff4400' : '#ffaa00';
-  else if (stickyMode) paddleColor = ERA === '90s' ? '#ff55ff' : '#66ff66';
-  else if (slowMode) paddleColor = ERA === '90s' ? '#aaffff' : '#44ffaa';
+  let paddleColor = '#ffdd00';
+  if (laserMode) paddleColor = '#ff4400';
+  else if (stickyMode) paddleColor = '#ff55ff';
+  else if (slowMode) paddleColor = '#aaffff';
   drawBlock(paddleX, pt, paddleW, PADDLE_H, paddleColor);
 
   // Lasers
@@ -943,8 +912,8 @@ function draw() {
 
   // Balls
   for (const b of balls) {
-    ctx.fillStyle = ERA === '90s' ? '#ffffff' : '#33ff33';
-    ctx.shadowColor = ERA === '90s' ? 'rgba(255,220,80,0.7)' : 'rgba(51,255,51,0.5)';
+    ctx.fillStyle = '#ffffff';
+    ctx.shadowColor = 'rgba(255,220,80,0.7)';
     ctx.shadowBlur = 8;
     ctx.beginPath();
     ctx.arc(b.x, b.y, BALL_R, 0, Math.PI * 2);
@@ -952,7 +921,7 @@ function draw() {
     ctx.shadowBlur = 0;
     // Trail
     if (b.launched) {
-      ctx.fillStyle = ERA === '90s' ? 'rgba(255,220,80,0.2)' : 'rgba(51,255,51,0.15)';
+      ctx.fillStyle = 'rgba(255,220,80,0.2)';
       ctx.beginPath();
       ctx.arc(b.x - b.vx * 0.3, b.y - b.vy * 0.3, BALL_R * 0.7, 0, Math.PI * 2);
       ctx.fill();
@@ -962,7 +931,7 @@ function draw() {
   // Powerup capsules
   for (const p of powerups) {
     const def = POWERUP_DEFS[p.type];
-    const pColor = ERA === '90s' ? def.color : def.color80;
+    const pColor = def.color;
     ctx.fillStyle = pColor;
     ctx.shadowColor = pColor;
     ctx.shadowBlur = 6;
@@ -984,7 +953,7 @@ function draw() {
   if (activePower !== null) {
     const def = POWERUP_DEFS[activePower];
     const ix = CW - 16, iy = 6;
-    const aColor = ERA === '90s' ? def.color : def.color80;
+    const aColor = def.color;
     ctx.fillStyle = aColor;
     ctx.shadowColor = aColor;
     ctx.shadowBlur = 4;
