@@ -91,9 +91,14 @@ html, body {
   -webkit-tap-highlight-color: transparent;
 }
 body {
+  display: flex; flex-direction: column; align-items: center;
+  /* NO justify-content: center — game-container must fill full height */
   /* top inset is handled by .topbar to avoid overlap with iOS status bar in PWA mode */
   padding: 0 env(safe-area-inset-right)
            env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+.game-container {
+  flex: 1; /* fills body — do NOT use height: auto */
 }
 ```
 

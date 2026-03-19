@@ -20,7 +20,7 @@ html,body{
   -webkit-tap-highlight-color:transparent;
 }
 body{
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  display:flex;flex-direction:column;align-items:center;
   font-family:'Press Start 2P',monospace;
   background:radial-gradient(ellipse at center,#0d0d0d 0%,#000 80%);color:var(--g);
   padding:0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
@@ -42,7 +42,7 @@ body{
 @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
 .game-container{
   display:flex;flex-direction:column;align-items:center;
-  width:100%;height:auto;position:relative;
+  width:100%;flex:1;position:relative;
 }
 .topbar{
   display:flex;justify-content:space-between;align-items:center;
