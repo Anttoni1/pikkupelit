@@ -295,15 +295,15 @@ const bw = document.getElementById('boardWrap');
 let tx, ty, tt, moved, lastMX, totalDY, startY;
 const SH = 24, SV = 30;
 
-bw.addEventListener('touchstart', e => {
-  if (!gameRunning || paused || e.target.id === 'pauseBtn') return;
+document.addEventListener('touchstart', e => {
+  if (!gameRunning || paused || e.target.closest('.topbar')) return;
   e.preventDefault();
   const t = e.touches[0];
   tx = t.clientX; ty = t.clientY; startY = t.clientY; tt = Date.now();
   moved = false; lastMX = tx; totalDY = 0;
 }, { passive: false });
 
-bw.addEventListener('touchmove', e => {
+document.addEventListener('touchmove', e => {
   if (!gameRunning || paused) return;
   e.preventDefault();
   const t = e.touches[0];
@@ -320,7 +320,7 @@ bw.addEventListener('touchmove', e => {
   }
 }, { passive: false });
 
-bw.addEventListener('touchend', e => {
+document.addEventListener('touchend', e => {
   if (!gameRunning || paused) return;
   e.preventDefault();
   const el = Date.now() - tt, ct = e.changedTouches[0];
