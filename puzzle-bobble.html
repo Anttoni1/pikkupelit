@@ -403,8 +403,21 @@ function snapBubble(x, y, color) {
 
   // Load next bubble
   currentColor = nextColor;
-  nextColor = COLORS[Math.floor(Math.random() * numColors)];
+  nextColor = randomGridColor();
   updateUI();
+}
+
+function gridColors() {
+  const s = new Set();
+  for (let r = 0; r < MAX_ROWS; r++)
+    for (let c = 0; c < colsInRow(r); c++)
+      if (grid[r][c]) s.add(grid[r][c]);
+  return s.size ? Array.from(s) : COLORS.slice(0, numColors);
+}
+
+function randomGridColor() {
+  const c = gridColors();
+  return c[Math.floor(Math.random() * c.length)];
 }
 
 function isGridEmpty() {
@@ -464,8 +477,8 @@ function levelUp() {
   numColors = Math.min(2 + levelVal, 6);
   generateGrid(rows);
   shotsLeft = Math.max(5, SHOTS_PER_DROP - Math.floor(levelVal / 3));
-  currentColor = COLORS[Math.floor(Math.random() * numColors)];
-  nextColor = COLORS[Math.floor(Math.random() * numColors)];
+  currentColor = randomGridColor();
+  nextColor = randomGridColor();
   updateUI();
 }
 
@@ -1038,8 +1051,8 @@ function startGame() {
   numColors = 3;
   try { hiScore = parseInt(localStorage.getItem('puzzlebobble_hi')) || 0; } catch(e) { hiScore = 0; }
   generateGrid(4);
-  currentColor = COLORS[Math.floor(Math.random() * numColors)];
-  nextColor = COLORS[Math.floor(Math.random() * numColors)];
+  currentColor = randomGridColor();
+  nextColor = randomGridColor();
   updateUI();
   draw();
   requestAnimationFrame(gameLoop);
