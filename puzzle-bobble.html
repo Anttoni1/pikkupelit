@@ -447,7 +447,7 @@ function spawnParticles(x, y, color, count) {
 }
 
 function spawnFalling(x, y, color) {
-  fallingBubbles.push({ x, y, color, vy: 40 });
+  fallingBubbles.push({ x, y, color, vy: 100 });
 }
 
 // ── Aim line ───────────────────────────────────────────────────────────────
@@ -524,10 +524,12 @@ function drawBubble(x, y, color, alpha) {
 }
 
 function drawGrid() {
-  // During drop animation, offset all rows: start one ROW_H above, ease into position
+  // During drop animation, offset bubbles upward at start and ease into final position.
+  // The data shift already moved rows down by one; the visual offset compensates by
+  // starting at -ROW_H (so old rows appear where they were) and easing to 0.
   const t = dropAnim ? Math.min(dropAnim.t, 1) : 1;
   const ease = 1 - (1 - t) * (1 - t); // ease-out quad
-  const yOff = dropAnim ? (1 - ease) * ROW_H : 0;
+  const yOff = dropAnim ? -(1 - ease) * ROW_H : 0;
   for (let r = 0; r < MAX_ROWS; r++) {
     for (let c = 0; c < colsInRow(r); c++) {
       if (grid[r][c]) drawBubble(bubbleX(c, r), bubbleY(r) + yOff, grid[r][c]);
@@ -751,7 +753,7 @@ function update(dt) {
   // Falling bubbles
   for (let i = fallingBubbles.length - 1; i >= 0; i--) {
     const b = fallingBubbles[i];
-    b.vy += 200 * sec;
+    b.vy += 350 * sec;
     b.y += b.vy * sec;
     if (b.y > CANVAS_H + R) fallingBubbles.splice(i, 1);
   }
