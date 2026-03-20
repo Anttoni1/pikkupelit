@@ -647,7 +647,7 @@ function drawDangerLine() {
 }
 
 function drawAimLine() {
-  if (!gameRunning || !flyBubble === false && flyBubble !== null) return;
+  if (!gameRunning || levelIntro) return;
   if (flyBubble) return; // don't show when bubble flying
   const pts = computeAimPath();
   if (pts.length < 2) return;
@@ -1104,6 +1104,8 @@ function startGame() {
   shotsLeft = SHOTS_PER_DROP;
   numColors = 3;
   try { hiScore = parseInt(localStorage.getItem('puzzlebobble_hi')) || 0; } catch(e) { hiScore = 0; }
+  // Start with empty grid — levelIntro will generate and animate it
+  generateGrid(0);
   // Use the same intro animation as levelUp
   const rows = 4;
   levelFlash = { text: 'LEVEL 1', timer: 3000 };
