@@ -172,7 +172,7 @@ const SHOOTER_X = 144;
 const SHOOTER_Y = 371;
 const BUBBLE_SPEED = 350;
 const SHOTS_PER_DROP = 8;
-const AIM_STEP = 0.07;
+const AIM_STEP = 0.04;
 const MIN_ANGLE = -(Math.PI - 0.22);
 const MAX_ANGLE = -0.22;
 const COLORS = ['#ff5555','#55aaff','#55ff55','#ffff55','#ff88ff','#ffaa00'];
@@ -788,7 +788,7 @@ document.addEventListener('keydown', e => {
 
 // ── Touch ──────────────────────────────────────────────────────────────────
 let tx, ty, tt, moved, lastMX, startY;
-const SH = 24;
+const SH = 14;
 
 document.addEventListener('touchstart', e => {
   if (!gameRunning || paused || e.target.closest('.topbar')) return;
