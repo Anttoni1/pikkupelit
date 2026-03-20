@@ -386,17 +386,17 @@ function snapBubble(x, y, color) {
     }
   }
 
+  // Check level clear before potentially adding a new row
+  if (isGridEmpty()) {
+    levelUp();
+    return;
+  }
+
   // Decrement shots, maybe drop grid
   shotsLeft--;
   if (shotsLeft <= 0) {
     dropGrid();
     shotsLeft = SHOTS_PER_DROP;
-  }
-
-  // Check level clear
-  if (isGridEmpty()) {
-    levelUp();
-    return;
   }
   // Check game over
   if (checkGameOver()) return;
