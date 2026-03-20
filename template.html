@@ -169,6 +169,7 @@ const CANVAS_W = 300, CANVAS_H = 450; // muuta pelin mukaan
 
 // ── Tila ────────────────────────────────────────────────────────────────────
 let scoreVal, hiScore, gameRunning, paused, lastTime;
+let lowPerf = false, _fpsFrames = 0, _fpsTime = performance.now();
 // TODO: lisää pelikohtaiset tilamuuttujat
 
 // ── Canvas ──────────────────────────────────────────────────────────────────
@@ -189,6 +190,16 @@ function beep(freq, duration, volume = 0.08) {
     g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
     o.stop(audioCtx.currentTime + duration);
   } catch(e) {}
+}
+
+// ── Suorituskyky ─────────────────────────────────────────────────────────────
+// Measures FPS every 60 frames and sets lowPerf=true when below 40fps.
+// Use: wrap ctx.shadowBlur assignments with `if (!lowPerf)` to skip glow
+// effects on slow devices (e.g. iPhone in Low Power Mode throttles to 30fps).
+function checkPerf() {
+  if (++_fpsFrames < 60) return;
+  lowPerf = (60000 / (performance.now() - _fpsTime)) < 40;
+  _fpsFrames = 0; _fpsTime = performance.now();
 }
 
 // ── Pelilogiikka ─────────────────────────────────────────────────────────────
@@ -348,6 +359,7 @@ function gameLoop(time) {
   if (paused) return;
   const dt = time - (lastTime || time);
   lastTime = time;
+  checkPerf();
   // TODO: päivitä pelin tila dt:n perusteella
   draw();
   requestAnimationFrame(gameLoop);

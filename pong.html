@@ -180,6 +180,7 @@ const SERVE_DELAY = 800; // ms before auto-serve
 
 // ── State ─────────────────────────────────────────────────────────────────────
 let scoreVal, hiScore, gameRunning, paused, lastTime;
+let lowPerf = false, _fpsFrames = 0, _fpsTime = performance.now();
 let playerX, cpuX; // paddle center X
 let ballX, ballY, ballVX, ballVY, ballSpeed;
 let playerPts, cpuPts;
@@ -204,6 +205,12 @@ function beep(freq, duration, volume = 0.08) {
     g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
     o.stop(audioCtx.currentTime + duration);
   } catch(e) {}
+}
+
+function checkPerf() {
+  if (++_fpsFrames < 60) return;
+  lowPerf = (60000 / (performance.now() - _fpsTime)) < 40;
+  _fpsFrames = 0; _fpsTime = performance.now();
 }
 
 // ── Game logic ────────────────────────────────────────────────────────────────
@@ -404,11 +411,10 @@ function draw() {
     ctx.fillRect(bx + BALL_SIZE - 1, by + 1, 1, BALL_SIZE - 1);
     ctx.fillRect(bx + 1, by + BALL_SIZE - 1, BALL_SIZE - 1, 1);
     // Glow
-    ctx.shadowColor = ballColor;
-    ctx.shadowBlur = 8;
+    if (!lowPerf) { ctx.shadowColor = ballColor; ctx.shadowBlur = 8; }
     ctx.fillStyle = ballGlow;
     ctx.fillRect(bx - 2, by - 2, BALL_SIZE + 4, BALL_SIZE + 4);
-    ctx.shadowBlur = 0;
+    if (!lowPerf) ctx.shadowBlur = 0;
   }
 
   // Serve hint
@@ -560,6 +566,7 @@ function gameLoop(time) {
   if (paused) return;
   const dt = Math.min(time - (lastTime || time), 32); // cap dt
   lastTime = time;
+  checkPerf();
   handleKeys(dt);
   updateBall(dt);
   updateCPU(dt);
