@@ -115,6 +115,7 @@ Ennen kuin pidät peliä valmiina:
 - [ ] High score `localStorage`een avaimella `pelinimi_hi`
 - [ ] `resize()`-funktio, kutsutaan `onresize` + `setTimeout(resize, 50/200)`
 - [ ] `requestAnimationFrame`-game loop delta-ajalla (`dt`)
+- [ ] Adaptiivinen laatu: `lowPerf`-lippu + `checkPerf()` joka framella; `ctx.shadowBlur` suojattu `if (!lowPerf)`:llä; gradientit cachessa (ei per frame)
 - [ ] Kaikki tekstit englanniksi
 - [ ] Automaattitestit (Playwright) — ks. design-guide kohta 9
 

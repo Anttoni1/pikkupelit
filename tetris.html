@@ -186,6 +186,8 @@ const SHAPES=[null,
 let grid,piece,nextPiece,px,py,scoreVal,linesVal,levelVal,hiScore;
 let dropInterval,dropTimer,lastTime,gameRunning,paused;
 let lockDelay=0,lockLimit=500,bag=[];
+let lowPerf=false,_fpsFrames=0,_fpsTime=performance.now();
+function checkPerf(){if(++_fpsFrames<60)return;lowPerf=(60000/(performance.now()-_fpsTime))<40;_fpsFrames=0;_fpsTime=performance.now();}
 
 function nextFromBag(){
   if(!bag.length){bag=[1,2,3,4,5,6,7];for(let i=6;i>0;i--){const j=Math.floor(Math.random()*(i+1));[bag[i],bag[j]]=[bag[j],bag[i]];}}
@@ -339,7 +341,7 @@ function updateConfirmSel(){
 
 function gameLoop(time){
   if(!gameRunning){draw();return;}if(paused)return;
-  const dt=time-(lastTime||time);lastTime=time;dropTimer+=dt;
+  const dt=time-(lastTime||time);lastTime=time;checkPerf();dropTimer+=dt;
   if(collides(piece,px,py+1)){lockDelay+=dt;if(lockDelay>=lockLimit)lock();}
   if(dropTimer>=dropInterval&&!collides(piece,px,py+1)){py++;dropTimer=0;}
   draw();requestAnimationFrame(gameLoop);

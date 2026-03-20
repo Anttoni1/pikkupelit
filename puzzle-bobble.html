@@ -197,9 +197,16 @@ function beep(freq, duration, volume = 0.08) {
   } catch(e) {}
 }
 
+function checkPerf() {
+  if (++_fpsFrames < 60) return;
+  lowPerf = (60000 / (performance.now() - _fpsTime)) < 40;
+  _fpsFrames = 0; _fpsTime = performance.now();
+}
+
 // ── State ───────────────────────────────────────────────────────────────────
 let grid, flyBubble, shooterAngle, currentColor, nextColor;
 let scoreVal, hiScore, levelVal, shotsLeft, gameRunning, paused, lastTime;
+let lowPerf = false, _fpsFrames = 0, _fpsTime = performance.now();
 let particles, fallingBubbles;
 let levelFlash; // {text, timer}
 let numColors;  // colors in use for current level
@@ -574,14 +581,13 @@ function drawShooter() {
   ctx.arc(bx, by, arcR, MIN_ANGLE, MAX_ANGLE);
   ctx.strokeStyle = '#2255aa';
   ctx.lineWidth = 4;
-  ctx.shadowColor = '#2255aa';
-  ctx.shadowBlur = 5;
+  if (!lowPerf) { ctx.shadowColor = '#2255aa'; ctx.shadowBlur = 5; }
   ctx.stroke();
   ctx.beginPath();
   ctx.arc(bx, by, arcR - 2.5, MIN_ANGLE, MAX_ANGLE);
   ctx.strokeStyle = 'rgba(85,170,255,0.22)';
   ctx.lineWidth = 1.5;
-  ctx.shadowBlur = 0;
+  if (!lowPerf) ctx.shadowBlur = 0;
   ctx.stroke();
   ctx.restore();
 
@@ -723,8 +729,7 @@ function drawLevelFlash() {
   ctx.globalAlpha = Math.min(1, levelFlash.timer / 500);
   ctx.font = '14px "Press Start 2P"';
   ctx.fillStyle = '#55aaff';
-  ctx.shadowColor = '#55aaff';
-  ctx.shadowBlur = 20;
+  if (!lowPerf) { ctx.shadowColor = '#55aaff'; ctx.shadowBlur = 20; }
   ctx.textAlign = 'center';
   ctx.fillText(levelFlash.text, CANVAS_W / 2, CANVAS_H / 2);
   ctx.restore();
@@ -959,6 +964,7 @@ function gameLoop(time) {
   if (paused) return;
   const dt = Math.min(time - (lastTime || time), 60);
   lastTime = time;
+  checkPerf();
   update(dt);
   draw();
   requestAnimationFrame(gameLoop);

@@ -190,6 +190,7 @@ const COL_DEBRIS = '#1a8c1a';
 
 // ── State ────────────────────────────────────────────────────────────────────
 let scoreVal, hiScore, gameRunning, paused, lastTime;
+let lowPerf = false, _fpsFrames = 0, _fpsTime = performance.now();
 let livesVal, waveVal;
 let ship, bullets, asteroids, particles;
 let respawnTimer;    // countdown — ship hidden while > 0
@@ -218,6 +219,12 @@ function beep(freq, duration, volume = 0.08) {
     g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
     o.stop(audioCtx.currentTime + duration);
   } catch(e) {}
+}
+
+function checkPerf() {
+  if (++_fpsFrames < 60) return;
+  lowPerf = (60000 / (performance.now() - _fpsTime)) < 40;
+  _fpsFrames = 0; _fpsTime = performance.now();
 }
 
 // ── Asteroid generation ───────────────────────────────────────────────────────
@@ -513,10 +520,9 @@ function drawAsteroidAt(a, ox, oy) {
   ctx.closePath();
   ctx.strokeStyle = COL_AST;
   ctx.lineWidth = 1.5;
-  ctx.shadowColor = COL_AST;
-  ctx.shadowBlur = 6;
+  if (!lowPerf) { ctx.shadowColor = COL_AST; ctx.shadowBlur = 6; }
   ctx.stroke();
-  ctx.shadowBlur = 0;
+  if (!lowPerf) ctx.shadowBlur = 0;
 }
 
 function drawAsteroid(a) {
@@ -536,10 +542,9 @@ function drawShipAt(ox, oy) {
   ctx.closePath();
   ctx.strokeStyle = COL_SHIP;
   ctx.lineWidth = 1.5;
-  ctx.shadowColor = COL_SHIP;
-  ctx.shadowBlur = 8;
+  if (!lowPerf) { ctx.shadowColor = COL_SHIP; ctx.shadowBlur = 8; }
   ctx.stroke();
-  ctx.shadowBlur = 0;
+  if (!lowPerf) ctx.shadowBlur = 0;
 
   // Thrust flame
   if (ship.thrusting) {
@@ -549,10 +554,9 @@ function drawShipAt(ox, oy) {
     ctx.lineTo(-SHIP_SIZE * 0.35, SHIP_SIZE * 0.25);
     ctx.strokeStyle = Math.random() < 0.5 ? '#ffaa00' : '#ff6600';
     ctx.lineWidth = 1.5;
-    ctx.shadowColor = '#ffaa00';
-    ctx.shadowBlur = 10;
+    if (!lowPerf) { ctx.shadowColor = '#ffaa00'; ctx.shadowBlur = 10; }
     ctx.stroke();
-    ctx.shadowBlur = 0;
+    if (!lowPerf) ctx.shadowBlur = 0;
   }
 
   ctx.restore();
@@ -591,10 +595,9 @@ function drawWaveClear() {
   ctx.fillStyle = COL_SHIP;
   ctx.font = '16px "Press Start 2P"';
   ctx.textAlign = 'center';
-  ctx.shadowColor = COL_SHIP;
-  ctx.shadowBlur = 12;
+  if (!lowPerf) { ctx.shadowColor = COL_SHIP; ctx.shadowBlur = 12; }
   ctx.fillText('WAVE ' + (waveVal + 1), CANVAS_W / 2, CANVAS_H / 2);
-  ctx.shadowBlur = 0;
+  if (!lowPerf) ctx.shadowBlur = 0;
   ctx.globalAlpha = 1;
   ctx.textAlign = 'left';
 }
@@ -844,6 +847,7 @@ function gameLoop(time) {
   if (paused) return;
   const dt = Math.min((time - (lastTime || time)) / 1000, 0.05);
   lastTime = time;
+  checkPerf();
   update(dt);
   draw();
   requestAnimationFrame(gameLoop);

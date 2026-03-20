@@ -193,6 +193,7 @@ const ROW_SCORES = [30, 20, 20, 10, 10];
 // ── State ──
 let playerX, scoreVal, waveVal, livesVal, hiScore;
 let gameRunning, paused, lastTime;
+let lowPerf = false, _fpsFrames = 0, _fpsTime = performance.now();
 let playerBullet; // {x, y} or null
 let enemyBullets; // [{x, y}]
 let invaders; // 2D array: invaders[r][c] = 1/0
@@ -217,6 +218,12 @@ function beep(f, d, v = 0.08) {
     g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + d);
     o.stop(audioCtx.currentTime + d);
   } catch (e) {}
+}
+
+function checkPerf() {
+  if (++_fpsFrames < 60) return;
+  lowPerf = (60000 / (performance.now() - _fpsTime)) < 40;
+  _fpsFrames = 0; _fpsTime = performance.now();
 }
 
 // Stable starfield (generated once)
@@ -663,10 +670,9 @@ function draw() {
   // Player bullet
   if (playerBullet) {
     ctx.fillStyle = '#55ffff';
-    ctx.shadowColor = 'rgba(85,255,255,0.6)';
-    ctx.shadowBlur = 6;
+    if (!lowPerf) { ctx.shadowColor = 'rgba(85,255,255,0.6)'; ctx.shadowBlur = 6; }
     ctx.fillRect(playerBullet.x, playerBullet.y, BULLET_W, BULLET_H);
-    ctx.shadowBlur = 0;
+    if (!lowPerf) ctx.shadowBlur = 0;
   }
 
   // Enemy bullets
@@ -820,6 +826,7 @@ function gameLoop(time) {
   if (paused) return;
   const dt = time - (lastTime || time);
   lastTime = time;
+  checkPerf();
   handleKeyboardInput();
   if (dt < 100) update(dt);
   draw();

@@ -300,6 +300,7 @@ let paddleX, paddleW, scoreVal, levelVal, livesVal, hiScore;
 let balls, powerups, lasers;
 let bricks, brickRows;
 let gameRunning, paused, lastTime, lastDt;
+let lowPerf = false, _fpsFrames = 0, _fpsTime = performance.now();
 let totalBricksCleared;
 let activePower, powerTimer; // current timed powerup id (or null), ms remaining
 let laserMode, stickyMode, slowMode;
@@ -319,6 +320,12 @@ function beep(f, d, v = 0.08) {
     g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + d);
     o.stop(audioCtx.currentTime + d);
   } catch (e) {}
+}
+
+function checkPerf() {
+  if (++_fpsFrames < 60) return;
+  lowPerf = (60000 / (performance.now() - _fpsTime)) < 40;
+  _fpsFrames = 0; _fpsTime = performance.now();
 }
 
 // ── Brick helpers ──
@@ -903,17 +910,15 @@ function draw() {
 
   // Lasers
   ctx.fillStyle = '#ffaa00';
-  ctx.shadowColor = 'rgba(255,170,0,0.5)';
-  ctx.shadowBlur = 4;
+  if (!lowPerf) { ctx.shadowColor = 'rgba(255,170,0,0.5)'; ctx.shadowBlur = 4; }
   for (const l of lasers) {
     ctx.fillRect(l.x - 1, l.y, 2, 8);
   }
-  ctx.shadowBlur = 0;
+  if (!lowPerf) ctx.shadowBlur = 0;
 
   // Balls
   ctx.fillStyle = '#ffffff';
-  ctx.shadowColor = 'rgba(255,220,80,0.7)';
-  ctx.shadowBlur = 8;
+  if (!lowPerf) { ctx.shadowColor = 'rgba(255,220,80,0.7)'; ctx.shadowBlur = 8; }
   for (const b of balls) {
     ctx.beginPath();
     ctx.arc(b.x, b.y, BALL_R, 0, Math.PI * 2);
@@ -926,7 +931,7 @@ function draw() {
       ctx.fill();
     }
   }
-  ctx.shadowBlur = 0;
+  if (!lowPerf) ctx.shadowBlur = 0;
 
   // Powerup capsules
   for (const p of powerups) {
@@ -952,10 +957,9 @@ function draw() {
     const ix = CW - 16, iy = 6;
     const aColor = def.color;
     ctx.fillStyle = aColor;
-    ctx.shadowColor = aColor;
-    ctx.shadowBlur = 4;
+    if (!lowPerf) { ctx.shadowColor = aColor; ctx.shadowBlur = 4; }
     ctx.fillRect(ix, iy, 10, 10);
-    ctx.shadowBlur = 0;
+    if (!lowPerf) ctx.shadowBlur = 0;
     ctx.fillStyle = '#000';
     ctx.font = '5px "Press Start 2P"';
     ctx.textAlign = 'center';
@@ -1136,6 +1140,7 @@ function gameLoop(time) {
   if (paused) return;
   const dt = time - (lastTime || time);
   lastTime = time;
+  checkPerf();
   handleKeyboardInput();
   if (dt < 100) update(dt);
   draw();

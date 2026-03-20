@@ -199,6 +199,7 @@ const LEVELS = [
 
 // ── State ──────────────────────────────────────────────────────────────────────
 let scoreVal, hiScore, gameRunning, paused, lastTime;
+let lowPerf = false, _fpsFrames = 0, _fpsTime = performance.now();
 let birdY, birdVel, birdAngle;
 let pipes; // [{x, topH}] — topH = height of top pipe, gap starts at topH
 let pipeTimer; // distance traveled since last pipe spawn
@@ -227,6 +228,12 @@ function beep(freq, duration, volume = 0.08) {
     g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
     o.stop(audioCtx.currentTime + duration);
   } catch(e) {}
+}
+
+function checkPerf() {
+  if (++_fpsFrames < 60) return;
+  lowPerf = (60000 / (performance.now() - _fpsTime)) < 40;
+  _fpsFrames = 0; _fpsTime = performance.now();
 }
 
 // ── Game logic ─────────────────────────────────────────────────────────────────
@@ -534,6 +541,7 @@ function gameLoop(time) {
   if (paused) return;
   const dt = Math.min(time - (lastTime || time), 18); // cap at one 60fps frame
   lastTime = time;
+  checkPerf();
 
   // Bird physics
   birdVel += GRAVITY * dt;

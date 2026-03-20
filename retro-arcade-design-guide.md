@@ -294,11 +294,48 @@ function gameLoop(time) {
   if (paused) return;
   const dt = time - (lastTime || time);
   lastTime = time;
+  checkPerf();      // adaptive quality — must be called every frame
   // Game logic based on dt
   draw();
   requestAnimationFrame(gameLoop);
 }
 ```
+
+### Adaptive Quality (Low Power Mode)
+
+iOS Low Power Mode caps `requestAnimationFrame` to ~30fps. Without adaptation, shadow effects cause visual stutter. Every game includes a lightweight FPS monitor and guards expensive shadow calls behind `lowPerf`:
+
+```javascript
+// Declare with other state variables
+let lowPerf = false, _fpsFrames = 0, _fpsTime = performance.now();
+
+// Declare after beep()
+function checkPerf() {
+  if (++_fpsFrames < 60) return;
+  lowPerf = (60000 / (performance.now() - _fpsTime)) < 40;
+  _fpsFrames = 0; _fpsTime = performance.now();
+}
+```
+
+`checkPerf()` samples every 60 frames (~1–2 seconds). When FPS drops below 40, `lowPerf` is set to `true`.
+
+**Usage in draw functions:**
+```javascript
+// Single element — wrap both the set and the reset
+if (!lowPerf) { ctx.shadowColor = '#33ff33'; ctx.shadowBlur = 8; }
+ctx.stroke();
+if (!lowPerf) ctx.shadowBlur = 0;
+
+// Loop — hoist outside and wrap the whole block
+if (!lowPerf) { ctx.shadowColor = 'rgba(255,220,80,0.7)'; ctx.shadowBlur = 8; }
+for (const b of balls) { /* draw */ }
+if (!lowPerf) ctx.shadowBlur = 0;
+```
+
+**Rules:**
+- Always guard both the `shadowBlur = N` set AND the `shadowBlur = 0` reset
+- If shadow color changes per item in a loop (e.g. powerup capsules), remove shadow entirely — don't try to hoist
+- `createRadialGradient` / `createLinearGradient` must always be cached at startup, never called per frame
 
 ---
 
@@ -669,6 +706,7 @@ When creating a new game, verify:
 - [ ] High score to localStorage
 - [ ] `resize()` function that scales the canvas
 - [ ] `requestAnimationFrame`-based game loop with delta time
+- [ ] Adaptive quality: `lowPerf` flag + `checkPerf()` called every frame; `ctx.shadowBlur` guarded with `if (!lowPerf)` in draw functions; gradients cached at startup (never per frame)
 - [ ] All text in English
 - [ ] localStorage key in format `gamename_hi`
 - [ ] Automated tests run and passing (see section 9)
