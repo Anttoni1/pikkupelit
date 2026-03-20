@@ -569,82 +569,73 @@ function drawAimLine() {
 
 function drawShooter() {
   const sx = SHOOTER_X, sy = SHOOTER_Y;
-  const bx = sx, by = sy - 4; // pivot / bubble center
+  const bx = sx, by = sy - 4;
+  const arcR = 36; // arc track radius
 
-  // ── Rotating arrow (inspired by original Puzzle Bobble wooden pointer) ──
+  // ── Semicircular arc track (the "clock face") ──
+  ctx.save();
+  ctx.beginPath();
+  // Arc from MIN_ANGLE to MAX_ANGLE going clockwise through the top
+  ctx.arc(bx, by, arcR, MIN_ANGLE, MAX_ANGLE);
+  ctx.strokeStyle = '#2255aa';
+  ctx.lineWidth = 4;
+  ctx.shadowColor = '#2255aa';
+  ctx.shadowBlur = 5;
+  ctx.stroke();
+  // Inner highlight ring
+  ctx.beginPath();
+  ctx.arc(bx, by, arcR - 2.5, MIN_ANGLE, MAX_ANGLE);
+  ctx.strokeStyle = 'rgba(85,170,255,0.22)';
+  ctx.lineWidth = 1.5;
+  ctx.shadowBlur = 0;
+  ctx.stroke();
+  ctx.restore();
+
+  // ── Rotating cross pointer ──
   ctx.save();
   ctx.translate(bx, by);
-  ctx.rotate(shooterAngle + Math.PI / 2); // +90° so -PI/2 (aim up) = no rotation
+  ctx.rotate(shooterAngle + Math.PI / 2); // +90° so straight-up aim = 0 rotation
 
-  const fwd   = 42;   // pivot → tip
-  const back  = 20;   // pivot → tail
-  const hlen  = 15;   // arrowhead length
-  const hw    = 12;   // arrowhead half-width
-  const sw    = 4;    // shaft half-width
+  const tipLen  = 30;  // pivot → tip apex
+  const tipEx   = 11;  // length of triangular tip section
+  const tailLen = 13;  // pivot → tail end
+  const armW    = 5;   // shaft thickness
+  const crossHalf = 13; // half-length of horizontal crossbar
 
-  // Shaft
+  ctx.fillStyle   = '#cce6ff';
+  ctx.strokeStyle = '#1a3a80';
+  ctx.lineWidth   = 1;
+
+  // Vertical shaft (between tip base and tail)
   ctx.beginPath();
-  ctx.rect(-sw, -(fwd - hlen), sw * 2, (fwd - hlen) + back);
-  ctx.fillStyle = 'rgba(17,51,120,0.95)';
+  ctx.rect(-armW / 2, -(tipLen - tipEx), armW, (tipLen - tipEx) + tailLen);
   ctx.fill();
+  ctx.stroke();
 
-  // Arrowhead
+  // Pointed tip (triangle on top of shaft)
   ctx.beginPath();
-  ctx.moveTo(0, -fwd);
-  ctx.lineTo(-hw, -(fwd - hlen));
-  ctx.lineTo(hw, -(fwd - hlen));
+  ctx.moveTo(0, -tipLen);
+  ctx.lineTo(-(armW / 2 + 3.5), -(tipLen - tipEx));
+  ctx.lineTo( (armW / 2 + 3.5), -(tipLen - tipEx));
   ctx.closePath();
-  ctx.fillStyle = '#55aaff';
-  ctx.shadowColor = '#55aaff';
-  ctx.shadowBlur = 8;
   ctx.fill();
-  ctx.shadowBlur = 0;
+  ctx.stroke();
 
-  // Tail fletch (v-notch)
+  // Horizontal crossbar
   ctx.beginPath();
-  ctx.moveTo(-sw, back);
-  ctx.lineTo(0, back - 8);
-  ctx.lineTo(sw, back);
-  ctx.closePath();
-  ctx.fillStyle = '#55aaff';
+  ctx.rect(-crossHalf, -armW / 2, crossHalf * 2, armW);
   ctx.fill();
-
-  // Outline
-  ctx.beginPath();
-  ctx.moveTo(0, -fwd);
-  ctx.lineTo(-hw, -(fwd - hlen));
-  ctx.lineTo(-sw, -(fwd - hlen));
-  ctx.lineTo(-sw, back);
-  ctx.lineTo(0, back - 8);
-  ctx.lineTo(sw, back);
-  ctx.lineTo(sw, -(fwd - hlen));
-  ctx.lineTo(hw, -(fwd - hlen));
-  ctx.closePath();
-  ctx.strokeStyle = 'rgba(85,170,255,0.55)';
-  ctx.lineWidth = 1.2;
   ctx.stroke();
 
   ctx.restore();
 
-  // ── Base pedestal ──
+  // ── Central hub ──
   ctx.save();
-  const bw = 28, bh = 9;
   ctx.beginPath();
-  ctx.rect(sx - bw / 2, sy + 4, bw, bh);
-  ctx.fillStyle = 'rgba(10,20,80,0.9)';
-  ctx.strokeStyle = '#2255aa';
+  ctx.arc(bx, by, 5.5, 0, Math.PI * 2);
+  ctx.fillStyle = '#cce6ff';
+  ctx.strokeStyle = '#1a3a80';
   ctx.lineWidth = 1.5;
-  ctx.fill();
-  ctx.stroke();
-  ctx.restore();
-
-  // ── Pivot ring ──
-  ctx.save();
-  ctx.beginPath();
-  ctx.arc(bx, by, 7, 0, Math.PI * 2);
-  ctx.fillStyle = '#000828';
-  ctx.strokeStyle = '#2255aa';
-  ctx.lineWidth = 2;
   ctx.fill();
   ctx.stroke();
   ctx.restore();
