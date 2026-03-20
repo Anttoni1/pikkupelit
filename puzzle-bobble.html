@@ -498,23 +498,19 @@ function computeAimPath() {
 function drawBubble(x, y, color, alpha) {
   ctx.save();
   ctx.globalAlpha = alpha !== undefined ? alpha : 1;
-  // Glow
-  ctx.shadowColor = color;
-  ctx.shadowBlur = 2;
+  // Fill
   ctx.beginPath();
   ctx.arc(x, y, R - 1, 0, Math.PI * 2);
   ctx.fillStyle = color;
   ctx.fill();
-  // Highlight
-  ctx.shadowBlur = 0;
+  // Highlight — simple white circle, no gradient (perf: avoids createRadialGradient per bubble)
+  ctx.globalAlpha = (alpha !== undefined ? alpha : 1) * 0.45;
   ctx.beginPath();
-  ctx.arc(x - R*0.3, y - R*0.3, R*0.3, 0, Math.PI * 2);
-  const hl = ctx.createRadialGradient(x-R*0.3, y-R*0.3, 0, x-R*0.3, y-R*0.3, R*0.3);
-  hl.addColorStop(0, 'rgba(255,255,255,0.45)');
-  hl.addColorStop(1, 'rgba(255,255,255,0)');
-  ctx.fillStyle = hl;
+  ctx.arc(x - R * 0.3, y - R * 0.3, R * 0.28, 0, Math.PI * 2);
+  ctx.fillStyle = '#ffffff';
   ctx.fill();
   // Border
+  ctx.globalAlpha = alpha !== undefined ? alpha : 1;
   ctx.beginPath();
   ctx.arc(x, y, R - 1, 0, Math.PI * 2);
   ctx.strokeStyle = 'rgba(0,0,0,0.4)';
@@ -707,8 +703,6 @@ function drawParticles() {
   for (const p of particles) {
     ctx.save();
     ctx.globalAlpha = p.life * 0.9;
-    ctx.shadowColor = p.color;
-    ctx.shadowBlur = 1;
     ctx.beginPath();
     ctx.arc(p.x, p.y, p.r * p.life, 0, Math.PI * 2);
     ctx.fillStyle = p.color;

@@ -208,6 +208,10 @@ let levelVal, curSpeed, curGap;
 // ── Canvas ─────────────────────────────────────────────────────────────────────
 const canvas = document.getElementById('board');
 const ctx = canvas.getContext('2d');
+// Cache sky gradient — creating gradients every frame is expensive on mobile
+const skyGradient = ctx.createLinearGradient(0, 0, 0, CANVAS_H - GROUND_H);
+skyGradient.addColorStop(0, '#5588ee');
+skyGradient.addColorStop(1, '#99ccff');
 
 // ── Audio ──────────────────────────────────────────────────────────────────────
 let audioCtx;
@@ -350,11 +354,8 @@ function drawPipe(p) {
 const CLOUDS = [{x:20,y:30,w:50},{x:110,y:18,w:40},{x:165,y:50,w:55},{x:60,y:55,w:36}];
 
 function drawBackground() {
-  // Sky gradient
-  const sky = ctx.createLinearGradient(0, 0, 0, CANVAS_H - GROUND_H);
-  sky.addColorStop(0, '#5588ee');
-  sky.addColorStop(1, '#99ccff');
-  ctx.fillStyle = sky;
+  // Sky gradient (cached — not recreated every frame)
+  ctx.fillStyle = skyGradient;
   ctx.fillRect(0, 0, CANVAS_W, CANVAS_H - GROUND_H);
 
   // VGA-style pixel clouds with layered shading
