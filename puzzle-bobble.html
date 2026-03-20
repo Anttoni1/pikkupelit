@@ -203,24 +203,26 @@ let scoreVal, hiScore, levelVal, shotsLeft, gameRunning, paused, lastTime;
 let particles, fallingBubbles;
 let levelFlash; // {text, timer}
 let numColors;  // colors in use for current level
+let gridParity; // 0|1 — flips each drop so bubbles keep their visual x-positions
 
 // ── Grid helpers ─────────────────────────────────────────────────────────────
 function bubbleX(col, row) {
-  return (row % 2 === 0) ? R + col * 2 * R : 2 * R + col * 2 * R;
+  return ((row + gridParity) % 2 === 0) ? R + col * 2 * R : 2 * R + col * 2 * R;
 }
 function bubbleY(row) {
   return GRID_Y + row * ROW_H;
 }
-function colsInRow(row) { return row % 2 === 0 ? COLS_EVEN : COLS_ODD; }
+function colsInRow(row) { return (row + gridParity) % 2 === 0 ? COLS_EVEN : COLS_ODD; }
 
 function hexNeighbors(row, col) {
   const n = [];
   // same row
   if (col > 0) n.push([row, col-1]);
   if (col < colsInRow(row)-1) n.push([row, col+1]);
-  // rows above/below — offset depends on even/odd
-  const offsets = (row % 2 === 0)
-    ? [[-1,0],[-1,-1],[1,0],[1,-1]]  // even row: up-right, up-left, down-right, down-left
+  // rows above/below — offset depends on parity-adjusted even/odd
+  const isEven = (row + gridParity) % 2 === 0;
+  const offsets = isEven
+    ? [[-1,0],[-1,-1],[1,0],[1,-1]]  // even row
     : [[-1,0],[-1,1],[1,0],[1,1]];   // odd row
   for (const [dr, dc] of offsets) {
     const nr = row + dr, nc = col + dc;
@@ -254,7 +256,7 @@ function findFloating() {
   const connected = new Set();
   const key = (r, c) => r * 100 + c;
   const queue = [];
-  for (let c = 0; c < COLS_EVEN; c++) {
+  for (let c = 0; c < colsInRow(0); c++) {
     if (grid[0][c]) { connected.add(key(0,c)); queue.push([0,c]); }
   }
   while (queue.length) {
@@ -364,22 +366,25 @@ function checkGameOver() {
 }
 // ── Grid management ──────────────────────────────────────────────────────
 function dropGrid() {
-  // Shift all rows down by 1
+  // Shift rows down (before parity flip — row sizes are consistent pre-flip)
   for (let r = MAX_ROWS - 1; r > 0; r--) {
-    for (let c = 0; c < colsInRow(r); c++) {
-      grid[r][c] = (c < colsInRow(r-1)) ? grid[r-1][c] : null;
-    }
+    for (let c = 0; c < COLS_EVEN; c++) grid[r][c] = grid[r-1][c];
   }
-  // Generate new row at top
+  // Flip parity: after this, colsInRow(r) == old colsInRow(r-1),
+  // so every bubble's visual x-position is unchanged.
+  gridParity = 1 - gridParity;
+  // Generate new row 0 (now has the new parity)
+  for (let c = 0; c < COLS_EVEN; c++) grid[0][c] = null;
   const colors = COLORS.slice(0, numColors);
-  for (let c = 0; c < COLS_EVEN; c++) {
-    grid[0][c] = (c < COLS_EVEN) ? colors[Math.floor(Math.random() * colors.length)] : null;
+  for (let c = 0; c < colsInRow(0); c++) {
+    grid[0][c] = colors[Math.floor(Math.random() * colors.length)];
   }
   beep(200, 0.12, 0.1);
   if (checkGameOver()) return;
 }
 
 function generateGrid(rows) {
+  gridParity = 0;
   grid = [];
   for (let r = 0; r < MAX_ROWS; r++) {
     grid.push(new Array(COLS_EVEN).fill(null));
