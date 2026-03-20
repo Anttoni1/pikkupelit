@@ -1104,9 +1104,11 @@ function startGame() {
   shotsLeft = SHOTS_PER_DROP;
   numColors = 3;
   try { hiScore = parseInt(localStorage.getItem('puzzlebobble_hi')) || 0; } catch(e) { hiScore = 0; }
-  generateGrid(4);
-  currentColor = randomGridColor();
-  nextColor = randomGridColor();
+  // Use the same intro animation as levelUp
+  const rows = 4;
+  levelFlash = { text: 'LEVEL 1', timer: 3000 };
+  levelIntro = { phase: 'text', delay: 1000, elapsed: 0, rows: rows,
+                 duration: 600 + rows * 80 };
   updateUI();
   draw();
   requestAnimationFrame(gameLoop);
