@@ -201,6 +201,9 @@ const keys = {};
 // ── Canvas ───────────────────────────────────────────────────────────────────
 const canvas = document.getElementById('board');
 const ctx = canvas.getContext('2d');
+// Cache nebula gradients — creating them every frame is expensive on mobile
+const nebGrad1=(()=>{const g=ctx.createRadialGradient(120,200,10,120,200,80);g.addColorStop(0,'rgba(80,0,120,0.15)');g.addColorStop(1,'rgba(0,0,0,0)');return g;})();
+const nebGrad2=(()=>{const g=ctx.createRadialGradient(360,440,10,360,440,70);g.addColorStop(0,'rgba(0,60,120,0.12)');g.addColorStop(1,'rgba(0,0,0,0)');return g;})();
 
 // ── Audio ────────────────────────────────────────────────────────────────────
 let audioCtx;
@@ -563,14 +566,11 @@ function drawShip() {
 }
 
 function drawBullet(b) {
+  ctx.fillStyle = COL_BULLET;
   for (const pos of wrapPositions(b.x, b.y, 4)) {
     ctx.beginPath();
     ctx.arc(pos.x, pos.y, 2.5, 0, Math.PI * 2);
-    ctx.fillStyle = COL_BULLET;
-    ctx.shadowColor = COL_BULLET;
-    ctx.shadowBlur = 8;
     ctx.fill();
-    ctx.shadowBlur = 0;
   }
 }
 
@@ -642,12 +642,8 @@ function drawBackground() {
   // Dense starfield
   for (const s of STARS_A) { ctx.fillStyle = s.c; ctx.fillRect(s.x, s.y, s.r, s.r); }
   // Nebula smudges
-  const nb = ctx.createRadialGradient(120,200,10,120,200,80);
-  nb.addColorStop(0,'rgba(80,0,120,0.15)'); nb.addColorStop(1,'rgba(0,0,0,0)');
-  ctx.fillStyle = nb; ctx.fillRect(40,120,160,160);
-  const nb2 = ctx.createRadialGradient(360,440,10,360,440,70);
-  nb2.addColorStop(0,'rgba(0,60,120,0.12)'); nb2.addColorStop(1,'rgba(0,0,0,0)');
-  ctx.fillStyle = nb2; ctx.fillRect(290,370,140,140);
+  ctx.fillStyle = nebGrad1; ctx.fillRect(40,120,160,160);
+  ctx.fillStyle = nebGrad2; ctx.fillRect(290,370,140,140);
 }
 
 function draw() {
