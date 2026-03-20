@@ -115,7 +115,8 @@ canvas#board{
 <div class="overlay" id="startScreen">
   <h1>PUZZLE BOBBLE</h1>
   <div class="sub">SWIPE ←→ TO AIM<br>TAP TO SHOOT<br>MATCH 3+ BUBBLES!</div>
-  <div class="start-hint">TAP TO START</div>
+  <button class="pause-menu-btn sel" id="startArcadeBtn">ARCADE</button>
+  <button class="pause-menu-btn" id="startEndlessBtn">ENDLESS</button>
 </div>
 
 <!-- Game over -->
@@ -124,6 +125,15 @@ canvas#board{
   <div class="final-score">SCORE <span id="finalScore">0</span><br>LEVEL <span id="finalLevel">1</span></div>
   <button class="pause-menu-btn sel" id="goRetryBtn">RETRY</button>
   <button class="pause-menu-btn" id="goMenuBtn">EXIT TO MENU</button>
+</div>
+
+<!-- Continue screen (after clearing all arcade levels) -->
+<div class="overlay hidden" id="continueScreen">
+  <h2>ALL CLEAR!</h2>
+  <div class="final-score">SCORE <span id="contScore">0</span></div>
+  <div class="sub" style="opacity:0.7;margin:8px 0">CONTINUE TO<br>ENDLESS MODE?</div>
+  <button class="pause-menu-btn sel" id="contYesBtn">CONTINUE</button>
+  <button class="pause-menu-btn" id="contMenuBtn">EXIT TO MENU</button>
 </div>
 
 <!-- Game -->
@@ -136,6 +146,7 @@ canvas#board{
     <button class="pause-btn" id="pauseBtn">PAUSE</button>
     <div class="topbar-right">
       <div class="stat-box"><div class="stat-lbl">LEVEL</div><div class="stat-val" id="level">1</div></div>
+      <div class="stat-box"><div class="stat-lbl">SHOTS</div><div class="stat-val" id="shots">8</div></div>
     </div>
   </div>
   <div class="board-wrap" id="boardWrap">
@@ -176,6 +187,22 @@ const AIM_STEP = 0.04;
 const MIN_ANGLE = -(Math.PI - 0.22);
 const MAX_ANGLE = -0.22;
 const COLORS = ['#ff5555','#55aaff','#55ff55','#ffff55','#ff88ff','#ffaa00'];
+
+// ── Predefined Levels (Arcade Mode) ──────────────────────────────────────
+// Grid encoding: each char = COLORS index (0-5), '.' = empty
+// Row 0 = 8 cols (even), row 1 = 7 cols (odd), alternating (gridParity=0)
+const LEVELS = [
+  { grid: ['00110011','1100110','22002200'], numColors: 3, shots: 12 },
+  { grid: ['01020102','2010201','01020102','2010201'], numColors: 3, shots: 10 },
+  { grid: ['...00...','..010..','..01010.','..010..','...00...'], numColors: 3, shots: 10 },
+  { grid: ['01230123','0123012','01230123','0123012','01230123'], numColors: 4, shots: 9 },
+  { grid: ['01231230','.123123','..2312..','..231..','...23...','...2...'], numColors: 4, shots: 9 },
+  { grid: ['00..33..','.11..22','..00..33','.22..11','33..00..'], numColors: 4, shots: 8 },
+  { grid: ['01234012','3401234','12340123','4012340','01234012','3401234'], numColors: 5, shots: 8 },
+  { grid: ['44444444','4333334','43222234','4321134','43222234','4333334','44444444'], numColors: 5, shots: 7 },
+  { grid: ['01203402','3041203','20340120','0123401','34012034','1203401','01234012'], numColors: 5, shots: 7 },
+  { grid: ['05140325','2403150','31520413','5031240','14250314','4312051','20413250','0524130'], numColors: 6, shots: 6 }
+];
 
 // ── Canvas ──────────────────────────────────────────────────────────────────
 const canvas = document.getElementById('board');
@@ -260,6 +287,11 @@ let levelFlash; // {text, timer}
 let numColors;  // colors in use for current level
 let gridParity; // 0|1 — flips each drop so bubbles keep their visual x-positions
 let dropAnim;   // {t: 0..1, duration} — animates new row sliding down
+let finiteMode; // true = arcade mode (predefined levels), false = endless mode
+let hiKeyName;  // localStorage key for current mode's hi score
+let shotsPerDrop; // shots before ceiling drops (varies by level in arcade mode)
+let startSel = 0; // start screen selection (0=arcade, 1=endless)
+let contSel = 0;  // continue screen selection
 
 // ── Grid helpers ─────────────────────────────────────────────────────────────
 function bubbleX(col, row) {
@@ -396,14 +428,15 @@ function snapBubble(x, y, color) {
   shotsLeft--;
   if (shotsLeft <= 0) {
     dropGrid();
-    shotsLeft = SHOTS_PER_DROP;
+    shotsLeft = shotsPerDrop;
   }
   // Check game over
   if (checkGameOver()) return;
 
   // Load next bubble
   currentColor = nextColor;
-  nextColor = COLORS[Math.floor(Math.random() * numColors)];
+  const avail = finiteMode ? gridColors() : COLORS.slice(0, numColors);
+  nextColor = avail[Math.floor(Math.random() * avail.length)];
   updateUI();
 }
 
@@ -431,10 +464,14 @@ function dropGrid() {
   gridParity = 1 - gridParity;
   // Generate new row 0 (now has the new parity)
   for (let c = 0; c < COLS_EVEN; c++) grid[0][c] = null;
-  const colors = COLORS.slice(0, numColors);
-  for (let c = 0; c < colsInRow(0); c++) {
-    grid[0][c] = colors[Math.floor(Math.random() * colors.length)];
+  if (!finiteMode) {
+    // Endless mode: fill new top row with random bubbles
+    const colors = COLORS.slice(0, numColors);
+    for (let c = 0; c < colsInRow(0); c++) {
+      grid[0][c] = colors[Math.floor(Math.random() * colors.length)];
+    }
   }
+  // Arcade mode: row 0 stays empty — ceiling pushes down only
   // Start slide-in animation: bubbles start one row above their new position
   dropAnim = { t: 0, duration: 280 };
   beep(200, 0.12, 0.1);
@@ -455,17 +492,58 @@ function generateGrid(rows) {
   }
 }
 
+function loadLevelGrid(levelDef) {
+  gridParity = 0;
+  grid = [];
+  for (let r = 0; r < MAX_ROWS; r++) grid.push(new Array(COLS_EVEN).fill(null));
+  for (let r = 0; r < levelDef.grid.length; r++) {
+    const row = levelDef.grid[r];
+    for (let c = 0; c < row.length; c++) {
+      if (row[c] !== '.') grid[r][c] = COLORS[parseInt(row[c])];
+    }
+  }
+}
+
+function gridColors() {
+  const s = new Set();
+  for (let r = 0; r < MAX_ROWS; r++)
+    for (let c = 0; c < colsInRow(r); c++)
+      if (grid[r][c]) s.add(grid[r][c]);
+  return s.size > 0 ? [...s] : COLORS.slice(0, numColors);
+}
+
 function levelUp() {
   levelVal++;
+
+  // Arcade mode: show continue screen after all predefined levels
+  if (finiteMode && levelVal > LEVELS.length) {
+    showContinueScreen();
+    return;
+  }
+
   levelFlash = { text: 'LEVEL ' + levelVal, timer: 2000 };
   beep(880, 0.15, 0.1);
   setTimeout(() => beep(1100, 0.15, 0.1), 160);
-  const rows = Math.min(4 + levelVal, 9);
-  numColors = Math.min(3 + Math.floor(levelVal / 2), 6);
-  generateGrid(rows);
-  shotsLeft = Math.max(5, SHOTS_PER_DROP - Math.floor(levelVal / 3));
-  currentColor = COLORS[Math.floor(Math.random() * numColors)];
-  nextColor = COLORS[Math.floor(Math.random() * numColors)];
+
+  if (finiteMode && levelVal <= LEVELS.length) {
+    // Load predefined level
+    const def = LEVELS[levelVal - 1];
+    numColors = def.numColors;
+    loadLevelGrid(def);
+    shotsPerDrop = def.shots;
+    shotsLeft = shotsPerDrop;
+  } else {
+    // Endless mode: procedural generation
+    const rows = Math.min(4 + levelVal, 9);
+    numColors = Math.min(3 + Math.floor(levelVal / 2), 6);
+    generateGrid(rows);
+    shotsPerDrop = Math.max(5, SHOTS_PER_DROP - Math.floor(levelVal / 3));
+    shotsLeft = shotsPerDrop;
+  }
+
+  const avail = finiteMode ? gridColors() : COLORS.slice(0, numColors);
+  currentColor = avail[Math.floor(Math.random() * avail.length)];
+  nextColor = avail[Math.floor(Math.random() * avail.length)];
   updateUI();
 }
 
@@ -478,7 +556,7 @@ function triggerGameOver() {
   // Save hi score
   if (scoreVal > hiScore) {
     hiScore = scoreVal;
-    try { localStorage.setItem('puzzlebobble_hi', hiScore); } catch(e) {}
+    try { localStorage.setItem(hiKeyName, hiScore); } catch(e) {}
   }
   setTimeout(() => {
     document.getElementById('gameOver').classList.remove('hidden');
@@ -803,9 +881,10 @@ function updateUI() {
   document.getElementById('score').textContent = scoreVal;
   document.getElementById('hi').textContent = hiScore;
   document.getElementById('level').textContent = levelVal;
+  document.getElementById('shots').textContent = shotsLeft;
   if (scoreVal > hiScore) {
     hiScore = scoreVal;
-    try { localStorage.setItem('puzzlebobble_hi', hiScore); } catch(e) {}
+    try { localStorage.setItem(hiKeyName, hiScore); } catch(e) {}
     document.getElementById('hi').textContent = hiScore;
   }
 }
@@ -816,7 +895,7 @@ function updateGoSel() {
   document.getElementById('goRetryBtn').classList.toggle('sel', goSel === 0);
   document.getElementById('goMenuBtn').classList.toggle('sel', goSel === 1);
 }
-function goRetry() { document.getElementById('gameOver').classList.add('hidden'); startGame(); }
+function goRetry() { document.getElementById('gameOver').classList.add('hidden'); startGame(finiteMode); }
 function goMenu() { window.location.href = 'index.html'; }
 
 // ── Input: game actions ────────────────────────────────────────────────────
@@ -925,6 +1004,12 @@ document.addEventListener('keydown', e => {
     return;
   }
   if(e.key==='p'||e.key==='P'||e.key==='Escape'){e.preventDefault();togglePause();return;}
+  // Continue screen
+  if(!document.getElementById('continueScreen').classList.contains('hidden')){
+    if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();contSel=contSel===0?1:0;updateContSel();}
+    else if(e.key==='Enter'||e.key===' '){e.preventDefault();if(contSel===1)goMenu();else continueToEndless();}
+    return;
+  }
   // Game over menu
   if(!document.getElementById('gameOver').classList.contains('hidden')){
     if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();goSel=goSel===0?1:0;updateGoSel();}
@@ -1022,7 +1107,9 @@ function gameLoop(time) {
 }
 
 // ── Start ─────────────────────────────────────────────────────────────────
-function startGame() {
+function startGame(arcade) {
+  finiteMode = arcade;
+  hiKeyName = arcade ? 'puzzlebobble_arcade_hi' : 'puzzlebobble_endless_hi';
   scoreVal = 0;
   levelVal = 1;
   gameRunning = true;
@@ -1034,29 +1121,102 @@ function startGame() {
   levelFlash = null;
   dropAnim = null;
   shooterAngle = -Math.PI / 2;
-  shotsLeft = SHOTS_PER_DROP;
-  numColors = 4;
-  try { hiScore = parseInt(localStorage.getItem('puzzlebobble_hi')) || 0; } catch(e) { hiScore = 0; }
-  generateGrid(5);
-  currentColor = COLORS[Math.floor(Math.random() * numColors)];
-  nextColor = COLORS[Math.floor(Math.random() * numColors)];
+  try { hiScore = parseInt(localStorage.getItem(hiKeyName)) || 0; } catch(e) { hiScore = 0; }
+
+  if (arcade) {
+    const def = LEVELS[0];
+    numColors = def.numColors;
+    loadLevelGrid(def);
+    shotsPerDrop = def.shots;
+    shotsLeft = shotsPerDrop;
+  } else {
+    numColors = 4;
+    generateGrid(5);
+    shotsPerDrop = SHOTS_PER_DROP;
+    shotsLeft = shotsPerDrop;
+  }
+
+  const avail = arcade ? gridColors() : COLORS.slice(0, numColors);
+  currentColor = avail[Math.floor(Math.random() * avail.length)];
+  nextColor = avail[Math.floor(Math.random() * avail.length)];
   updateUI();
   draw();
   requestAnimationFrame(gameLoop);
 }
 
+// ── Start screen mode selection ───────────────────────────────────────────
+function updateStartSel() {
+  document.getElementById('startArcadeBtn').classList.toggle('sel', startSel === 0);
+  document.getElementById('startEndlessBtn').classList.toggle('sel', startSel === 1);
+}
+function startFromMenu() {
+  document.getElementById('startScreen').classList.add('hidden');
+  startGame(startSel === 0);
+}
+
 ['click','touchend'].forEach(ev => {
-  document.getElementById('startScreen').addEventListener(ev, e => {
-    e.preventDefault(); document.getElementById('startScreen').classList.add('hidden'); startGame();
+  document.getElementById('startArcadeBtn').addEventListener(ev, e => {
+    e.stopPropagation(); e.preventDefault(); startSel = 0; updateStartSel(); startFromMenu();
+  });
+  document.getElementById('startEndlessBtn').addEventListener(ev, e => {
+    e.stopPropagation(); e.preventDefault(); startSel = 1; updateStartSel(); startFromMenu();
   });
   document.getElementById('goRetryBtn').addEventListener(ev, e => { e.stopPropagation(); e.preventDefault(); goRetry(); });
   document.getElementById('goMenuBtn').addEventListener(ev, e => { e.stopPropagation(); e.preventDefault(); goMenu(); });
+  document.getElementById('contYesBtn').addEventListener(ev, e => { e.stopPropagation(); e.preventDefault(); continueToEndless(); });
+  document.getElementById('contMenuBtn').addEventListener(ev, e => { e.stopPropagation(); e.preventDefault(); goMenu(); });
 });
 
+// ── Continue screen ──────────────────────────────────────────────────────
+function showContinueScreen() {
+  gameRunning = false;
+  document.getElementById('contScore').textContent = scoreVal;
+  // Save hi score
+  if (scoreVal > hiScore) {
+    hiScore = scoreVal;
+    try { localStorage.setItem(hiKeyName, hiScore); } catch(e) {}
+  }
+  // Victory fanfare
+  beep(660, 0.15, 0.12);
+  setTimeout(() => beep(880, 0.15, 0.12), 150);
+  setTimeout(() => beep(1100, 0.3, 0.12), 300);
+  setTimeout(() => {
+    document.getElementById('continueScreen').classList.remove('hidden');
+    contSel = 0; updateContSel();
+  }, 500);
+}
+
+function updateContSel() {
+  document.getElementById('contYesBtn').classList.toggle('sel', contSel === 0);
+  document.getElementById('contMenuBtn').classList.toggle('sel', contSel === 1);
+}
+
+function continueToEndless() {
+  document.getElementById('continueScreen').classList.add('hidden');
+  finiteMode = false;
+  hiKeyName = 'puzzlebobble_endless_hi';
+  gameRunning = true;
+  lastTime = 0;
+  // levelVal is already LEVELS.length + 1 from levelUp()
+  const rows = Math.min(4 + levelVal, 9);
+  numColors = Math.min(3 + Math.floor(levelVal / 2), 6);
+  generateGrid(rows);
+  shotsPerDrop = Math.max(5, SHOTS_PER_DROP - Math.floor(levelVal / 3));
+  shotsLeft = shotsPerDrop;
+  levelFlash = { text: 'LEVEL ' + levelVal, timer: 2000 };
+  currentColor = COLORS[Math.floor(Math.random() * numColors)];
+  nextColor = COLORS[Math.floor(Math.random() * numColors)];
+  updateUI();
+  requestAnimationFrame(gameLoop);
+}
+
+// ── Start screen keyboard ────────────────────────────────────────────────
 document.addEventListener('keydown', e => {
-  if (e.key==='Enter'||e.key===' ') {
-    const s = document.getElementById('startScreen');
-    if (!s.classList.contains('hidden')) { e.preventDefault(); s.classList.add('hidden'); startGame(); }
+  const s = document.getElementById('startScreen');
+  if (!s.classList.contains('hidden')) {
+    if (e.key==='ArrowDown'||e.key==='ArrowUp') { e.preventDefault(); startSel = startSel===0?1:0; updateStartSel(); }
+    else if (e.key==='Enter'||e.key===' ') { e.preventDefault(); startFromMenu(); }
+    return;
   }
 });
 
