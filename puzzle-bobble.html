@@ -371,7 +371,7 @@ function snapBubble(x, y, color) {
       spawnParticles(bubbleX(c, r), bubbleY(r), grid[r][c], 6);
       grid[r][c] = null;
     }
-    scoreVal += group.length * 10;
+    scoreVal += group.length * 10 * levelVal;
     beep(660, 0.15, 0.12);
 
     // Find floating
@@ -381,7 +381,7 @@ function snapBubble(x, y, color) {
       grid[r][c] = null;
     }
     if (floating.length > 0) {
-      scoreVal += floating.length * 20;
+      scoreVal += floating.length * 20 * levelVal;
       beep(440, 0.1, 0.09);
     }
   }
@@ -460,8 +460,8 @@ function levelUp() {
   levelFlash = { text: 'LEVEL ' + levelVal, timer: 2000 };
   beep(880, 0.15, 0.1);
   setTimeout(() => beep(1100, 0.15, 0.1), 160);
-  const rows = Math.min(4 + levelVal, 9);
-  numColors = Math.min(3 + Math.floor(levelVal / 2), 6);
+  const rows = Math.min(3 + levelVal, 7);
+  numColors = 6;
   generateGrid(rows);
   shotsLeft = Math.max(5, SHOTS_PER_DROP - Math.floor(levelVal / 3));
   currentColor = COLORS[Math.floor(Math.random() * numColors)];
@@ -1035,9 +1035,9 @@ function startGame() {
   dropAnim = null;
   shooterAngle = -Math.PI / 2;
   shotsLeft = SHOTS_PER_DROP;
-  numColors = 4;
+  numColors = 6;
   try { hiScore = parseInt(localStorage.getItem('puzzlebobble_hi')) || 0; } catch(e) { hiScore = 0; }
-  generateGrid(5);
+  generateGrid(4);
   currentColor = COLORS[Math.floor(Math.random() * numColors)];
   nextColor = COLORS[Math.floor(Math.random() * numColors)];
   updateUI();
