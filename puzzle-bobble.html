@@ -569,43 +569,99 @@ function drawAimLine() {
 
 function drawShooter() {
   const sx = SHOOTER_X, sy = SHOOTER_Y;
-  // Current bubble
-  drawBubble(sx, sy - 4, currentColor);
-  // Aim arrow
-  const len = 28;
-  const ax = sx + Math.cos(shooterAngle) * len;
-  const ay = sy + Math.sin(shooterAngle) * len - 4;
+  const bx = sx, by = sy - 4; // pivot / bubble center
+
+  // ── Rotating arrow (inspired by original Puzzle Bobble wooden pointer) ──
   ctx.save();
-  ctx.strokeStyle = 'rgba(85,170,255,0.6)';
-  ctx.lineWidth = 2;
+  ctx.translate(bx, by);
+  ctx.rotate(shooterAngle + Math.PI / 2); // +90° so -PI/2 (aim up) = no rotation
+
+  const fwd   = 42;   // pivot → tip
+  const back  = 20;   // pivot → tail
+  const hlen  = 15;   // arrowhead length
+  const hw    = 12;   // arrowhead half-width
+  const sw    = 4;    // shaft half-width
+
+  // Shaft
   ctx.beginPath();
-  ctx.moveTo(sx, sy - 4); ctx.lineTo(ax, ay);
+  ctx.rect(-sw, -(fwd - hlen), sw * 2, (fwd - hlen) + back);
+  ctx.fillStyle = 'rgba(17,51,120,0.95)';
+  ctx.fill();
+
+  // Arrowhead
+  ctx.beginPath();
+  ctx.moveTo(0, -fwd);
+  ctx.lineTo(-hw, -(fwd - hlen));
+  ctx.lineTo(hw, -(fwd - hlen));
+  ctx.closePath();
+  ctx.fillStyle = '#55aaff';
+  ctx.shadowColor = '#55aaff';
+  ctx.shadowBlur = 8;
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  // Tail fletch (v-notch)
+  ctx.beginPath();
+  ctx.moveTo(-sw, back);
+  ctx.lineTo(0, back - 8);
+  ctx.lineTo(sw, back);
+  ctx.closePath();
+  ctx.fillStyle = '#55aaff';
+  ctx.fill();
+
+  // Outline
+  ctx.beginPath();
+  ctx.moveTo(0, -fwd);
+  ctx.lineTo(-hw, -(fwd - hlen));
+  ctx.lineTo(-sw, -(fwd - hlen));
+  ctx.lineTo(-sw, back);
+  ctx.lineTo(0, back - 8);
+  ctx.lineTo(sw, back);
+  ctx.lineTo(sw, -(fwd - hlen));
+  ctx.lineTo(hw, -(fwd - hlen));
+  ctx.closePath();
+  ctx.strokeStyle = 'rgba(85,170,255,0.55)';
+  ctx.lineWidth = 1.2;
   ctx.stroke();
-  // Arrow head
-  const headAngle = Math.atan2(ay - (sy-4), ax - sx);
+
+  ctx.restore();
+
+  // ── Base pedestal ──
+  ctx.save();
+  const bw = 28, bh = 9;
   ctx.beginPath();
-  ctx.moveTo(ax, ay);
-  ctx.lineTo(ax - 8*Math.cos(headAngle-0.4), ay - 8*Math.sin(headAngle-0.4));
-  ctx.moveTo(ax, ay);
-  ctx.lineTo(ax - 8*Math.cos(headAngle+0.4), ay - 8*Math.sin(headAngle+0.4));
+  ctx.rect(sx - bw / 2, sy + 4, bw, bh);
+  ctx.fillStyle = 'rgba(10,20,80,0.9)';
+  ctx.strokeStyle = '#2255aa';
+  ctx.lineWidth = 1.5;
+  ctx.fill();
   ctx.stroke();
   ctx.restore();
-  // Next bubble preview (small, to the right)
+
+  // ── Pivot ring ──
   ctx.save();
-  ctx.globalAlpha = 0.7;
+  ctx.beginPath();
+  ctx.arc(bx, by, 7, 0, Math.PI * 2);
+  ctx.fillStyle = '#000828';
+  ctx.strokeStyle = '#2255aa';
+  ctx.lineWidth = 2;
+  ctx.fill();
+  ctx.stroke();
+  ctx.restore();
+
+  // ── Current bubble — hidden while the bubble is in flight ──
+  if (!flyBubble) {
+    drawBubble(bx, by, currentColor);
+  }
+
+  // ── Next bubble preview ──
+  ctx.save();
+  ctx.globalAlpha = 0.65;
   ctx.font = '5px "Press Start 2P"';
   ctx.fillStyle = 'rgba(85,170,255,0.5)';
-  ctx.fillText('NEXT', sx + R + 10, sy - R - 4);
+  ctx.fillText('NEXT', bx + R + 12, by - R + 2);
   ctx.restore();
-  drawBubble(sx + R * 2 + 12, sy - 4, nextColor, 0.8);
-  // Shooter base line
-  ctx.save();
-  ctx.strokeStyle = 'rgba(34,85,170,0.6)';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(sx - 20, sy + 10); ctx.lineTo(sx + 20, sy + 10);
-  ctx.stroke();
-  ctx.restore();
+  drawBubble(bx + R * 2 + 14, by, nextColor, 0.75);
 }
 
 function drawFlyingBubble() {
