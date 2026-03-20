@@ -13,7 +13,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-:root{--g:#55aaff;--gd:#2255aa;--bg:#000033;--glow:rgba(85,170,255,0.12);--amber:#ff5555}
+:root{--g:#ffcc00;--gd:#aa7700;--bg:#110800;--glow:rgba(255,200,0,0.12);--amber:#ff5555}
 html,body{
   height:100%;height:100dvh;overflow:hidden;background:#000;touch-action:none;
   -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;
@@ -22,7 +22,7 @@ html,body{
 body{
   display:flex;flex-direction:column;align-items:center;
   font-family:'Press Start 2P',monospace;
-  background:radial-gradient(ellipse at center,#000828 0%,#000010 80%);color:var(--g);
+  background:radial-gradient(ellipse at center,#1a0e00 0%,#0a0400 80%);color:var(--g);
   padding:0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
 .crt::before{
@@ -106,7 +106,7 @@ canvas#board{
 .confirm-yes{color:var(--amber);border:1px solid var(--amber)}
 .confirm-no{color:var(--gd);border:1px solid var(--gd)}
 .confirm-yes.sel,.confirm-yes:active{background:rgba(255,170,0,0.15);color:#fff;border-color:#fff}
-.confirm-no.sel,.confirm-no:active{background:rgba(85,170,255,0.1);color:var(--g);border-color:var(--g)}
+.confirm-no.sel,.confirm-no:active{background:rgba(255,200,0,0.1);color:var(--g);border-color:var(--g)}
 </style>
 </head>
 <body class="crt">
@@ -560,7 +560,7 @@ function drawAimLine() {
   if (pts.length < 2) return;
   ctx.save();
   ctx.setLineDash([4, 7]);
-  ctx.strokeStyle = 'rgba(85,170,255,0.35)';
+  ctx.strokeStyle = 'rgba(255,200,0,0.35)';
   ctx.lineWidth = 1.5;
   ctx.beginPath();
   ctx.moveTo(pts[0][0], pts[0][1]);
@@ -579,13 +579,13 @@ function drawShooter() {
   ctx.save();
   ctx.beginPath();
   ctx.arc(bx, by, arcR, MIN_ANGLE, MAX_ANGLE);
-  ctx.strokeStyle = '#2255aa';
+  ctx.strokeStyle = '#aa7700';
   ctx.lineWidth = 4;
-  if (!lowPerf) { ctx.shadowColor = '#2255aa'; ctx.shadowBlur = 5; }
+  if (!lowPerf) { ctx.shadowColor = '#aa7700'; ctx.shadowBlur = 5; }
   ctx.stroke();
   ctx.beginPath();
   ctx.arc(bx, by, arcR - 2.5, MIN_ANGLE, MAX_ANGLE);
-  ctx.strokeStyle = 'rgba(85,170,255,0.22)';
+  ctx.strokeStyle = 'rgba(255,200,0,0.22)';
   ctx.lineWidth = 1.5;
   if (!lowPerf) ctx.shadowBlur = 0;
   ctx.stroke();
@@ -694,7 +694,7 @@ function drawShooter() {
   ctx.save();
   ctx.globalAlpha = 0.65;
   ctx.font = '5px "Press Start 2P"';
-  ctx.fillStyle = 'rgba(85,170,255,0.5)';
+  ctx.fillStyle = 'rgba(255,200,0,0.5)';
   ctx.fillText('NEXT', bx + R + 12, by - R + 2);
   ctx.restore();
   drawBubble(bx + R * 2 + 14, by, nextColor, 0.75);
@@ -728,15 +728,15 @@ function drawLevelFlash() {
   ctx.save();
   ctx.globalAlpha = Math.min(1, levelFlash.timer / 500);
   ctx.font = '14px "Press Start 2P"';
-  ctx.fillStyle = '#55aaff';
-  if (!lowPerf) { ctx.shadowColor = '#55aaff'; ctx.shadowBlur = 20; }
+  ctx.fillStyle = '#ffcc00';
+  if (!lowPerf) { ctx.shadowColor = '#ffcc00'; ctx.shadowBlur = 20; }
   ctx.textAlign = 'center';
   ctx.fillText(levelFlash.text, CANVAS_W / 2, CANVAS_H / 2);
   ctx.restore();
 }
 
 function draw() {
-  ctx.fillStyle = '#000033';
+  ctx.fillStyle = '#110800';
   ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
   drawDangerLine();
   drawAimLine();
@@ -1027,7 +1027,7 @@ setTimeout(resize, 50); setTimeout(resize, 200); resize();
 document.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
 
 // Draw initial background
-ctx.fillStyle = '#000033';
+ctx.fillStyle = '#110800';
 ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
 </script>
 </body>
