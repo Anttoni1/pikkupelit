@@ -257,6 +257,7 @@ let scoreVal, hiScore, levelVal, shotsLeft, gameRunning, paused, lastTime;
 let lowPerf = false, _fpsFrames = 0, _fpsTime = performance.now();
 let particles, fallingBubbles;
 let levelFlash; // {text, timer}
+let levelIntro; // {elapsed, duration, rows} — pop-in animation for new level bubbles
 let numColors;  // colors in use for current level
 let gridParity; // 0|1 — flips each drop so bubbles keep their visual x-positions
 let dropAnim;   // {t: 0..1, duration} — animates new row sliding down
@@ -470,15 +471,22 @@ function generateGrid(rows) {
 
 function levelUp() {
   levelVal++;
-  levelFlash = { text: 'LEVEL ' + levelVal, timer: 2000 };
-  beep(880, 0.15, 0.1);
-  setTimeout(() => beep(1100, 0.15, 0.1), 160);
   const rows = Math.min(3 + levelVal, 7);
   numColors = Math.min(2 + levelVal, 6);
-  generateGrid(rows);
+  // Phase 1: show level text on empty grid, delay before bubbles appear
+  levelFlash = { text: 'LEVEL ' + levelVal, timer: 3000 };
+  levelIntro = { phase: 'text', delay: 1000, elapsed: 0, rows: rows,
+                 duration: 600 + rows * 80 };
+  beep(880, 0.15, 0.1);
+  setTimeout(() => beep(1100, 0.15, 0.1), 160);
   shotsLeft = Math.max(5, SHOTS_PER_DROP - Math.floor(levelVal / 3));
+  updateUI();
+}
+
+function finishLevelIntro() {
   currentColor = randomGridColor();
   nextColor = randomGridColor();
+  levelIntro = null;
   updateUI();
 }
 
@@ -594,9 +602,33 @@ function drawGrid() {
   const t = dropAnim ? Math.min(dropAnim.t, 1) : 1;
   const ease = 1 - (1 - t) * (1 - t); // ease-out quad
   const yOff = dropAnim ? -(1 - ease) * ROW_H : 0;
+
+  // Level intro pop-in: each row staggers in with a scale+bounce effect
+  const introScale = levelIntro && levelIntro.phase === 'pop';
+  const introElapsed = introScale ? levelIntro.elapsed : 0;
+  const rowDelay = 80; // ms stagger between rows
+
   for (let r = 0; r < MAX_ROWS; r++) {
     for (let c = 0; c < colsInRow(r); c++) {
-      if (grid[r][c]) drawBubble(bubbleX(c, r), bubbleY(r) + yOff, grid[r][c]);
+      if (!grid[r][c]) continue;
+      if (introScale) {
+        const t0 = r * rowDelay;
+        const prog = Math.max(0, Math.min(1, (introElapsed - t0) / 350));
+        if (prog <= 0) continue; // not started yet
+        // ease-out back for bouncy pop-in
+        const s = 1 + 2.5;
+        const p = prog - 1;
+        const scale = 1 + p * p * ((s + 1) * p + s); // overshoot then settle
+        const x = bubbleX(c, r);
+        const y = bubbleY(r);
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.scale(scale, scale);
+        drawBubble(0, 0, grid[r][c]);
+        ctx.restore();
+      } else {
+        drawBubble(bubbleX(c, r), bubbleY(r) + yOff, grid[r][c]);
+      }
     }
   }
 }
@@ -746,21 +778,23 @@ function drawShooter() {
   ctx.stroke();
   ctx.restore();
 
-  // ── Current bubble — hidden while in flight ──
-  if (!flyBubble) {
+  // ── Current bubble — hidden while in flight or during level intro ──
+  if (!flyBubble && !levelIntro) {
     drawBubble(bx, by, currentColor);
   }
 
-  // ── Next bubble preview ──
-  const nextX = CANVAS_W - R - 12;
-  ctx.save();
-  ctx.globalAlpha = 0.65;
-  ctx.font = '5px "Press Start 2P"';
-  ctx.fillStyle = 'rgba(255,200,0,0.5)';
-  ctx.textAlign = 'center';
-  ctx.fillText('NEXT', nextX, by - R - 2);
-  ctx.restore();
-  drawBubble(nextX, by, nextColor, 0.75);
+  // ── Next bubble preview — hidden during level intro ──
+  if (!levelIntro) {
+    const nextX = CANVAS_W - R - 12;
+    ctx.save();
+    ctx.globalAlpha = 0.65;
+    ctx.font = '5px "Press Start 2P"';
+    ctx.fillStyle = 'rgba(255,200,0,0.5)';
+    ctx.textAlign = 'center';
+    ctx.fillText('NEXT', nextX, by - R - 2);
+    ctx.restore();
+    drawBubble(nextX, by, nextColor, 0.75);
+  }
 }
 
 function drawFlyingBubble() {
@@ -836,7 +870,7 @@ function goMenu() { window.location.href = 'index.html'; }
 function moveLeft()  { shooterAngle = Math.max(MIN_ANGLE, shooterAngle - AIM_STEP); }
 function moveRight() { shooterAngle = Math.min(MAX_ANGLE, shooterAngle + AIM_STEP); }
 function tapAction() {
-  if (flyBubble) return;
+  if (flyBubble || levelIntro) return;
   const speed = BUBBLE_SPEED;
   flyBubble = {
     x: SHOOTER_X, y: SHOOTER_Y - 4,
@@ -919,6 +953,25 @@ function update(dt) {
 
   // Level flash timer
   if (levelFlash && levelFlash.timer > 0) levelFlash.timer -= dt;
+
+  // Level intro animation
+  if (levelIntro) {
+    levelIntro.elapsed += dt;
+    if (levelIntro.phase === 'text') {
+      // Waiting phase — show level text before spawning bubbles
+      if (levelIntro.elapsed >= levelIntro.delay) {
+        // Generate grid and switch to pop-in phase
+        generateGrid(levelIntro.rows);
+        levelIntro.phase = 'pop';
+        levelIntro.elapsed = 0;
+        beep(330, 0.1, 0.08);
+      }
+    } else if (levelIntro.phase === 'pop') {
+      if (levelIntro.elapsed >= levelIntro.duration) {
+        finishLevelIntro();
+      }
+    }
+  }
 }
 // ── Keyboard ──────────────────────────────────────────────────────────────
 document.addEventListener('keydown', e => {
@@ -1045,6 +1098,7 @@ function startGame() {
   particles = [];
   fallingBubbles = [];
   levelFlash = null;
+  levelIntro = null;
   dropAnim = null;
   shooterAngle = -Math.PI / 2;
   shotsLeft = SHOTS_PER_DROP;
