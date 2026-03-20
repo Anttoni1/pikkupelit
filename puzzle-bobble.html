@@ -57,7 +57,7 @@ body{
 .stat-lbl{font-size:5px;letter-spacing:1px;opacity:0.6;text-shadow:0 0 3px var(--g)}
 .stat-val{font-size:9px;color:var(--amber);text-shadow:0 0 5px var(--amber)}
 .board-wrap{
-  flex:1;display:flex;align-items:flex-start;justify-content:center;
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
   width:100%;position:relative;padding:0;
 }
 canvas#board{
@@ -140,8 +140,8 @@ canvas#board{
   </div>
   <div class="board-wrap" id="boardWrap">
     <canvas id="board" width="288" height="400"></canvas>
+    <div class="touch-hint">SWIPE ←→ AIM &nbsp; TAP SHOOT</div>
   </div>
-  <div class="touch-hint">SWIPE ←→ AIM &nbsp; TAP SHOOT</div>
 </div>
 
 <!-- Pause overlay -->
@@ -739,13 +739,15 @@ function drawShooter() {
   }
 
   // ── Next bubble preview ──
+  const nextX = CANVAS_W - R - 12;
   ctx.save();
   ctx.globalAlpha = 0.65;
   ctx.font = '5px "Press Start 2P"';
   ctx.fillStyle = 'rgba(255,200,0,0.5)';
-  ctx.fillText('NEXT', bx + R + 12, by - R + 2);
+  ctx.textAlign = 'center';
+  ctx.fillText('NEXT', nextX, by - R - 2);
   ctx.restore();
-  drawBubble(bx + R * 2 + 14, by, nextColor, 0.75);
+  drawBubble(nextX, by, nextColor, 0.75);
 }
 
 function drawFlyingBubble() {

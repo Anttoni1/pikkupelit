@@ -64,7 +64,7 @@ body{
 canvas#preview{border:1px solid var(--gd);box-shadow:0 0 4px var(--glow);image-rendering:pixelated}
 
 .board-wrap{
-  flex:1;display:flex;align-items:flex-start;justify-content:center;
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
   width:100%;position:relative;padding:0;
 }
 canvas#board{
@@ -154,8 +154,8 @@ canvas#board{
   </div>
   <div class="board-wrap" id="boardWrap">
     <canvas id="board" width="200" height="400"></canvas>
+    <div class="touch-hint">SWIPE ←→↓ &nbsp; TAP ROTATE &nbsp; FAST↓ DROP</div>
   </div>
-  <div class="touch-hint">SWIPE ←→↓ &nbsp; TAP ROTATE &nbsp; FAST↓ DROP</div>
 </div>
 
 <div class="pause-overlay hidden" id="pauseOverlay">
