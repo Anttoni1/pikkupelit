@@ -570,19 +570,17 @@ function drawAimLine() {
 function drawShooter() {
   const sx = SHOOTER_X, sy = SHOOTER_Y;
   const bx = sx, by = sy - 4;
-  const arcR = 36; // arc track radius
+  const arcR = 36;
 
-  // ── Semicircular arc track (the "clock face") ──
+  // ── Semicircular arc track ──
   ctx.save();
   ctx.beginPath();
-  // Arc from MIN_ANGLE to MAX_ANGLE going clockwise through the top
   ctx.arc(bx, by, arcR, MIN_ANGLE, MAX_ANGLE);
   ctx.strokeStyle = '#2255aa';
   ctx.lineWidth = 4;
   ctx.shadowColor = '#2255aa';
   ctx.shadowBlur = 5;
   ctx.stroke();
-  // Inner highlight ring
   ctx.beginPath();
   ctx.arc(bx, by, arcR - 2.5, MIN_ANGLE, MAX_ANGLE);
   ctx.strokeStyle = 'rgba(85,170,255,0.22)';
@@ -591,39 +589,84 @@ function drawShooter() {
   ctx.stroke();
   ctx.restore();
 
-  // ── Rotating cross pointer ──
+  // ── Rotating pointer ──
   ctx.save();
   ctx.translate(bx, by);
-  ctx.rotate(shooterAngle + Math.PI / 2); // +90° so straight-up aim = 0 rotation
+  ctx.rotate(shooterAngle + Math.PI / 2);
 
-  const tipLen  = 30;  // pivot → tip apex
-  const tipEx   = 11;  // length of triangular tip section
-  const tailLen = 13;  // pivot → tail end
-  const armW    = 5;   // shaft thickness
-  const crossHalf = 13; // half-length of horizontal crossbar
+  const sw      = 2.5;  // shaft half-width
+  const tipLen  = 40;   // pivot → tip (pokes through arc)
+  const tipH    = 13;   // spearhead section length
+  const tipHW   = 7;    // spearhead max half-width
+  const crossY  = 2;    // crossbar Y offset from pivot (slightly toward tail)
+  const crossHW = 12;   // crossbar half-length
+  const crossW  = 4;    // crossbar thickness
+  const tailLen = 22;   // pivot → tail end
 
   ctx.fillStyle   = '#cce6ff';
   ctx.strokeStyle = '#1a3a80';
   ctx.lineWidth   = 1;
 
-  // Vertical shaft (between tip base and tail)
+  // Shaft (full length from spearhead base to tail)
   ctx.beginPath();
-  ctx.rect(-armW / 2, -(tipLen - tipEx), armW, (tipLen - tipEx) + tailLen);
+  ctx.rect(-sw, -(tipLen - tipH), sw * 2, (tipLen - tipH) + tailLen);
   ctx.fill();
   ctx.stroke();
 
-  // Pointed tip (triangle on top of shaft)
+  // Spearhead — curved lance tip using quadratic bezier on each side
+  ctx.beginPath();
+  ctx.moveTo(0, -tipLen);                                    // sharp apex
+  ctx.quadraticCurveTo(-tipHW * 0.55, -(tipLen - tipH * 0.45), -tipHW, -(tipLen - tipH)); // left curve
+  ctx.lineTo(-sw, -(tipLen - tipH));
+  ctx.moveTo(sw, -(tipLen - tipH));
+  ctx.lineTo(tipHW, -(tipLen - tipH));
+  ctx.quadraticCurveTo(tipHW * 0.55, -(tipLen - tipH * 0.45), 0, -tipLen);  // right curve
+  ctx.strokeStyle = '#1a3a80';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  // Solid fill for spearhead
   ctx.beginPath();
   ctx.moveTo(0, -tipLen);
-  ctx.lineTo(-(armW / 2 + 3.5), -(tipLen - tipEx));
-  ctx.lineTo( (armW / 2 + 3.5), -(tipLen - tipEx));
+  ctx.quadraticCurveTo(-tipHW * 0.55, -(tipLen - tipH * 0.45), -tipHW, -(tipLen - tipH));
+  ctx.lineTo(tipHW, -(tipLen - tipH));
+  ctx.quadraticCurveTo(tipHW * 0.55, -(tipLen - tipH * 0.45), 0, -tipLen);
   ctx.closePath();
+  ctx.fillStyle = '#cce6ff';
   ctx.fill();
   ctx.stroke();
 
-  // Horizontal crossbar
+  // Crossbar (T-bar at pivot)
+  ctx.fillStyle   = '#cce6ff';
+  ctx.strokeStyle = '#1a3a80';
+  ctx.lineWidth   = 1;
   ctx.beginPath();
-  ctx.rect(-crossHalf, -armW / 2, crossHalf * 2, armW);
+  ctx.rect(-crossHW, crossY - crossW / 2, crossHW * 2, crossW);
+  ctx.fill();
+  ctx.stroke();
+
+  // Feather vanes (arrow fletching at tail)
+  // Each vane: a curved leaf shape angling outward and backward from the shaft
+  const fY      = tailLen - 4;  // vane root (near tail tip)
+  const fHeight = 15;           // vane length along shaft direction
+  const fSpread = 10;           // how far vane extends outward
+
+  // Left vane
+  ctx.beginPath();
+  ctx.moveTo(-sw, fY);
+  ctx.quadraticCurveTo(-sw - fSpread, fY - fHeight * 0.6, -sw - fSpread * 0.5, fY - fHeight);
+  ctx.quadraticCurveTo(-sw - fSpread * 0.1, fY - fHeight * 0.3, -sw, fY - fHeight);
+  ctx.closePath();
+  ctx.fillStyle   = '#cce6ff';
+  ctx.strokeStyle = '#1a3a80';
+  ctx.fill();
+  ctx.stroke();
+
+  // Right vane
+  ctx.beginPath();
+  ctx.moveTo(sw, fY);
+  ctx.quadraticCurveTo(sw + fSpread, fY - fHeight * 0.6, sw + fSpread * 0.5, fY - fHeight);
+  ctx.quadraticCurveTo(sw + fSpread * 0.1, fY - fHeight * 0.3, sw, fY - fHeight);
+  ctx.closePath();
   ctx.fill();
   ctx.stroke();
 
@@ -632,7 +675,7 @@ function drawShooter() {
   // ── Central hub ──
   ctx.save();
   ctx.beginPath();
-  ctx.arc(bx, by, 5.5, 0, Math.PI * 2);
+  ctx.arc(bx, by, 5, 0, Math.PI * 2);
   ctx.fillStyle = '#cce6ff';
   ctx.strokeStyle = '#1a3a80';
   ctx.lineWidth = 1.5;
@@ -640,7 +683,7 @@ function drawShooter() {
   ctx.stroke();
   ctx.restore();
 
-  // ── Current bubble — hidden while the bubble is in flight ──
+  // ── Current bubble — hidden while in flight ──
   if (!flyBubble) {
     drawBubble(bx, by, currentColor);
   }
