@@ -449,35 +449,45 @@ function spawnFalling(x, y, color) {
 
 // ── Aim line ───────────────────────────────────────────────────────────────
 function computeAimPath() {
-  const pts = [[SHOOTER_X, SHOOTER_Y]];
-  let x = SHOOTER_X, y = SHOOTER_Y;
+  const pts = [[SHOOTER_X, SHOOTER_Y - 4]];
+  let x = SHOOTER_X, y = SHOOTER_Y - 4;
   let vx = Math.cos(shooterAngle), vy = Math.sin(shooterAngle);
-  const step = 4;
-  const maxSteps = 500;
+  const step = 3;
+  const maxSteps = 700;
   for (let i = 0; i < maxSteps; i++) {
-    x += vx * step; y += vy * step;
-    // Bounce walls
-    if (x - R < 0) { x = R; vx = Math.abs(vx); }
-    if (x + R > CANVAS_W) { x = CANVAS_W - R; vx = -Math.abs(vx); }
+    const nx = x + vx * step, ny = y + vy * step;
+    // Wall bounce: compute exact intersection point, record it, continue from there
+    if (nx - R < 0) {
+      const t = (R - x) / vx;
+      x = R; y = y + vy * t;
+      pts.push([x, y]);
+      vx = -vx;
+      continue;
+    }
+    if (nx + R > CANVAS_W) {
+      const t = (CANVAS_W - R - x) / vx;
+      x = CANVAS_W - R; y = y + vy * t;
+      pts.push([x, y]);
+      vx = -vx;
+      continue;
+    }
+    x = nx; y = ny;
     // Hit ceiling
     if (y - R <= GRID_Y) { pts.push([x, GRID_Y + R]); break; }
     // Hit grid bubble
     let hit = false;
     const rowApprox = Math.round((y - GRID_Y) / ROW_H);
-    for (let dr = -1; dr <= 1; dr++) {
+    for (let dr = -1; dr <= 1 && !hit; dr++) {
       const row = rowApprox + dr;
       if (row < 0 || row >= MAX_ROWS) continue;
-      for (let c = 0; c < colsInRow(row); c++) {
+      for (let c = 0; c < colsInRow(row) && !hit; c++) {
         if (!grid[row][c]) continue;
-        if (Math.hypot(x - bubbleX(c, row), y - bubbleY(row)) < R * 2 - 1) {
-          pts.push([x, y]); hit = true; break;
+        if (Math.hypot(x - bubbleX(c, row), y - bubbleY(row)) < R * 2) {
+          pts.push([x, y]); hit = true;
         }
       }
-      if (hit) break;
     }
     if (hit) break;
-    // Record bounce/turn points
-    if (i % 20 === 0) pts.push([x, y]);
   }
   return pts;
 }
