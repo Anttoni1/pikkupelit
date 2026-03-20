@@ -181,6 +181,54 @@ const COLORS = ['#ff5555','#55aaff','#55ff55','#ffff55','#ff88ff','#ffaa00'];
 const canvas = document.getElementById('board');
 const ctx = canvas.getContext('2d');
 
+// ── Background (cached offscreen) ───────────────────────────────────────────
+const bgCanvas = document.createElement('canvas');
+bgCanvas.width = CANVAS_W; bgCanvas.height = CANVAS_H;
+const bgCtx = bgCanvas.getContext('2d');
+(function buildBg() {
+  // Base: deep warm amber gradient
+  const g = bgCtx.createLinearGradient(0, 0, 0, CANVAS_H);
+  g.addColorStop(0, '#060300');
+  g.addColorStop(0.45, '#130800');
+  g.addColorStop(1, '#221000');
+  bgCtx.fillStyle = g; bgCtx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+  // Moon glow behind the bubble grid
+  const moon = bgCtx.createRadialGradient(CANVAS_W/2, CANVAS_H*0.37, 0, CANVAS_W/2, CANVAS_H*0.37, 130);
+  moon.addColorStop(0, 'rgba(255,180,40,0.1)');
+  moon.addColorStop(0.55, 'rgba(255,110,0,0.05)');
+  moon.addColorStop(1, 'rgba(0,0,0,0)');
+  bgCtx.fillStyle = moon; bgCtx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+  // Seeded stars — warm gold / pale white tones
+  const rng = s => { const x = Math.sin(s + 1) * 10000; return x - Math.floor(x); };
+  for (let i = 0; i < 75; i++) {
+    const x = rng(i * 2.7) * CANVAS_W;
+    const y = rng(i * 5.3) * CANVAS_H;
+    const sz = rng(i * 1.9) < 0.14 ? 1.3 : 0.65;
+    const a = 0.22 + rng(i * 8.1) * 0.58;
+    const warm = rng(i * 3.3);
+    bgCtx.beginPath(); bgCtx.arc(x, y, sz, 0, Math.PI * 2);
+    bgCtx.fillStyle = warm > 0.62
+      ? `rgba(255,210,70,${a})`
+      : warm > 0.32
+        ? `rgba(255,240,170,${a})`
+        : `rgba(255,255,255,${a * 0.7})`;
+    bgCtx.fill();
+  }
+
+  // Faint top arch ornament (frames the bubble ceiling)
+  bgCtx.strokeStyle = 'rgba(180,110,0,0.18)'; bgCtx.lineWidth = 1;
+  bgCtx.beginPath(); bgCtx.arc(CANVAS_W / 2, -18, CANVAS_W * 0.52, 0.08, Math.PI - 0.08);
+  bgCtx.stroke();
+
+  // Warm ground glow behind the shooter
+  const base = bgCtx.createRadialGradient(CANVAS_W / 2, CANVAS_H, 0, CANVAS_W / 2, CANVAS_H, 100);
+  base.addColorStop(0, 'rgba(255,130,0,0.16)');
+  base.addColorStop(1, 'rgba(0,0,0,0)');
+  bgCtx.fillStyle = base; bgCtx.fillRect(0, CANVAS_H - 100, CANVAS_W, 100);
+})();
+
 // ── Audio ───────────────────────────────────────────────────────────────────
 let audioCtx;
 function beep(freq, duration, volume = 0.08) {
@@ -727,17 +775,18 @@ function drawLevelFlash() {
   if (!levelFlash || levelFlash.timer <= 0) return;
   ctx.save();
   ctx.globalAlpha = Math.min(1, levelFlash.timer / 500);
+  const dangerY = bubbleY(DANGER_ROW) - ROW_H * 0.5;
   ctx.font = '14px "Press Start 2P"';
   ctx.fillStyle = '#ffcc00';
   if (!lowPerf) { ctx.shadowColor = '#ffcc00'; ctx.shadowBlur = 20; }
   ctx.textAlign = 'center';
-  ctx.fillText(levelFlash.text, CANVAS_W / 2, CANVAS_H / 2);
+  ctx.textBaseline = 'bottom';
+  ctx.fillText(levelFlash.text, CANVAS_W / 2, dangerY - 6);
   ctx.restore();
 }
 
 function draw() {
-  ctx.fillStyle = '#110800';
-  ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+  ctx.drawImage(bgCanvas, 0, 0);
   drawDangerLine();
   drawAimLine();
   drawGrid();
@@ -1027,8 +1076,7 @@ setTimeout(resize, 50); setTimeout(resize, 200); resize();
 document.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
 
 // Draw initial background
-ctx.fillStyle = '#110800';
-ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+ctx.drawImage(bgCanvas, 0, 0);
 </script>
 </body>
 </html>
