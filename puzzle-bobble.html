@@ -139,7 +139,7 @@ canvas#board{
     </div>
   </div>
   <div class="board-wrap" id="boardWrap">
-    <canvas id="board" width="300" height="500"></canvas>
+    <canvas id="board" width="288" height="450"></canvas>
   </div>
   <div class="touch-hint">SWIPE ←→ AIM &nbsp; TAP SHOOT</div>
 </div>
@@ -160,17 +160,17 @@ canvas#board{
 
 <script>
 // ── Constants ──────────────────────────────────────────────────────────────
-const CANVAS_W = 300, CANVAS_H = 500;
-const R = 13;
+const CANVAS_W = 288, CANVAS_H = 450;
+const R = 18;
 const ROW_H = R * Math.sqrt(3);
-const COLS_EVEN = 11;
-const COLS_ODD = 10;
-const MAX_ROWS = 15;
-const GRID_Y = 6;
-const DANGER_ROW = 11;
-const SHOOTER_X = 150;
-const SHOOTER_Y = 462;
-const BUBBLE_SPEED = 320;
+const COLS_EVEN = 8;
+const COLS_ODD = 7;
+const MAX_ROWS = 14;
+const GRID_Y = 5;
+const DANGER_ROW = 10;
+const SHOOTER_X = 144;
+const SHOOTER_Y = 418;
+const BUBBLE_SPEED = 350;
 const SHOTS_PER_DROP = 8;
 const AIM_STEP = 0.07;
 const MIN_ANGLE = -(Math.PI - 0.22);
@@ -586,9 +586,9 @@ function drawShooter() {
   ctx.globalAlpha = 0.7;
   ctx.font = '5px "Press Start 2P"';
   ctx.fillStyle = 'rgba(85,170,255,0.5)';
-  ctx.fillText('NEXT', sx + 24, sy - 16);
+  ctx.fillText('NEXT', sx + R + 10, sy - R - 4);
   ctx.restore();
-  drawBubble(sx + 36, sy - 4, nextColor, 0.8);
+  drawBubble(sx + R * 2 + 12, sy - 4, nextColor, 0.8);
   // Shooter base line
   ctx.save();
   ctx.strokeStyle = 'rgba(34,85,170,0.6)';
