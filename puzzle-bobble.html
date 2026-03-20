@@ -775,11 +775,13 @@ function drawLevelFlash() {
   if (!levelFlash || levelFlash.timer <= 0) return;
   ctx.save();
   ctx.globalAlpha = Math.min(1, levelFlash.timer / 500);
+  const dangerY = bubbleY(DANGER_ROW) - ROW_H * 0.5;
   ctx.font = '14px "Press Start 2P"';
   ctx.fillStyle = '#ffcc00';
   if (!lowPerf) { ctx.shadowColor = '#ffcc00'; ctx.shadowBlur = 20; }
   ctx.textAlign = 'center';
-  ctx.fillText(levelFlash.text, CANVAS_W / 2, CANVAS_H / 2);
+  ctx.textBaseline = 'bottom';
+  ctx.fillText(levelFlash.text, CANVAS_W / 2, dangerY - 6);
   ctx.restore();
 }
 
