@@ -487,7 +487,7 @@ function drawBubble(x, y, color, alpha) {
   ctx.globalAlpha = alpha !== undefined ? alpha : 1;
   // Glow
   ctx.shadowColor = color;
-  ctx.shadowBlur = 8;
+  ctx.shadowBlur = 2;
   ctx.beginPath();
   ctx.arc(x, y, R - 1, 0, Math.PI * 2);
   ctx.fillStyle = color;
@@ -497,7 +497,7 @@ function drawBubble(x, y, color, alpha) {
   ctx.beginPath();
   ctx.arc(x - R*0.3, y - R*0.3, R*0.3, 0, Math.PI * 2);
   const hl = ctx.createRadialGradient(x-R*0.3, y-R*0.3, 0, x-R*0.3, y-R*0.3, R*0.3);
-  hl.addColorStop(0, 'rgba(255,255,255,0.7)');
+  hl.addColorStop(0, 'rgba(255,255,255,0.45)');
   hl.addColorStop(1, 'rgba(255,255,255,0)');
   ctx.fillStyle = hl;
   ctx.fill();
@@ -599,7 +599,7 @@ function drawParticles() {
     ctx.save();
     ctx.globalAlpha = p.life * 0.9;
     ctx.shadowColor = p.color;
-    ctx.shadowBlur = 4;
+    ctx.shadowBlur = 1;
     ctx.beginPath();
     ctx.arc(p.x, p.y, p.r * p.life, 0, Math.PI * 2);
     ctx.fillStyle = p.color;
@@ -698,7 +698,7 @@ function update(dt) {
     if (flyBubble.y - R <= GRID_Y) {
       const saved = { ...flyBubble };
       flyBubble = null;
-      snapBubble(saved.x, GRID_Y + R, saved.color);
+      snapBubble(saved.x, GRID_Y, saved.color);
       return;
     }
 
