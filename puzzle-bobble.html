@@ -170,7 +170,7 @@ const GRID_Y = 5;
 const DANGER_ROW = 10;
 const SHOOTER_X = 144;
 const SHOOTER_Y = 371;
-const BUBBLE_SPEED = 700;
+const BUBBLE_SPEED = 600;
 const SHOTS_PER_DROP = 8;
 const AIM_STEP = 0.04;
 const MIN_ANGLE = -(Math.PI - 0.22);
@@ -204,6 +204,7 @@ let particles, fallingBubbles;
 let levelFlash; // {text, timer}
 let numColors;  // colors in use for current level
 let gridParity; // 0|1 — flips each drop so bubbles keep their visual x-positions
+let dropAnim;   // {t: 0..1, duration} — animates new row sliding down
 
 // ── Grid helpers ─────────────────────────────────────────────────────────────
 function bubbleX(col, row) {
@@ -379,6 +380,8 @@ function dropGrid() {
   for (let c = 0; c < colsInRow(0); c++) {
     grid[0][c] = colors[Math.floor(Math.random() * colors.length)];
   }
+  // Start slide-in animation: bubbles start one row above their new position
+  dropAnim = { t: 0, duration: 280 };
   beep(200, 0.12, 0.1);
   if (checkGameOver()) return;
 }
@@ -444,7 +447,7 @@ function spawnParticles(x, y, color, count) {
 }
 
 function spawnFalling(x, y, color) {
-  fallingBubbles.push({ x, y, color, vy: 40, life: 1.0 });
+  fallingBubbles.push({ x, y, color, vy: 40 });
 }
 
 // ── Aim line ───────────────────────────────────────────────────────────────
@@ -521,9 +524,13 @@ function drawBubble(x, y, color, alpha) {
 }
 
 function drawGrid() {
+  // During drop animation, offset all rows: start one ROW_H above, ease into position
+  const t = dropAnim ? Math.min(dropAnim.t, 1) : 1;
+  const ease = 1 - (1 - t) * (1 - t); // ease-out quad
+  const yOff = dropAnim ? (1 - ease) * ROW_H : 0;
   for (let r = 0; r < MAX_ROWS; r++) {
     for (let c = 0; c < colsInRow(r); c++) {
-      if (grid[r][c]) drawBubble(bubbleX(c, r), bubbleY(r), grid[r][c]);
+      if (grid[r][c]) drawBubble(bubbleX(c, r), bubbleY(r) + yOff, grid[r][c]);
     }
   }
 }
@@ -620,7 +627,7 @@ function drawParticles() {
 
 function drawFallingBubbles() {
   for (const b of fallingBubbles) {
-    drawBubble(b.x, b.y, b.color, b.life);
+    drawBubble(b.x, b.y, b.color);
   }
 }
 
@@ -746,8 +753,13 @@ function update(dt) {
     const b = fallingBubbles[i];
     b.vy += 200 * sec;
     b.y += b.vy * sec;
-    b.life -= sec * 1.2;
-    if (b.life <= 0 || b.y > CANVAS_H + R) fallingBubbles.splice(i, 1);
+    if (b.y > CANVAS_H + R) fallingBubbles.splice(i, 1);
+  }
+
+  // Drop animation
+  if (dropAnim) {
+    dropAnim.t += dt / dropAnim.duration;
+    if (dropAnim.t >= 1) dropAnim = null;
   }
 
   // Level flash timer
@@ -877,6 +889,7 @@ function startGame() {
   particles = [];
   fallingBubbles = [];
   levelFlash = null;
+  dropAnim = null;
   shooterAngle = -Math.PI / 2;
   shotsLeft = SHOTS_PER_DROP;
   numColors = 4;
