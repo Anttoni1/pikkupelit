@@ -461,7 +461,7 @@ function levelUp() {
   beep(880, 0.15, 0.1);
   setTimeout(() => beep(1100, 0.15, 0.1), 160);
   const rows = Math.min(3 + levelVal, 7);
-  numColors = 6;
+  numColors = Math.min(2 + levelVal, 6);
   generateGrid(rows);
   shotsLeft = Math.max(5, SHOTS_PER_DROP - Math.floor(levelVal / 3));
   currentColor = COLORS[Math.floor(Math.random() * numColors)];
@@ -1035,7 +1035,7 @@ function startGame() {
   dropAnim = null;
   shooterAngle = -Math.PI / 2;
   shotsLeft = SHOTS_PER_DROP;
-  numColors = 6;
+  numColors = 3;
   try { hiScore = parseInt(localStorage.getItem('puzzlebobble_hi')) || 0; } catch(e) { hiScore = 0; }
   generateGrid(4);
   currentColor = COLORS[Math.floor(Math.random() * numColors)];
