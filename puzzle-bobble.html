@@ -787,28 +787,27 @@ document.addEventListener('keydown', e => {
 });
 
 // ── Touch ──────────────────────────────────────────────────────────────────
-let tx, ty, tt, moved, lastMX, startY;
-const SH = 24;
+let tx, ty, tt, moved;
 
 document.addEventListener('touchstart', e => {
   if (!gameRunning || paused || e.target.closest('.topbar')) return;
   e.preventDefault();
   const t = e.touches[0];
-  tx = t.clientX; ty = t.clientY; startY = t.clientY; tt = Date.now();
-  moved = false; lastMX = tx;
+  tx = t.clientX; ty = t.clientY; tt = Date.now();
+  moved = false;
 }, { passive: false });
 
 document.addEventListener('touchmove', e => {
   if (!gameRunning || paused) return;
   e.preventDefault();
   const t = e.touches[0];
-  const dx = t.clientX - lastMX;
-  if (Math.abs(dx) > SH) {
-    const s = Math.floor(Math.abs(dx) / SH);
-    for (let i = 0; i < s; i++) { if (dx > 0) moveRight(); else moveLeft(); }
-    lastMX += Math.sign(dx) * s * SH;
-    moved = true;
-  }
+  if (Math.abs(t.clientX - tx) > 6 || Math.abs(t.clientY - ty) > 6) moved = true;
+  // Point aim directly at finger position
+  const rect = canvas.getBoundingClientRect();
+  const cx = (t.clientX - rect.left) * (CANVAS_W / rect.width);
+  const cy = (t.clientY - rect.top) * (CANVAS_H / rect.height);
+  const angle = Math.atan2(cy - SHOOTER_Y, cx - SHOOTER_X);
+  shooterAngle = Math.max(MIN_ANGLE, Math.min(MAX_ANGLE, angle));
 }, { passive: false });
 
 document.addEventListener('touchend', e => {
@@ -817,7 +816,7 @@ document.addEventListener('touchend', e => {
   const el = Date.now() - tt;
   const ct = e.changedTouches[0];
   const fdx = ct.clientX - tx;
-  const fdy = ct.clientY - startY;
+  const fdy = ct.clientY - ty;
   if (!moved && el < 250 && Math.abs(fdx) < 12 && Math.abs(fdy) < 12) tapAction();
 }, { passive: false });
 
