@@ -197,19 +197,19 @@ function checkPerf(dt) {
 
 // Tile colors 90s: blue-anchored but each tier distinctly different
 const TILE_STYLES = {
-  2:    { bg:'#1a3a7a', fg:'#99bbff', bh:'#bbddff', bd:'#0d2255' },  // steel blue
-  4:    { bg:'#0d6688', fg:'#44ddff', bh:'#88eeff', bd:'#084455' },  // teal
-  8:    { bg:'#0d8866', fg:'#00ffcc', bh:'#66ffdd', bd:'#085544' },  // cyan-green
-  16:   { bg:'#227700', fg:'#88ff44', bh:'#aaff77', bd:'#114400' },  // lime
-  32:   { bg:'#886600', fg:'#ffdd00', bh:'#ffee66', bd:'#554400' },  // yellow
-  64:   { bg:'#996600', fg:'#ffaa00', bh:'#ffcc44', bd:'#664400' },  // amber
-  128:  { bg:'#993300', fg:'#ff6600', bh:'#ff9944', bd:'#662200' },  // orange
-  256:  { bg:'#882200', fg:'#ff3333', bh:'#ff7766', bd:'#551100' },  // red
-  512:  { bg:'#881155', fg:'#ff3399', bh:'#ff77bb', bd:'#550033' },  // hot pink
-  1024: { bg:'#661188', fg:'#dd44ff', bh:'#ee88ff', bd:'#440066' },  // magenta
-  2048: { bg:'#886600', fg:'#ffee00', bh:'#ffff77', bd:'#553d00' },  // bright gold
-  4096: { bg:'#1a55aa', fg:'#ffffff', bh:'#eeeeff', bd:'#0d3377' },  // white on blue
-  8192: { bg:'#002255', fg:'#55aaff', bh:'#88ccff', bd:'#001133' },  // deep blue
+  2:    { bg:'#3366bb', fg:'#ddeeff', bh:'#88bbff', bd:'#1a3366' },  // cool blue
+  4:    { bg:'#2299aa', fg:'#ccffff', bh:'#66ddee', bd:'#116666' },  // teal
+  8:    { bg:'#22aa77', fg:'#bbffdd', bh:'#55eebb', bd:'#117755' },  // emerald
+  16:   { bg:'#44aa22', fg:'#ddffaa', bh:'#88ee55', bd:'#227711' },  // lime green
+  32:   { bg:'#bbaa11', fg:'#ffffcc', bh:'#eedd55', bd:'#887700' },  // golden yellow
+  64:   { bg:'#cc7711', fg:'#ffeecc', bh:'#ffcc66', bd:'#885500' },  // tangerine
+  128:  { bg:'#cc4422', fg:'#ffddcc', bh:'#ff8866', bd:'#882211' },  // tomato red
+  256:  { bg:'#cc2244', fg:'#ffccdd', bh:'#ff6688', bd:'#881133' },  // crimson
+  512:  { bg:'#bb2288', fg:'#ffccee', bh:'#ff66bb', bd:'#771155' },  // magenta pink
+  1024: { bg:'#8833bb', fg:'#eeccff', bh:'#cc77ee', bd:'#552277' },  // purple
+  2048: { bg:'#cc9900', fg:'#ffffdd', bh:'#ffdd55', bd:'#886600' },  // bright gold
+  4096: { bg:'#3377cc', fg:'#ffffff', bh:'#99ccff', bd:'#224488' },  // sky blue
+  8192: { bg:'#225599', fg:'#bbddff', bh:'#77aaee', bd:'#113366' },  // deep blue
 };
 
 // ── State ──
@@ -476,9 +476,9 @@ function draw() {
   for (let r = 0; r < SIZE; r++) {
     for (let c = 0; c < SIZE; c++) {
       const x = cellX(c), y = cellY(r);
-      ctx.fillStyle = '#000a22';
+      ctx.fillStyle = '#0a1a44';
       ctx.fillRect(x, y, CELL, CELL);
-      ctx.strokeStyle = '#001a44';
+      ctx.strokeStyle = '#1a3366';
       ctx.lineWidth = 1;
       ctx.strokeRect(x + 0.5, y + 0.5, CELL - 1, CELL - 1);
     }
