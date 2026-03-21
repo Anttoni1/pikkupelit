@@ -801,7 +801,7 @@ function drawShooter() {
 
   // ── Next bubble preview — hidden during level intro ──
   if (!levelIntro) {
-    const nextX = CANVAS_W - R - 12;
+    const nextX = R + 12;
     ctx.save();
     ctx.globalAlpha = 0.65;
     ctx.font = '5px "Press Start 2P"';
