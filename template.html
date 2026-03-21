@@ -257,7 +257,7 @@ const music = {
 
   play() {
     if (this.playing) this.stop();
-    if (localStorage.getItem('arcade_music') === '0') return;
+    if (localStorage.getItem('arcade_music') !== '1') return;
     if (!SONG.voices.length && !SONG.drums) return;
     try {
       const ac = ensureAudio();
@@ -282,7 +282,7 @@ const music = {
   pause() { this.playing = false; if (this._timer) { clearInterval(this._timer); this._timer = null; } },
 
   resume() {
-    if (localStorage.getItem('arcade_music') === '0') return;
+    if (localStorage.getItem('arcade_music') !== '1') return;
     if (!SONG.voices.length && !SONG.drums) return;
     try {
       const ac = ensureAudio();
@@ -369,9 +369,9 @@ const music = {
 
 // ── Music Toggle ─────────────────────────────────────────────────────────────
 const musicBtn = document.getElementById('musicBtn');
-function updateMusicBtn() { musicBtn.classList.toggle('off', localStorage.getItem('arcade_music') === '0'); }
+function updateMusicBtn() { musicBtn.classList.toggle('off', localStorage.getItem('arcade_music') !== '1'); }
 function toggleMusic() {
-  const off = localStorage.getItem('arcade_music') !== '0';
+  const off = localStorage.getItem('arcade_music') === '1';
   localStorage.setItem('arcade_music', off ? '0' : '1');
   updateMusicBtn();
   if (off) music.stop(); else if (gameRunning && !paused) music.play();
