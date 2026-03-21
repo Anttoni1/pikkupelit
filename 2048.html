@@ -178,6 +178,23 @@ const ANIM_SPAWN_MS = 100;
 
 const canvas = document.getElementById('board'), ctx = canvas.getContext('2d');
 
+// Offscreen cached background
+const bgCanvas = document.createElement('canvas');
+bgCanvas.width = CW; bgCanvas.height = CH;
+const bgCtx = bgCanvas.getContext('2d');
+
+// Adaptive quality
+let lowPerf = false;
+let frameTimes = [];
+function checkPerf(dt) {
+  frameTimes.push(dt);
+  if (frameTimes.length > 30) frameTimes.shift();
+  if (frameTimes.length === 30) {
+    const avg = frameTimes.reduce((a, b) => a + b, 0) / frameTimes.length;
+    lowPerf = avg > 20; // <50fps
+  }
+}
+
 // Tile colors 90s: blue-anchored but each tier distinctly different
 const TILE_STYLES = {
   2:    { bg:'#1a3a7a', fg:'#99bbff', bh:'#bbddff', bd:'#0d2255' },  // steel blue
@@ -306,14 +323,20 @@ function doMove(g, dir) {
     newG = transpose(cols);
   }
 
-  const moved = JSON.stringify(newG) !== JSON.stringify(g);
+  let moved = false;
+  for (let r = 0; r < SIZE && !moved; r++)
+    for (let c = 0; c < SIZE && !moved; c++)
+      if (newG[r][c] !== g[r][c]) moved = true;
   return { grid: newG, score: totalScore, moved, mergedValues, anims };
 }
 
 function canMove(g) {
-  for (const d of ['left', 'right', 'up', 'down']) {
-    if (doMove(g, d).moved) return true;
-  }
+  for (let r = 0; r < SIZE; r++)
+    for (let c = 0; c < SIZE; c++) {
+      if (g[r][c] === 0) return true;
+      if (c + 1 < SIZE && g[r][c] === g[r][c + 1]) return true;
+      if (r + 1 < SIZE && g[r][c] === g[r + 1][c]) return true;
+    }
   return false;
 }
 
@@ -337,7 +360,7 @@ function handleMove(dir) {
   const mergeSet = new Set();
   for (const a of result.anims) {
     if (a.merged) {
-      const key = a.toR + ',' + a.toC;
+      const key = a.toR * SIZE + a.toC;
       if (!mergeSet.has(key)) {
         mergeSet.add(key);
         mergeAnimations.push({ r: a.toR, c: a.toC, val: a.mergeVal, progress: 0 });
@@ -415,9 +438,11 @@ function drawTile(x, y, w, h, val) {
   else if (val >= 128) fontSize = 12;
   else if (val >= 16) fontSize = 14;
   ctx.font = fontSize + "px 'Press Start 2P',monospace";
-  // Text shadow
-  ctx.fillStyle = style.bd;
-  ctx.fillText(txt, x + w / 2 + 1, y + h / 2 + 1);
+  // Text shadow (skip on low perf)
+  if (!lowPerf) {
+    ctx.fillStyle = style.bd;
+    ctx.fillText(txt, x + w / 2 + 1, y + h / 2 + 1);
+  }
   ctx.fillStyle = style.fg;
   ctx.fillText(txt, x + w / 2, y + h / 2);
 }
@@ -430,12 +455,18 @@ function drawTileScaled(r, c, val, scale) {
   drawTile(cx - sw / 2, cy - sh / 2, sw, sh, val);
 }
 
+// Pre-render background once
+let bgCached = false;
+function cacheBackground() {
+  bgCtx.fillStyle = '#000033'; bgCtx.fillRect(0, 0, CW, CH);
+  bgCtx.strokeStyle = 'rgba(85,170,255,0.06)'; bgCtx.lineWidth = 1;
+  for (let x = 0; x < CW; x += 16) { bgCtx.beginPath(); bgCtx.moveTo(x,0); bgCtx.lineTo(x,CH); bgCtx.stroke(); }
+  for (let y = 0; y < CH; y += 16) { bgCtx.beginPath(); bgCtx.moveTo(0,y); bgCtx.lineTo(CW,y); bgCtx.stroke(); }
+  bgCached = true;
+}
 function drawBackground() {
-  // Navy bg with subtle grid
-  ctx.fillStyle = '#000033'; ctx.fillRect(0, 0, CW, CH);
-  ctx.strokeStyle = 'rgba(85,170,255,0.06)'; ctx.lineWidth = 1;
-  for (let x = 0; x < CW; x += 16) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,CH); ctx.stroke(); }
-  for (let y = 0; y < CH; y += 16) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(CW,y); ctx.stroke(); }
+  if (!bgCached) cacheBackground();
+  ctx.drawImage(bgCanvas, 0, 0);
 }
 
 function draw() {
@@ -454,16 +485,16 @@ function draw() {
   }
 
   if (animating) {
-    // Determine which destination cells are being animated
+    // Determine which destination cells are being animated (numeric keys)
     const animDests = new Set();
-    for (const a of moveAnimations) animDests.add(a.toR + ',' + a.toC);
-    if (newTileAnim) animDests.add(newTileAnim.r + ',' + newTileAnim.c);
+    for (const a of moveAnimations) animDests.add(a.toR * SIZE + a.toC);
+    if (newTileAnim) animDests.add(newTileAnim.r * SIZE + newTileAnim.c);
 
     // Draw static tiles (not involved in animation)
     for (let r = 0; r < SIZE; r++) {
       for (let c = 0; c < SIZE; c++) {
         if (grid[r][c] === 0) continue;
-        if (animDests.has(r + ',' + c)) continue;
+        if (animDests.has(r * SIZE + c)) continue;
         drawTile(cellX(c), cellY(r), CELL, CELL, grid[r][c]);
       }
     }
@@ -644,6 +675,7 @@ function gameLoop(time) {
   if (paused) return;
   const dt = Math.min(time - (lastTime || time), 32);
   lastTime = time;
+  checkPerf(dt);
 
   if (animating) {
     let allDone = true;
@@ -735,6 +767,7 @@ function resize() {
 window.addEventListener('resize', resize);
 setTimeout(resize, 50); setTimeout(resize, 200); resize();
 document.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+cacheBackground();
 drawBackground();
 </script>
 </body>
