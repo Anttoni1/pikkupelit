@@ -440,7 +440,7 @@ function isGridEmpty() {
 
 function checkGameOver() {
   for (let c = 0; c < colsInRow(DANGER_ROW); c++) {
-    if (grid[DANGER_ROW][c]) { triggerGameOver(); return true; }
+    if (grid[DANGER_ROW][c]) { triggerGameOver(DANGER_ROW, c); return true; }
   }
   return false;
 }
@@ -507,14 +507,34 @@ function finishLevelIntro() {
   updateUI();
 }
 
-function triggerGameOver() {
+function triggerGameOver(startRow, startCol) {
   gameRunning = false;
-  gameOverAnim = { elapsed: 0, duration: 700 };
+
+  // BFS wave: assign each bubble an arrival time based on distance from offending bubble
+  const STEP = 55;  // ms per hop
+  const FADE = 90;  // ms to fade to grey once reached
+  const greyTimes = Array.from({length: MAX_ROWS}, () => new Array(COLS_EVEN).fill(null));
+  const visited = new Set();
+  const queue = [[startRow, startCol, 0]];
+  visited.add(startRow + ',' + startCol);
+  let maxTime = 0;
+  while (queue.length) {
+    const [r, c, dist] = queue.shift();
+    if (!grid[r][c]) continue;
+    greyTimes[r][c] = dist * STEP;
+    if (greyTimes[r][c] > maxTime) maxTime = greyTimes[r][c];
+    for (const [nr, nc] of hexNeighbors(r, c)) {
+      const k = nr + ',' + nc;
+      if (!visited.has(k) && grid[nr][nc]) { visited.add(k); queue.push([nr, nc, dist + 1]); }
+    }
+  }
+  const totalDuration = maxTime + FADE + 300;
+  gameOverAnim = { elapsed: 0, duration: totalDuration, greyTimes, FADE };
+
   beep(110, 0.6, 0.15);
   setTimeout(() => beep(80, 0.8, 0.15), 300);
   document.getElementById('finalScore').textContent = scoreVal;
   document.getElementById('finalLevel').textContent = levelVal;
-  // Save hi score
   if (scoreVal > hiScore) {
     hiScore = scoreVal;
     try { localStorage.setItem('puzzlebobble_hi', hiScore); } catch(e) {}
@@ -522,8 +542,8 @@ function triggerGameOver() {
   setTimeout(() => {
     document.getElementById('gameOver').classList.remove('hidden');
     goSel = 0; updateGoSel();
-  }, 800);
-  requestAnimationFrame(gameLoop); // keep loop alive for animation
+  }, totalDuration + 100);
+  requestAnimationFrame(gameLoop);
 }
 
 // ── Particles ──────────────────────────────────────────────────────────────
@@ -646,7 +666,21 @@ function drawGrid() {
         drawBubble(0, 0, grid[r][c]);
         ctx.restore();
       } else {
-        drawBubble(bubbleX(c, r), bubbleY(r) + yOff, grid[r][c]);
+        const x = bubbleX(c, r), y = bubbleY(r) + yOff;
+        drawBubble(x, y, grid[r][c]);
+        // Game-over grey wave overlay
+        if (gameOverAnim && gameOverAnim.greyTimes[r][c] !== null) {
+          const prog = Math.max(0, Math.min(1, (gameOverAnim.elapsed - gameOverAnim.greyTimes[r][c]) / gameOverAnim.FADE));
+          if (prog > 0) {
+            ctx.save();
+            ctx.globalAlpha = prog * 0.88;
+            ctx.beginPath();
+            ctx.arc(x, y, R - 1, 0, Math.PI * 2);
+            ctx.fillStyle = '#1e1e1e';
+            ctx.fill();
+            ctx.restore();
+          }
+        }
       }
     }
   }
@@ -853,18 +887,6 @@ function drawLevelFlash() {
   ctx.restore();
 }
 
-function drawGameOverFlash() {
-  if (!gameOverAnim) return;
-  const t = gameOverAnim.elapsed / gameOverAnim.duration;
-  // Sharp rise to peak at t=0.15, then slow fade to zero
-  const alpha = t < 0.15 ? (t / 0.15) * 0.55 : (1 - (t - 0.15) / 0.85) * 0.55;
-  ctx.save();
-  ctx.globalAlpha = Math.max(0, alpha);
-  ctx.fillStyle = '#ff1111';
-  ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
-  ctx.restore();
-}
-
 function draw() {
   ctx.drawImage(bgCanvas, 0, 0);
   drawDangerLine();
@@ -875,7 +897,6 @@ function draw() {
   drawParticles();
   drawShooter();
   drawLevelFlash();
-  drawGameOverFlash();
 }
 // ── UI ─────────────────────────────────────────────────────────────────────
 function updateUI() {
