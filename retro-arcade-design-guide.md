@@ -316,7 +316,7 @@ Notes are MIDI numbers (60=C4, 0=rest). Drums use synthesized kick (sine pitch s
 **Music toggle:**
 - Button `♪` in topbar next to PAUSE (`.music-btn` class)
 - `M` key as keyboard shortcut
-- Preference stored in `localStorage` key `arcade_music` (`"0"` = off, default = on)
+- Preference stored in `localStorage` key `arcade_music` (`"1"` = on, default = off)
 - `toggleMusic()` function handles play/stop and UI sync
 
 **Integration hooks (4 touch points):**
