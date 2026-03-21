@@ -445,7 +445,7 @@ function dropGrid() {
   gridParity = 1 - gridParity;
   // Generate new row 0 (now has the new parity)
   for (let c = 0; c < COLS_EVEN; c++) grid[0][c] = null;
-  const colors = COLORS.slice(0, numColors);
+  const colors = gridColors();
   for (let c = 0; c < colsInRow(0); c++) {
     grid[0][c] = colors[Math.floor(Math.random() * colors.length)];
   }
