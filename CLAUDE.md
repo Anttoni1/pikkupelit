@@ -73,7 +73,10 @@ SCORE, HI, LEVEL, LIVES, WAVE, NEXT, GAME OVER, TAP TO START, TAP TO RETRY, PAUS
 Muoto: `pelinimi_hi` — esim. `tetris_hi`, `invaders_hi`, `arkanoid_hi`, `2048_hi`
 
 ### Ääni
-Web Audio API, square wave, `beep(freq, duration, volume)`. Muista `audioCtx.resume()` — iOS luo AudioContextin suspended-tilassa.
+Enhanced `beep(freq, duration, opts)` — tukee `{vol, wave, attack, pitchEnd, detune}` tai pelkkä numero (volume). `beepNoise(dur, vol, filterFreq)` percussive-efekteihin. Muista `audioCtx.resume()` — iOS luo AudioContextin suspended-tilassa.
+
+### Musiikki (MIDI-tyylinen sekvensseri)
+Jokaisessa pelissä on taustamusiikki: pattern-pohjainen sekvensseri Web Audio API:lla. `SONG`-objekti määrittelee melodian, basson, arpeggion ja rummut. `music.play()/stop()/pause()/resume()` — hookit `startGame()`, `togglePause()`, `showGameOver()`. Musiikkitoggle: ♪-nappi topbarissa + M-näppäin. Asetus: `localStorage` avain `arcade_music` (`"0"` = pois, oletus = päällä).
 
 ## Pelit ja niiden LocalStorage-avaimet
 
@@ -113,7 +116,9 @@ Ennen kuin pidät peliä valmiina:
 - [ ] Pause: P-näppäin + Escape pause/resume, pause-nappi, oma overlay — pauseBtn:llä sekä `click` että `touchend` (molemmat tarvitaan mobiilissa)
 - [ ] Pause overlay -näppäimistönavigointi: ↑↓ vaihtaa valintaa RESUME / EXIT TO MENU välillä (EXIT TO MENU highlightautuu amber-väriseksi), Enter vahvistaa valitun, Escape/P/Escape aina sulkee pausen (resume)
 - [ ] EXIT TO MENU avaa confirm-dialogi ("EXIT TO MENU?") jossa YES/NO valittavissa ←→ nuolilla tai Y/N-näppäimillä, Enter vahvistaa, Escape/N peruuttaa
-- [ ] `beep()`-funktio, ääniefektit keskeisiin tapahtumiin
+- [ ] Enhanced `beep()`-funktio (`ensureAudio`, `beepNoise`), ääniefektit keskeisiin tapahtumiin
+- [ ] MIDI-musiikki: `SONG`-objekti, `music`-sekvensseri, ♪-toggle topbarissa + M-näppäin
+- [ ] Musiikki-integraatio: `music.play()` startGame:ssa, `music.pause()/resume()` togglePause:ssa, `music.stop()` showGameOver:ssa
 - [ ] High score `localStorage`een avaimella `pelinimi_hi`
 - [ ] `resize()`-funktio, kutsutaan `onresize` + `setTimeout(resize, 50/200)`
 - [ ] `requestAnimationFrame`-game loop delta-ajalla (`dt`)

@@ -258,28 +258,76 @@ div#pauseOverlay      — "PAUSE" text
 14. resize()
 ```
 
-### Sound Effects
-All sounds are produced via Web Audio API — square wave retro beeps:
+### Sound Effects (Enhanced)
+All sounds are produced via Web Audio API. The `beep()` function supports both simple calls and enhanced options:
+
 ```javascript
 let audioCtx;
-function beep(freq, duration, volume = 0.08) {
-  try {
-    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    if (audioCtx.state === 'suspended') audioCtx.resume();
-    const o = audioCtx.createOscillator();
-    const g = audioCtx.createGain();
-    o.type = 'sawtooth';
-    o.frequency.value = freq;
-    g.gain.value = volume;
-    o.connect(g); g.connect(audioCtx.destination);
-    o.start();
-    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
-    o.stop(audioCtx.currentTime + duration);
-  } catch(e) {}
+function ensureAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
 }
+
+// Enhanced beep — backward compatible
+// beep(440, 0.1)           — simple (volume defaults to 0.08)
+// beep(440, 0.1, 0.12)     — with volume
+// beep(440, 0.1, { vol: 0.1, wave: 'square', attack: 0.01, pitchEnd: 880, detune: 7 })
+function beep(freq, duration, opts) { ... }
+
+// Noise burst for percussion/explosions
+function beepNoise(duration, volume, filterFreq) { ... }
 ```
-**Note:** `audioCtx.resume()` is required — iOS Safari and many mobile browsers create the AudioContext in `suspended` state. Without resume, no sound plays.
-Typical sounds: move 220Hz/50ms, rotate 440Hz/60ms, drop 160Hz/100ms, line clear 660Hz/150ms, game over 100Hz/400ms.
+
+**Enhanced options:**
+- `vol` — volume (default 0.08)
+- `wave` — oscillator type: `'sawtooth'`, `'square'`, `'triangle'`, `'sine'` (default `'sawtooth'`)
+- `attack` — attack ramp time in seconds (default 0.005)
+- `pitchEnd` — sweep frequency to this value over duration (0 = no sweep)
+- `detune` — add a second oscillator detuned by N cents for chorus effect (skipped in `lowPerf` mode)
+
+**beepNoise** creates a noise burst through a lowpass filter — useful for explosions, percussive hits.
+
+**Note:** `audioCtx.resume()` is required — iOS Safari creates AudioContext in `suspended` state.
+Typical sounds: move 220Hz/50ms, rotate 440Hz/80ms with pitch sweep, drop 160Hz/100ms, line clear 660Hz/200ms with detune, game over 100Hz/500ms + noise burst.
+
+### Background Music (MIDI-style Sequencer)
+Every game includes a pattern-based music sequencer that creates mid-90s MIDI/tracker-style background music using Web Audio API.
+
+**Architecture:** Look-ahead scheduler — `setInterval` (25ms) schedules notes via `audioCtx.currentTime` for sample-accurate timing.
+
+**Song data:**
+```javascript
+const SONG = {
+  bpm: 140, stepsPerBeat: 4,   // 16th note resolution
+  voices: [
+    { wave: 'square', gain: 0.035, attack: 0.01, release: 0.12, notes: [64,0,62,0,...] },
+    { wave: 'triangle', gain: 0.04, attack: 0.01, release: 0.1, notes: [45,0,0,45,...] },
+  ],
+  drums: { gain: 0.025, pattern: ['k',0,'h',0, 's',0,'h',0,...] }
+  // k=kick, h=hihat, s=snare
+};
+```
+
+Notes are MIDI numbers (60=C4, 0=rest). Drums use synthesized kick (sine pitch sweep), hihat (filtered noise), and snare (noise + sine).
+
+**Performance:** When `lowPerf` is true, only 2 voices play (melody + bass), drums are skipped.
+
+**Music toggle:**
+- Button `♪` in topbar next to PAUSE (`.music-btn` class)
+- `M` key as keyboard shortcut
+- Preference stored in `localStorage` key `arcade_music` (`"0"` = off, default = on)
+- `toggleMusic()` function handles play/stop and UI sync
+
+**Integration hooks (4 touch points):**
+```javascript
+startGame()    → music.play();      // respects toggle preference
+togglePause()  → music.pause() / music.resume();
+showGameOver() → music.stop();
+// goRetry() calls startGame(), so music restarts automatically
+```
+
+Each game has a unique melody matching its gameplay feel (see individual game files).
 
 ### High Score
 Saved to `localStorage` with a game-specific key:
@@ -705,7 +753,9 @@ When creating a new game, verify:
 - [ ] Game over screen with results
 - [ ] Overlays respond to Enter/Space key (game fully playable with keyboard)
 - [ ] Pause functionality (P key + button)
-- [ ] Sound effects (beep function)
+- [ ] Enhanced sound effects (`beep()` with opts + `beepNoise()`)
+- [ ] Background music: SONG definition, music engine, music toggle button (♪) + M key
+- [ ] Music hooks: `music.play()` in startGame, `music.pause()/resume()` in togglePause, `music.stop()` in showGameOver
 - [ ] High score to localStorage
 - [ ] `resize()` function that scales the canvas
 - [ ] `requestAnimationFrame`-based game loop with delta time

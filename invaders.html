@@ -77,6 +77,10 @@ canvas#board{
   cursor:pointer;-webkit-tap-highlight-color:transparent;
 }
 .pause-btn:active{color:var(--g);border-color:var(--g)}
+.topbar-btns{display:flex;align-items:center;gap:4px}
+.music-btn{font-family:'Press Start 2P',monospace;font-size:7px;color:var(--gd);background:none;border:1px solid var(--gd);padding:5px 7px;border-radius:3px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.music-btn:active{color:var(--g);border-color:var(--g)}
+.music-btn.off{opacity:0.3}
 
 .overlay{
   position:fixed;inset:0;display:flex;flex-direction:column;
@@ -133,7 +137,7 @@ canvas#board{
       <div class="title">INVADERS</div>
       <div class="score-text">SCORE <span id="score">0</span> &nbsp;HI <span id="hi">0</span></div>
     </div>
-    <button class="pause-btn" id="pauseBtn">PAUSE</button>
+    <div class="topbar-btns"><button class="music-btn" id="musicBtn">&#9834;</button><button class="pause-btn" id="pauseBtn">PAUSE</button></div>
     <div class="topbar-right">
       <div class="stat-box"><div class="stat-lbl">WAVE</div><div class="stat-val" id="wave">1</div></div>
       <div class="stat-box"><div class="stat-lbl">LIVES</div><div class="stat-val" id="lives">3</div></div>
@@ -207,18 +211,61 @@ let deathAnimating;
 
 // ── Audio ──
 let audioCtx;
-function beep(f, d, v = 0.08) {
-  try {
-    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    if (audioCtx.state === 'suspended') audioCtx.resume();
-    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
-    o.type = 'sawtooth';
-    o.frequency.value = f; g.gain.value = v;
-    o.connect(g); g.connect(audioCtx.destination); o.start();
-    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + d);
-    o.stop(audioCtx.currentTime + d);
-  } catch (e) {}
-}
+function ensureAudio(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();return audioCtx;}
+function beep(freq,duration,opts){try{const ac=ensureAudio();let vol=0.08,wave='sawtooth',attack=0.005,pitchEnd=0,detune=0;if(typeof opts==='number'){vol=opts;}else if(opts){vol=opts.vol??0.08;wave=opts.wave??'sawtooth';attack=opts.attack??0.005;pitchEnd=opts.pitchEnd??0;detune=opts.detune??0;}const now=ac.currentTime;const o=ac.createOscillator(),g=ac.createGain();o.type=wave;o.frequency.value=freq;if(pitchEnd)o.frequency.linearRampToValueAtTime(pitchEnd,now+duration);g.gain.value=0.001;g.gain.linearRampToValueAtTime(vol,now+attack);g.gain.exponentialRampToValueAtTime(0.001,now+duration);o.connect(g);g.connect(ac.destination);o.start(now);o.stop(now+duration);if(detune&&!lowPerf){const o2=ac.createOscillator(),g2=ac.createGain();o2.type=wave;o2.frequency.value=freq;o2.detune.value=detune;if(pitchEnd)o2.frequency.linearRampToValueAtTime(pitchEnd,now+duration);g2.gain.value=0.001;g2.gain.linearRampToValueAtTime(vol*0.6,now+attack);g2.gain.exponentialRampToValueAtTime(0.001,now+duration);o2.connect(g2);g2.connect(ac.destination);o2.start(now);o2.stop(now+duration);}}catch(e){}}
+function beepNoise(duration,volume,filterFreq){try{const ac=ensureAudio();if(!_noiseBuf){_noiseBuf=ac.createBuffer(1,ac.sampleRate,ac.sampleRate);const d=_noiseBuf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;}const now=ac.currentTime;const s=ac.createBufferSource(),f=ac.createBiquadFilter(),g=ac.createGain();s.buffer=_noiseBuf;f.type='lowpass';f.frequency.value=filterFreq||1000;g.gain.value=volume||0.08;g.gain.exponentialRampToValueAtTime(0.001,now+duration);s.connect(f);f.connect(g);g.connect(ac.destination);s.start(now);s.stop(now+duration);}catch(e){}}
+let _noiseBuf;
+
+// ── Music Engine ─────────────────────────────────────────────────────────────
+function midiHz(n){return 440*Math.pow(2,(n-69)/12);}
+// Space Invaders — tense, menacing pulse, 120 BPM
+// A minor, driving bass, staccato synth
+const SONG={bpm:120,stepsPerBeat:4,
+  voices:[
+    // Melody — tense staccato pattern
+    {wave:'square',gain:0.03,attack:0.008,release:0.08,notes:[
+      69,0,0,0, 72,0,0,0, 76,0,72,0, 69,0,0,0,
+      68,0,0,0, 71,0,0,0, 76,0,71,0, 68,0,0,0,
+      69,0,0,0, 72,0,0,0, 76,0,79,0, 76,0,72,0,
+      69,0,0,0, 68,0,69,0, 0,0,0,0, 0,0,0,0
+    ]},
+    // Bass — menacing pulse
+    {wave:'triangle',gain:0.045,attack:0.01,release:0.08,notes:[
+      33,0,33,0, 0,0,33,0, 33,0,33,0, 0,0,33,0,
+      32,0,32,0, 0,0,32,0, 32,0,32,0, 0,0,32,0,
+      33,0,33,0, 0,0,33,0, 36,0,36,0, 0,0,36,0,
+      33,0,33,0, 0,0,32,0, 33,0,0,0, 0,0,0,0
+    ]},
+    // High arp — alarm-like
+    {wave:'square',gain:0.015,attack:0.005,release:0.05,notes:[
+      81,0,84,0, 81,0,84,0, 81,0,84,0, 81,0,84,0,
+      80,0,83,0, 80,0,83,0, 80,0,83,0, 80,0,83,0,
+      81,0,84,0, 81,0,84,0, 84,0,88,0, 84,0,88,0,
+      81,0,84,0, 80,0,81,0, 0,0,0,0, 0,0,0,0
+    ]}
+  ],
+  drums:{gain:0.02,pattern:[
+    'k',0,'h',0, 0,0,'h',0, 'k',0,'h',0, 's',0,'h',0,
+    'k',0,'h',0, 0,0,'h',0, 'k',0,'h',0, 's',0,'h',0,
+    'k',0,'h',0, 0,0,'h',0, 'k',0,'h',0, 's',0,'h',0,
+    'k',0,'h',0, 0,0,'h',0, 'k',0,'s',0, 'k','k','h',0
+  ]}
+};
+const music={playing:false,_step:0,_timer:null,_nextTime:0,_stepDur:0,_masterGain:null,_noiseBuffer:null,
+  play(){if(this.playing)this.stop();if(localStorage.getItem('arcade_music')==='0')return;if(!SONG.voices.length&&!SONG.drums)return;try{const ac=ensureAudio();this._masterGain=ac.createGain();this._masterGain.gain.value=1.0;this._masterGain.connect(ac.destination);this._stepDur=60/(SONG.bpm*SONG.stepsPerBeat);this._step=0;this._nextTime=ac.currentTime+0.05;this.playing=true;this._schedule();this._timer=setInterval(()=>this._schedule(),25);}catch(e){}},
+  stop(){this.playing=false;if(this._timer){clearInterval(this._timer);this._timer=null;}if(this._masterGain){try{this._masterGain.disconnect();}catch(e){}this._masterGain=null;}},
+  pause(){this.playing=false;if(this._timer){clearInterval(this._timer);this._timer=null;}},
+  resume(){if(localStorage.getItem('arcade_music')==='0')return;if(!SONG.voices.length&&!SONG.drums)return;try{const ac=ensureAudio();if(!this._masterGain){this._masterGain=ac.createGain();this._masterGain.gain.value=1.0;this._masterGain.connect(ac.destination);}this._nextTime=ac.currentTime+0.05;this.playing=true;this._timer=setInterval(()=>this._schedule(),25);}catch(e){}},
+  _schedule(){if(!this.playing)return;try{const ac=ensureAudio();while(this._nextTime<ac.currentTime+0.1){const t=this._nextTime,dur=this._stepDur;const maxV=lowPerf?Math.min(2,SONG.voices.length):SONG.voices.length;for(let v=0;v<maxV;v++){const voice=SONG.voices[v];const note=voice.notes[this._step%voice.notes.length];if(note>0){const o=ac.createOscillator(),g=ac.createGain();o.type=voice.wave||'square';o.frequency.value=midiHz(note);const att=voice.attack||0.01,rel=voice.release||dur*0.8;g.gain.value=0.001;g.gain.linearRampToValueAtTime(voice.gain||0.04,t+att);g.gain.exponentialRampToValueAtTime(0.001,t+rel);o.connect(g);g.connect(this._masterGain);o.start(t);o.stop(t+rel+0.01);}}if(SONG.drums&&!lowPerf){const dp=SONG.drums.pattern;const hit=dp[this._step%dp.length];if(hit)this._playDrum(hit,t,SONG.drums.gain||0.03);}this._step++;this._nextTime+=dur;}}catch(e){}},
+  _playDrum(type,time,vol){try{const ac=ensureAudio();if(type==='k'){const o=ac.createOscillator(),g=ac.createGain();o.type='sine';o.frequency.value=150;o.frequency.exponentialRampToValueAtTime(30,time+0.1);g.gain.value=vol*1.5;g.gain.exponentialRampToValueAtTime(0.001,time+0.12);o.connect(g);g.connect(this._masterGain);o.start(time);o.stop(time+0.13);}else if(type==='h'){if(!this._noiseBuffer){this._noiseBuffer=ac.createBuffer(1,ac.sampleRate*0.05,ac.sampleRate);const d=this._noiseBuffer.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;}const s=ac.createBufferSource(),f=ac.createBiquadFilter(),g=ac.createGain();s.buffer=this._noiseBuffer;f.type='highpass';f.frequency.value=7000;g.gain.value=vol;g.gain.exponentialRampToValueAtTime(0.001,time+0.05);s.connect(f);f.connect(g);g.connect(this._masterGain);s.start(time);s.stop(time+0.06);}else if(type==='s'){if(!this._noiseBuffer){this._noiseBuffer=ac.createBuffer(1,ac.sampleRate*0.05,ac.sampleRate);const d=this._noiseBuffer.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;}const s=ac.createBufferSource(),f=ac.createBiquadFilter(),g=ac.createGain();s.buffer=this._noiseBuffer;f.type='bandpass';f.frequency.value=3000;g.gain.value=vol*1.2;g.gain.exponentialRampToValueAtTime(0.001,time+0.1);s.connect(f);f.connect(g);g.connect(this._masterGain);s.start(time);s.stop(time+0.11);const o=ac.createOscillator(),g2=ac.createGain();o.type='sine';o.frequency.value=180;g2.gain.value=vol;g2.gain.exponentialRampToValueAtTime(0.001,time+0.08);o.connect(g2);g2.connect(this._masterGain);o.start(time);o.stop(time+0.09);}}catch(e){}}
+};
+// Music toggle
+const musicBtn=document.getElementById('musicBtn');
+function updateMusicBtn(){musicBtn.classList.toggle('off',localStorage.getItem('arcade_music')==='0');}
+function toggleMusic(){const off=localStorage.getItem('arcade_music')!=='0';localStorage.setItem('arcade_music',off?'0':'1');updateMusicBtn();if(off)music.stop();else if(gameRunning&&!paused)music.play();}
+musicBtn.addEventListener('click',e=>{e.stopPropagation();toggleMusic();});
+musicBtn.addEventListener('touchend',e=>{e.stopPropagation();e.preventDefault();toggleMusic();});
+updateMusicBtn();
 
 function checkPerf() {
   if (++_fpsFrames < 60) return;
@@ -312,7 +359,7 @@ function shieldPixelAt(shield, x, y) {
 function fire() {
   if (playerBullet || deathAnimating) return;
   playerBullet = { x: playerX + PLAYER_W / 2 - BULLET_W / 2, y: PLAYER_Y - BULLET_H };
-  beep(880, 0.05, 0.06);
+  beep(880,0.06,{vol:0.06,wave:'square',pitchEnd:1200});
 }
 
 // ── Enemy fire ──
@@ -329,7 +376,7 @@ function enemyFire() {
   const bx = invaderX(pick.c) + INV_W / 2 - ENEMY_BULLET_W / 2;
   const by = invaderY(pick.r) + INV_H;
   enemyBullets.push({ x: bx, y: by });
-  beep(200, 0.04, 0.04);
+  beep(200,0.05,{vol:0.04,pitchEnd:120});
 }
 
 // ── Update ──
@@ -340,7 +387,7 @@ function update(dt) {
       deathAnimating = false;
       if (livesVal <= 0) {
         gameRunning = false;
-        beep(100, 0.4, 0.15);
+        beep(100,0.5,{vol:0.15,pitchEnd:40});beepNoise(0.15,0.1,300);
         showGameOver();
         return;
       }
@@ -372,7 +419,7 @@ function update(dt) {
           scoreVal += ROW_SCORES[r] * waveVal;
           playerBullet = null;
           bulletHit = true;
-          beep(660, 0.06, 0.1);
+          beep(660,0.08,{vol:0.1,detune:8});
           // Speed up remaining invaders
           const rem = invadersRemaining();
           if (rem > 0) {
@@ -390,7 +437,7 @@ function update(dt) {
         const ufoScore = [50, 100, 150, 300][Math.floor(Math.random() * 4)];
         scoreVal += ufoScore;
         playerBullet = null;
-        beep(880, 0.15, 0.12);
+        beep(880,0.15,{vol:0.12,detune:10,attack:0.01});
       }
     }
 
@@ -458,7 +505,7 @@ function update(dt) {
       // Check if invaders reached player
       if (invLowestY() >= PLAYER_Y - 4) {
         gameRunning = false;
-        beep(100, 0.4, 0.15);
+        beep(100,0.5,{vol:0.15,pitchEnd:40});beepNoise(0.15,0.1,300);
         showGameOver();
         return;
       }
@@ -519,7 +566,7 @@ function update(dt) {
   if (invadersRemaining() === 0) {
     waveVal++;
     startWave();
-    beep(880, 0.2, 0.12);
+    beep(880,0.2,{vol:0.12,detune:7,attack:0.01});
   }
 
   updateUI();
@@ -529,7 +576,7 @@ function playerDeath() {
   livesVal--;
   deathAnimating = true;
   playerHitTimer = 1200;
-  beep(160, 0.3, 0.15);
+  beep(160,0.35,{vol:0.15,pitchEnd:60});
   updateUI();
 }
 
@@ -699,6 +746,7 @@ function updateUI() {
 }
 
 function showGameOver() {
+  music.stop();
   document.getElementById('finalScore').textContent = scoreVal;
   document.getElementById('finalWave').textContent = waveVal;
   document.getElementById('gameOver').classList.remove('hidden');
@@ -729,6 +777,7 @@ document.addEventListener('keydown', e => {
     if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') { e.preventDefault(); togglePause(); return; }
     return;
   }
+  if(e.key==='m'||e.key==='M'){e.preventDefault();toggleMusic();return;}
   if (e.key === 'p' || e.key === 'P' || e.key === 'Escape') { e.preventDefault(); togglePause(); return; }
   // Game over menu navigation
   if (!document.getElementById('gameOver').classList.contains('hidden')) {
@@ -797,8 +846,8 @@ function togglePause() {
   if (!gameRunning) return;
   paused = !paused;
   pauseOv.classList.toggle('hidden', !paused);
-  if (!paused) { lastTime = 0; requestAnimationFrame(gameLoop); }
-  else { pauseSel = 0; updatePauseSel(); }
+  if (!paused) { music.resume(); lastTime = 0; requestAnimationFrame(gameLoop); }
+  else { music.pause(); pauseSel = 0; updatePauseSel(); }
 }
 document.getElementById('pauseBtn').addEventListener('click', e => { e.stopPropagation(); togglePause(); });
 document.getElementById('pauseBtn').addEventListener('touchend', e => { e.stopPropagation(); e.preventDefault(); togglePause(); });
@@ -861,6 +910,7 @@ function startGame() {
   startWave();
   updateUI();
   draw();
+  music.play();
   requestAnimationFrame(gameLoop);
 }
 
