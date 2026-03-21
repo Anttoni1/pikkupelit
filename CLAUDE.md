@@ -15,7 +15,8 @@ Tämä projekti on kokoelma retro-mobiilipelejä. Jokainen peli on yksittäinen 
 ├── arkanoid.html                  ← Arkanoid ✓
 ├── 2048.html                      ← 2048 ✓
 ├── asteroids.html                 ← Asteroids ✓
-└── pong.html                      ← Pong ✓
+├── flappy.html                    ← Flappy Bird ✓
+└── puzzle-bobble.html             ← Puzzle Bobble ✓ (beta)
 ```
 
 ## Tärkeimmät säännöt
@@ -83,7 +84,8 @@ Web Audio API, square wave, `beep(freq, duration, volume)`. Muista `audioCtx.res
 | Arkanoid | arkanoid.html | `arkanoid_hi` |
 | 2048 | 2048.html | `2048_hi` |
 | Asteroids | asteroids.html | `asteroids_hi` |
-| Pong | pong.html | `pong_hi` |
+| Flappy Bird | flappy.html | `flappy_hi` |
+| Puzzle Bobble | puzzle-bobble.html | `puzzlebobble_hi` |
 
 ## Pohja ja referenssipeli
 
