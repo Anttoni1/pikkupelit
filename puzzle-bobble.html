@@ -126,6 +126,15 @@ canvas#board{
   <button class="pause-menu-btn" id="goMenuBtn">EXIT TO MENU</button>
 </div>
 
+<!-- Win screen -->
+<div class="overlay hidden" id="winScreen">
+  <h2 style="color:#ffcc00">YOU WIN!</h2>
+  <div class="final-score">SCORE <span id="winScore">0</span><br>LEVEL <span id="winLevel">7</span></div>
+  <button class="pause-menu-btn sel" id="winContinueBtn">CONTINUE</button>
+  <button class="pause-menu-btn" id="winRetryBtn">RETRY</button>
+  <button class="pause-menu-btn" id="winMenuBtn">EXIT TO MENU</button>
+</div>
+
 <!-- Game -->
 <div class="game-container" id="gameUI">
   <div class="topbar">
@@ -469,9 +478,16 @@ function generateGrid(rows) {
   }
 }
 
+function levelRows(lv) {
+  if (lv <= 4) return 4;
+  if (lv <= 7) return lv - 1; // 5→5, 6→6, 7→7
+  return 7;
+}
+
 function levelUp() {
   levelVal++;
-  const rows = Math.min(3 + levelVal, 7);
+  if (levelVal === 8) { triggerWin(); return; }
+  const rows = levelRows(levelVal);
   numColors = Math.min(2 + levelVal, 6);
   // Phase 1: show level text on empty grid, delay before bubbles appear
   levelFlash = { text: 'LEVEL ' + levelVal, timer: 3000 };
@@ -866,6 +882,41 @@ function updateGoSel() {
 function goRetry() { document.getElementById('gameOver').classList.add('hidden'); startGame(); }
 function goMenu() { window.location.href = 'index.html'; }
 
+// ── Win screen ────────────────────────────────────────────────────────────
+let winSel = 0;
+function updateWinSel() {
+  document.getElementById('winContinueBtn').classList.toggle('sel', winSel === 0);
+  document.getElementById('winRetryBtn').classList.toggle('sel', winSel === 1);
+  document.getElementById('winMenuBtn').classList.toggle('sel', winSel === 2);
+}
+
+function triggerWin() {
+  gameRunning = false;
+  beep(880, 0.2, 0.12);
+  setTimeout(() => beep(1100, 0.2, 0.12), 150);
+  setTimeout(() => beep(1320, 0.3, 0.12), 300);
+  document.getElementById('winScore').textContent = scoreVal;
+  document.getElementById('winLevel').textContent = levelVal;
+  if (scoreVal > hiScore) {
+    hiScore = scoreVal;
+    try { localStorage.setItem('puzzlebobble_hi', hiScore); } catch(e) {}
+  }
+  setTimeout(() => {
+    document.getElementById('winScreen').classList.remove('hidden');
+    winSel = 0; updateWinSel();
+  }, 600);
+}
+
+function winContinue() {
+  document.getElementById('winScreen').classList.add('hidden');
+  gameRunning = true;
+  lastTime = 0;
+  // Continue from level 8+ with max difficulty
+  levelUp();
+  requestAnimationFrame(gameLoop);
+}
+function winRetry() { document.getElementById('winScreen').classList.add('hidden'); startGame(); }
+
 // ── Input: game actions ────────────────────────────────────────────────────
 function moveLeft()  { shooterAngle = Math.max(MIN_ANGLE, shooterAngle - AIM_STEP); }
 function moveRight() { shooterAngle = Math.min(MAX_ANGLE, shooterAngle + AIM_STEP); }
@@ -991,6 +1042,13 @@ document.addEventListener('keydown', e => {
     return;
   }
   if(e.key==='p'||e.key==='P'||e.key==='Escape'){e.preventDefault();togglePause();return;}
+  // Win screen menu
+  if(!document.getElementById('winScreen').classList.contains('hidden')){
+    if(e.key==='ArrowDown'){e.preventDefault();winSel=Math.min(2,winSel+1);updateWinSel();}
+    else if(e.key==='ArrowUp'){e.preventDefault();winSel=Math.max(0,winSel-1);updateWinSel();}
+    else if(e.key==='Enter'||e.key===' '){e.preventDefault();if(winSel===0)winContinue();else if(winSel===1)winRetry();else goMenu();}
+    return;
+  }
   // Game over menu
   if(!document.getElementById('gameOver').classList.contains('hidden')){
     if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();goSel=goSel===0?1:0;updateGoSel();}
@@ -1089,6 +1147,8 @@ function gameLoop(time) {
 
 // ── Start ─────────────────────────────────────────────────────────────────
 function startGame() {
+  document.getElementById('winScreen').classList.add('hidden');
+  document.getElementById('gameOver').classList.add('hidden');
   scoreVal = 0;
   levelVal = 1;
   gameRunning = true;
@@ -1122,6 +1182,9 @@ function startGame() {
   });
   document.getElementById('goRetryBtn').addEventListener(ev, e => { e.stopPropagation(); e.preventDefault(); goRetry(); });
   document.getElementById('goMenuBtn').addEventListener(ev, e => { e.stopPropagation(); e.preventDefault(); goMenu(); });
+  document.getElementById('winContinueBtn').addEventListener(ev, e => { e.stopPropagation(); e.preventDefault(); winContinue(); });
+  document.getElementById('winRetryBtn').addEventListener(ev, e => { e.stopPropagation(); e.preventDefault(); winRetry(); });
+  document.getElementById('winMenuBtn').addEventListener(ev, e => { e.stopPropagation(); e.preventDefault(); goMenu(); });
 });
 
 document.addEventListener('keydown', e => {
