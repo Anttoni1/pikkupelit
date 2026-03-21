@@ -16,7 +16,7 @@ Tämä projekti on kokoelma retro-mobiilipelejä. Jokainen peli on yksittäinen 
 ├── 2048.html                      ← 2048 ✓
 ├── asteroids.html                 ← Asteroids ✓
 ├── flappy.html                    ← Flappy Bird ✓
-└── puzzle-bobble.html             ← Puzzle Bobble ✓ (beta)
+└── puzzle-bobble.html             ← Puzzle Bobble ✓
 ```
 
 ## Tärkeimmät säännöt

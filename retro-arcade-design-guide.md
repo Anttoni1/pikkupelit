@@ -441,7 +441,7 @@ games/
 ├── 2048.html           ← 2048
 ├── asteroids.html      ← Asteroids
 ├── flappy.html         ← Flappy Bird
-└── puzzle-bobble.html  ← Puzzle Bobble (beta)
+└── puzzle-bobble.html  ← Puzzle Bobble
 ```
 
 Every game is a standalone HTML file — no shared JS/CSS files. This keeps things simple and each game easy to test and share independently.
