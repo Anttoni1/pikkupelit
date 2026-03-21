@@ -528,7 +528,7 @@ function triggerGameOver(startRow, startCol) {
       if (!visited.has(k) && grid[nr][nc]) { visited.add(k); queue.push([nr, nc, dist + 1]); }
     }
   }
-  const totalDuration = maxTime + FADE + 300;
+  const totalDuration = maxTime + FADE + 80;
   gameOverAnim = { elapsed: 0, duration: totalDuration, greyTimes, FADE };
 
   beep(110, 0.6, 0.15);
@@ -542,7 +542,7 @@ function triggerGameOver(startRow, startCol) {
   setTimeout(() => {
     document.getElementById('gameOver').classList.remove('hidden');
     goSel = 0; updateGoSel();
-  }, totalDuration + 100);
+  }, totalDuration + 50);
   requestAnimationFrame(gameLoop);
 }
 
@@ -1179,7 +1179,7 @@ function gameLoop(time) {
       gameOverAnim.elapsed += dt;
       draw();
       if (gameOverAnim.elapsed < gameOverAnim.duration) requestAnimationFrame(gameLoop);
-      else gameOverAnim = null;
+      // don't null gameOverAnim — keeps bubbles grey until overlay appears
     } else {
       draw();
     }
