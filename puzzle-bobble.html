@@ -270,6 +270,7 @@ let levelIntro; // {elapsed, duration, rows} — pop-in animation for new level 
 let numColors;  // colors in use for current level
 let gridParity; // 0|1 — flips each drop so bubbles keep their visual x-positions
 let dropAnim;   // {t: 0..1, duration} — animates new row sliding down
+let gameOverAnim; // {elapsed, duration} — red flash on game over
 
 // ── Grid helpers ─────────────────────────────────────────────────────────────
 function bubbleX(col, row) {
@@ -480,7 +481,7 @@ function generateGrid(rows) {
 
 function levelRows(lv) {
   if (lv <= 4) return 4;
-  if (lv <= 7) return lv - 1; // 5→5, 6→6, 7→7
+  if (lv <= 7) return lv; // 5→5, 6→6, 7→7
   return 7;
 }
 
@@ -508,6 +509,7 @@ function finishLevelIntro() {
 
 function triggerGameOver() {
   gameRunning = false;
+  gameOverAnim = { elapsed: 0, duration: 700 };
   beep(110, 0.6, 0.15);
   setTimeout(() => beep(80, 0.8, 0.15), 300);
   document.getElementById('finalScore').textContent = scoreVal;
@@ -520,7 +522,8 @@ function triggerGameOver() {
   setTimeout(() => {
     document.getElementById('gameOver').classList.remove('hidden');
     goSel = 0; updateGoSel();
-  }, 600);
+  }, 800);
+  requestAnimationFrame(gameLoop); // keep loop alive for animation
 }
 
 // ── Particles ──────────────────────────────────────────────────────────────
@@ -850,6 +853,18 @@ function drawLevelFlash() {
   ctx.restore();
 }
 
+function drawGameOverFlash() {
+  if (!gameOverAnim) return;
+  const t = gameOverAnim.elapsed / gameOverAnim.duration;
+  // Sharp rise to peak at t=0.15, then slow fade to zero
+  const alpha = t < 0.15 ? (t / 0.15) * 0.55 : (1 - (t - 0.15) / 0.85) * 0.55;
+  ctx.save();
+  ctx.globalAlpha = Math.max(0, alpha);
+  ctx.fillStyle = '#ff1111';
+  ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+  ctx.restore();
+}
+
 function draw() {
   ctx.drawImage(bgCanvas, 0, 0);
   drawDangerLine();
@@ -860,6 +875,7 @@ function draw() {
   drawParticles();
   drawShooter();
   drawLevelFlash();
+  drawGameOverFlash();
 }
 // ── UI ─────────────────────────────────────────────────────────────────────
 function updateUI() {
@@ -1135,7 +1151,19 @@ function updateConfirmSel() {
 ['click','touchend'].forEach(ev => document.getElementById('confirmNo').addEventListener(ev, e => { e.stopPropagation(); e.preventDefault(); hideConfirm(); }));
 // ── Game loop ─────────────────────────────────────────────────────────────
 function gameLoop(time) {
-  if (!gameRunning) { draw(); return; }
+  if (!gameRunning) {
+    if (gameOverAnim) {
+      const dt = Math.min(time - (lastTime || time), 60);
+      lastTime = time;
+      gameOverAnim.elapsed += dt;
+      draw();
+      if (gameOverAnim.elapsed < gameOverAnim.duration) requestAnimationFrame(gameLoop);
+      else gameOverAnim = null;
+    } else {
+      draw();
+    }
+    return;
+  }
   if (paused) return;
   const dt = Math.min(time - (lastTime || time), 60);
   lastTime = time;
@@ -1160,6 +1188,7 @@ function startGame() {
   levelFlash = null;
   levelIntro = null;
   dropAnim = null;
+  gameOverAnim = null;
   shooterAngle = -Math.PI / 2;
   shotsLeft = SHOTS_PER_DROP;
   numColors = 3;
