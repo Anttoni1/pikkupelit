@@ -75,6 +75,10 @@ canvas#board{
   cursor:pointer;-webkit-tap-highlight-color:transparent;
 }
 .pause-btn:active{color:var(--g);border-color:var(--g)}
+.topbar-btns{display:flex;align-items:center;gap:4px}
+.music-btn{font-family:'Press Start 2P',monospace;font-size:7px;color:var(--gd);background:none;border:1px solid var(--gd);padding:5px 7px;border-radius:3px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.music-btn:active{color:var(--g);border-color:var(--g)}
+.music-btn.off{opacity:0.3}
 .overlay{
   position:fixed;inset:0;display:flex;flex-direction:column;
   align-items:center;justify-content:center;
@@ -136,7 +140,7 @@ canvas#board{
       <div class="title">ASTEROIDS</div>
       <div class="score-text">SCORE <span id="score">0</span> &nbsp;HI <span id="hi">0</span></div>
     </div>
-    <button class="pause-btn" id="pauseBtn">PAUSE</button>
+    <div class="topbar-btns"><button class="music-btn" id="musicBtn">&#9834;</button><button class="pause-btn" id="pauseBtn">PAUSE</button></div>
     <div class="topbar-right">
       <div class="stat-box"><div class="stat-lbl">WAVE</div><div class="stat-val" id="wave">1</div></div>
       <div class="stat-box"><div class="stat-lbl">LIVES</div><div class="stat-val" id="lives">3</div></div>
@@ -208,18 +212,60 @@ const nebGrad2=(()=>{const g=ctx.createRadialGradient(360,440,10,360,440,70);g.a
 
 // ── Audio ────────────────────────────────────────────────────────────────────
 let audioCtx;
-function beep(freq, duration, volume = 0.08) {
-  try {
-    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    if (audioCtx.state === 'suspended') audioCtx.resume();
-    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
-    o.type = 'sawtooth'; o.frequency.value = freq; g.gain.value = volume;
-    o.connect(g); g.connect(audioCtx.destination);
-    o.start();
-    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
-    o.stop(audioCtx.currentTime + duration);
-  } catch(e) {}
-}
+function ensureAudio(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();return audioCtx;}
+function beep(freq,duration,opts){try{const ac=ensureAudio();let vol=0.08,wave='sawtooth',attack=0.005,pitchEnd=0,detune=0;if(typeof opts==='number'){vol=opts;}else if(opts){vol=opts.vol??0.08;wave=opts.wave??'sawtooth';attack=opts.attack??0.005;pitchEnd=opts.pitchEnd??0;detune=opts.detune??0;}const now=ac.currentTime;const o=ac.createOscillator(),g=ac.createGain();o.type=wave;o.frequency.value=freq;if(pitchEnd)o.frequency.linearRampToValueAtTime(pitchEnd,now+duration);g.gain.value=0.001;g.gain.linearRampToValueAtTime(vol,now+attack);g.gain.exponentialRampToValueAtTime(0.001,now+duration);o.connect(g);g.connect(ac.destination);o.start(now);o.stop(now+duration);if(detune&&!lowPerf){const o2=ac.createOscillator(),g2=ac.createGain();o2.type=wave;o2.frequency.value=freq;o2.detune.value=detune;if(pitchEnd)o2.frequency.linearRampToValueAtTime(pitchEnd,now+duration);g2.gain.value=0.001;g2.gain.linearRampToValueAtTime(vol*0.6,now+attack);g2.gain.exponentialRampToValueAtTime(0.001,now+duration);o2.connect(g2);g2.connect(ac.destination);o2.start(now);o2.stop(now+duration);}}catch(e){}}
+function beepNoise(duration,volume,filterFreq){try{const ac=ensureAudio();if(!_noiseBuf){_noiseBuf=ac.createBuffer(1,ac.sampleRate,ac.sampleRate);const d=_noiseBuf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;}const now=ac.currentTime;const s=ac.createBufferSource(),f=ac.createBiquadFilter(),g=ac.createGain();s.buffer=_noiseBuf;f.type='lowpass';f.frequency.value=filterFreq||1000;g.gain.value=volume||0.08;g.gain.exponentialRampToValueAtTime(0.001,now+duration);s.connect(f);f.connect(g);g.connect(ac.destination);s.start(now);s.stop(now+duration);}catch(e){}}
+let _noiseBuf;
+
+function midiHz(n){return 440*Math.pow(2,(n-69)/12);}
+// Asteroids — spacey, atmospheric, 100 BPM, open fifths
+const SONG={bpm:100,stepsPerBeat:4,
+  voices:[
+    // Melody — sparse, haunting
+    {wave:'triangle',gain:0.035,attack:0.02,release:0.2,notes:[
+      64,0,0,0, 0,0,0,0, 71,0,0,0, 0,0,0,0,
+      69,0,0,0, 0,0,67,0, 0,0,0,0, 64,0,0,0,
+      60,0,0,0, 0,0,0,0, 67,0,0,0, 0,0,0,0,
+      64,0,0,0, 0,0,62,0, 0,0,0,0, 0,0,0,0
+    ]},
+    // Bass — deep drone fifths
+    {wave:'triangle',gain:0.04,attack:0.02,release:0.15,notes:[
+      40,0,0,0, 0,0,40,0, 0,0,0,0, 40,0,0,0,
+      38,0,0,0, 0,0,38,0, 0,0,0,0, 38,0,0,0,
+      36,0,0,0, 0,0,36,0, 0,0,0,0, 36,0,0,0,
+      38,0,0,0, 0,0,38,0, 0,0,40,0, 0,0,0,0
+    ]},
+    // Pad — sustained fifths (quiet)
+    {wave:'sine',gain:0.02,attack:0.03,release:0.25,notes:[
+      52,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
+      50,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
+      48,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
+      50,0,0,0, 0,0,0,0, 0,0,52,0, 0,0,0,0
+    ]}
+  ],
+  drums:{gain:0.015,pattern:[
+    'k',0,0,0, 0,0,'h',0, 0,0,0,0, 'h',0,0,0,
+    'k',0,0,0, 0,0,'h',0, 0,0,0,0, 'h',0,0,0,
+    'k',0,0,0, 0,0,'h',0, 0,0,0,0, 'h',0,0,0,
+    'k',0,0,0, 0,0,'h',0, 0,0,'s',0, 0,0,0,0
+  ]}
+};
+
+const music={playing:false,_step:0,_timer:null,_nextTime:0,_stepDur:0,_masterGain:null,_noiseBuffer:null,
+  play(){if(this.playing)this.stop();if(localStorage.getItem('arcade_music')==='0')return;if(!SONG.voices.length&&!SONG.drums)return;try{const ac=ensureAudio();this._masterGain=ac.createGain();this._masterGain.gain.value=1.0;this._masterGain.connect(ac.destination);this._stepDur=60/(SONG.bpm*SONG.stepsPerBeat);this._step=0;this._nextTime=ac.currentTime+0.05;this.playing=true;this._schedule();this._timer=setInterval(()=>this._schedule(),25);}catch(e){}},
+  stop(){this.playing=false;if(this._timer){clearInterval(this._timer);this._timer=null;}if(this._masterGain){try{this._masterGain.disconnect();}catch(e){}this._masterGain=null;}},
+  pause(){this.playing=false;if(this._timer){clearInterval(this._timer);this._timer=null;}},
+  resume(){if(localStorage.getItem('arcade_music')==='0')return;if(!SONG.voices.length&&!SONG.drums)return;try{const ac=ensureAudio();if(!this._masterGain){this._masterGain=ac.createGain();this._masterGain.gain.value=1.0;this._masterGain.connect(ac.destination);}this._nextTime=ac.currentTime+0.05;this.playing=true;this._timer=setInterval(()=>this._schedule(),25);}catch(e){}},
+  _schedule(){if(!this.playing)return;try{const ac=ensureAudio();while(this._nextTime<ac.currentTime+0.1){const t=this._nextTime,dur=this._stepDur;const maxV=lowPerf?Math.min(2,SONG.voices.length):SONG.voices.length;for(let v=0;v<maxV;v++){const voice=SONG.voices[v];const note=voice.notes[this._step%voice.notes.length];if(note>0){const o=ac.createOscillator(),g=ac.createGain();o.type=voice.wave||'square';o.frequency.value=midiHz(note);const att=voice.attack||0.01,rel=voice.release||dur*0.8;g.gain.value=0.001;g.gain.linearRampToValueAtTime(voice.gain||0.04,t+att);g.gain.exponentialRampToValueAtTime(0.001,t+rel);o.connect(g);g.connect(this._masterGain);o.start(t);o.stop(t+rel+0.01);}}if(SONG.drums&&!lowPerf){const dp=SONG.drums.pattern;const hit=dp[this._step%dp.length];if(hit)this._playDrum(hit,t,SONG.drums.gain||0.03);}this._step++;this._nextTime+=dur;}}catch(e){}},
+  _playDrum(type,time,vol){try{const ac=ensureAudio();if(type==='k'){const o=ac.createOscillator(),g=ac.createGain();o.type='sine';o.frequency.value=150;o.frequency.exponentialRampToValueAtTime(30,time+0.1);g.gain.value=vol*1.5;g.gain.exponentialRampToValueAtTime(0.001,time+0.12);o.connect(g);g.connect(this._masterGain);o.start(time);o.stop(time+0.13);}else if(type==='h'){if(!this._noiseBuffer){this._noiseBuffer=ac.createBuffer(1,ac.sampleRate*0.05,ac.sampleRate);const d=this._noiseBuffer.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;}const s=ac.createBufferSource(),f=ac.createBiquadFilter(),g=ac.createGain();s.buffer=this._noiseBuffer;f.type='highpass';f.frequency.value=7000;g.gain.value=vol;g.gain.exponentialRampToValueAtTime(0.001,time+0.05);s.connect(f);f.connect(g);g.connect(this._masterGain);s.start(time);s.stop(time+0.06);}else if(type==='s'){if(!this._noiseBuffer){this._noiseBuffer=ac.createBuffer(1,ac.sampleRate*0.05,ac.sampleRate);const d=this._noiseBuffer.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;}const s=ac.createBufferSource(),f=ac.createBiquadFilter(),g=ac.createGain();s.buffer=this._noiseBuffer;f.type='bandpass';f.frequency.value=3000;g.gain.value=vol*1.2;g.gain.exponentialRampToValueAtTime(0.001,time+0.1);s.connect(f);f.connect(g);g.connect(this._masterGain);s.start(time);s.stop(time+0.11);const o=ac.createOscillator(),g2=ac.createGain();o.type='sine';o.frequency.value=180;g2.gain.value=vol;g2.gain.exponentialRampToValueAtTime(0.001,time+0.08);o.connect(g2);g2.connect(this._masterGain);o.start(time);o.stop(time+0.09);}}catch(e){}}
+};
+// Music toggle
+const musicBtn=document.getElementById('musicBtn');
+function updateMusicBtn(){musicBtn.classList.toggle('off',localStorage.getItem('arcade_music')==='0');}
+function toggleMusic(){const off=localStorage.getItem('arcade_music')!=='0';localStorage.setItem('arcade_music',off?'0':'1');updateMusicBtn();if(off)music.stop();else if(gameRunning&&!paused)music.play();}
+musicBtn.addEventListener('click',e=>{e.stopPropagation();toggleMusic();});
+musicBtn.addEventListener('touchend',e=>{e.stopPropagation();e.preventDefault();toggleMusic();});
+updateMusicBtn();
 
 function checkPerf() {
   if (++_fpsFrames < 60) return;
@@ -309,7 +355,7 @@ function shootBullet() {
     vy: Math.sin(ship.angle) * BULLET_SPEED + ship.vy * 0.3,
     life: BULLET_LIFE
   });
-  beep(880, 0.08, 0.06);
+  beep(880, 0.08, {vol:0.06, wave:'square', pitchEnd:1100});
 }
 
 function wrap(val, max) {
@@ -346,7 +392,7 @@ function checkBulletAsteroid() {
         scoreVal += AST_SCORE[a.size];
         updateUI();
         spawnParticles(a.x, a.y, 10, 80, 0.7, COL_DEBRIS);
-        beep(220 - a.size * 40, 0.15, 0.09);
+        beep(220 - a.size * 40, 0.15, {vol:0.09, detune:6});
         bullets.splice(bi, 1);
         // Split
         if (a.size < 2) {
@@ -501,8 +547,8 @@ function update(dt) {
   // Wave clear?
   if (asteroids.length === 0 && waveClearing === 0) {
     waveClearing = 2.0;
-    beep(660, 0.4, 0.08);
-    beep(880, 0.4, 0.06);
+    beep(660, 0.4, {vol:0.08, detune:8, attack:0.01});
+    beep(880, 0.4, {vol:0.06, detune:8, attack:0.01});
   }
 }
 
@@ -674,6 +720,8 @@ function updateUI() {
 }
 
 function showGameOver() {
+  music.stop();
+  beepNoise(0.12, 0.1, 400);
   document.getElementById('finalScore').textContent = scoreVal;
   document.getElementById('finalWave').textContent = waveVal;
   document.getElementById('gameOver').classList.remove('hidden');
@@ -715,6 +763,7 @@ document.addEventListener('keydown', e => {
     if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') { e.preventDefault(); togglePause(); return; }
     return;
   }
+  if (e.key === 'm' || e.key === 'M') { e.preventDefault(); toggleMusic(); return; }
   if (e.key === 'p' || e.key === 'P' || e.key === 'Escape') { e.preventDefault(); togglePause(); return; }
   // Game over menu navigation
   if (!document.getElementById('gameOver').classList.contains('hidden')) {
@@ -815,8 +864,8 @@ function togglePause() {
   if (!gameRunning) return;
   paused = !paused;
   pauseOv.classList.toggle('hidden', !paused);
-  if (!paused) { lastTime = 0; requestAnimationFrame(gameLoop); }
-  else { pauseSel = 0; updatePauseSel(); }
+  if (!paused) { lastTime = 0; music.resume(); requestAnimationFrame(gameLoop); }
+  else { music.pause(); pauseSel = 0; updatePauseSel(); }
 }
 document.getElementById('pauseBtn').addEventListener('click', e => { e.stopPropagation(); togglePause(); });
 document.getElementById('pauseBtn').addEventListener('touchend', e => { e.stopPropagation(); e.preventDefault(); togglePause(); });
@@ -866,6 +915,7 @@ function startGame() {
   try { hiScore = parseInt(localStorage.getItem('asteroids_hi')) || 0; } catch(e) { hiScore = 0; }
   spawnWave(1);
   updateUI();
+  music.play();
   requestAnimationFrame(gameLoop);
 }
 

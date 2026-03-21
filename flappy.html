@@ -77,6 +77,10 @@ canvas#board{
   cursor:pointer;-webkit-tap-highlight-color:transparent;
 }
 .pause-btn:active{color:var(--g);border-color:var(--g)}
+.topbar-btns{display:flex;align-items:center;gap:4px}
+.music-btn{font-family:'Press Start 2P',monospace;font-size:7px;color:var(--gd);background:none;border:1px solid var(--gd);padding:5px 7px;border-radius:3px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.music-btn:active{color:var(--g);border-color:var(--g)}
+.music-btn.off{opacity:0.3}
 
 .overlay{
   position:fixed;inset:0;display:flex;flex-direction:column;
@@ -136,7 +140,7 @@ canvas#board{
       <div class="title">FLAPPY</div>
       <div class="score-text">SCORE <span id="score">0</span> &nbsp;HI <span id="hi">0</span></div>
     </div>
-    <button class="pause-btn" id="pauseBtn">PAUSE</button>
+    <div class="topbar-btns"><button class="music-btn" id="musicBtn">&#9834;</button><button class="pause-btn" id="pauseBtn">PAUSE</button></div>
     <div class="topbar-right">
       <div class="stat-box"><div class="stat-lbl">LEVEL</div><div class="stat-val" id="level">1</div></div>
       <div class="stat-box"><div class="stat-lbl">BEST</div><div class="stat-val" id="best">0</div></div>
@@ -216,24 +220,53 @@ skyGradient.addColorStop(1, '#99ccff');
 
 // ── Audio ──────────────────────────────────────────────────────────────────────
 let audioCtx;
-function beep(freq, duration, volume = 0.08) {
-  try {
-    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    if (audioCtx.state === 'suspended') audioCtx.resume();
-    // Schedule audio work asynchronously to avoid blocking touch handlers
-    setTimeout(() => {
-      try {
-        const o = audioCtx.createOscillator(), g = audioCtx.createGain();
-        o.type = 'sawtooth';
-        o.frequency.value = freq; g.gain.value = volume;
-        o.connect(g); g.connect(audioCtx.destination);
-        o.start();
-        g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
-        o.stop(audioCtx.currentTime + duration);
-      } catch(e) {}
-    }, 0);
-  } catch(e) {}
-}
+function ensureAudio(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();return audioCtx;}
+function beep(freq,duration,opts){try{const ac=ensureAudio();let vol=0.08,wave='sawtooth',attack=0.005,pitchEnd=0,detune=0;if(typeof opts==='number'){vol=opts;}else if(opts){vol=opts.vol??0.08;wave=opts.wave??'sawtooth';attack=opts.attack??0.005;pitchEnd=opts.pitchEnd??0;detune=opts.detune??0;}setTimeout(()=>{try{const now=ac.currentTime;const o=ac.createOscillator(),g=ac.createGain();o.type=wave;o.frequency.value=freq;if(pitchEnd)o.frequency.linearRampToValueAtTime(pitchEnd,now+duration);g.gain.value=0.001;g.gain.linearRampToValueAtTime(vol,now+attack);g.gain.exponentialRampToValueAtTime(0.001,now+duration);o.connect(g);g.connect(ac.destination);o.start(now);o.stop(now+duration);if(detune&&!lowPerf){const o2=ac.createOscillator(),g2=ac.createGain();o2.type=wave;o2.frequency.value=freq;o2.detune.value=detune;if(pitchEnd)o2.frequency.linearRampToValueAtTime(pitchEnd,now+duration);g2.gain.value=0.001;g2.gain.linearRampToValueAtTime(vol*0.6,now+attack);g2.gain.exponentialRampToValueAtTime(0.001,now+duration);o2.connect(g2);g2.connect(ac.destination);o2.start(now);o2.stop(now+duration);}}catch(e){}},0);}catch(e){}}
+function beepNoise(duration,volume,filterFreq){try{const ac=ensureAudio();if(!_noiseBuf){_noiseBuf=ac.createBuffer(1,ac.sampleRate,ac.sampleRate);const d=_noiseBuf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;}const now=ac.currentTime;const s=ac.createBufferSource(),f=ac.createBiquadFilter(),g=ac.createGain();s.buffer=_noiseBuf;f.type='lowpass';f.frequency.value=filterFreq||1000;g.gain.value=volume||0.08;g.gain.exponentialRampToValueAtTime(0.001,now+duration);s.connect(f);f.connect(g);g.connect(ac.destination);s.start(now);s.stop(now+duration);}catch(e){}}
+let _noiseBuf;
+
+// ── MIDI Music Engine ─────────────────────────────────────────────────────────
+function midiHz(n){return 440*Math.pow(2,(n-69)/12);}
+// Flappy Bird — cheerful chiptune, 130 BPM, C major, short loop
+const SONG={bpm:130,stepsPerBeat:4,
+  voices:[
+    // Melody — cheerful and simple
+    {wave:'square',gain:0.03,attack:0.008,release:0.1,notes:[
+      72,0,74,0, 76,0,79,0, 76,0,74,0, 72,0,0,0,
+      71,0,72,0, 74,0,76,0, 79,0,76,0, 74,0,0,0,
+      72,0,76,0, 79,0,84,0, 83,0,81,0, 79,0,0,0,
+      76,0,74,0, 72,0,74,0, 76,0,0,0, 0,0,0,0
+    ]},
+    // Bass — bouncy
+    {wave:'triangle',gain:0.04,attack:0.01,release:0.08,notes:[
+      48,0,48,0, 48,0,48,0, 53,0,53,0, 53,0,53,0,
+      47,0,47,0, 47,0,47,0, 52,0,52,0, 52,0,52,0,
+      48,0,48,0, 48,0,48,0, 53,0,53,0, 53,0,53,0,
+      52,0,52,0, 48,0,48,0, 52,0,0,0, 0,0,0,0
+    ]}
+  ],
+  drums:{gain:0.02,pattern:[
+    'k',0,'h',0, 's',0,'h',0, 'k',0,'h',0, 's',0,'h',0,
+    'k',0,'h',0, 's',0,'h',0, 'k',0,'h',0, 's',0,'h','h',
+    'k',0,'h',0, 's',0,'h',0, 'k',0,'h',0, 's',0,'h',0,
+    'k',0,'h',0, 's',0,'h',0, 'k','k','s',0, 'h',0,'h',0
+  ]}
+};
+
+const music={playing:false,_step:0,_timer:null,_nextTime:0,_stepDur:0,_masterGain:null,_noiseBuffer:null,
+  play(){if(this.playing)this.stop();if(localStorage.getItem('arcade_music')==='0')return;if(!SONG.voices.length&&!SONG.drums)return;try{const ac=ensureAudio();this._masterGain=ac.createGain();this._masterGain.gain.value=1.0;this._masterGain.connect(ac.destination);this._stepDur=60/(SONG.bpm*SONG.stepsPerBeat);this._step=0;this._nextTime=ac.currentTime+0.05;this.playing=true;this._schedule();this._timer=setInterval(()=>this._schedule(),25);}catch(e){}},
+  stop(){this.playing=false;if(this._timer){clearInterval(this._timer);this._timer=null;}if(this._masterGain){try{this._masterGain.disconnect();}catch(e){}this._masterGain=null;}},
+  pause(){this.playing=false;if(this._timer){clearInterval(this._timer);this._timer=null;}},
+  resume(){if(localStorage.getItem('arcade_music')==='0')return;if(!SONG.voices.length&&!SONG.drums)return;try{const ac=ensureAudio();if(!this._masterGain){this._masterGain=ac.createGain();this._masterGain.gain.value=1.0;this._masterGain.connect(ac.destination);}this._nextTime=ac.currentTime+0.05;this.playing=true;this._timer=setInterval(()=>this._schedule(),25);}catch(e){}},
+  _schedule(){if(!this.playing)return;try{const ac=ensureAudio();while(this._nextTime<ac.currentTime+0.1){const t=this._nextTime,dur=this._stepDur;const maxV=lowPerf?Math.min(2,SONG.voices.length):SONG.voices.length;for(let v=0;v<maxV;v++){const voice=SONG.voices[v];const note=voice.notes[this._step%voice.notes.length];if(note>0){const o=ac.createOscillator(),g=ac.createGain();o.type=voice.wave||'square';o.frequency.value=midiHz(note);const att=voice.attack||0.01,rel=voice.release||dur*0.8;g.gain.value=0.001;g.gain.linearRampToValueAtTime(voice.gain||0.04,t+att);g.gain.exponentialRampToValueAtTime(0.001,t+rel);o.connect(g);g.connect(this._masterGain);o.start(t);o.stop(t+rel+0.01);}}if(SONG.drums&&!lowPerf){const dp=SONG.drums.pattern;const hit=dp[this._step%dp.length];if(hit)this._playDrum(hit,t,SONG.drums.gain||0.03);}this._step++;this._nextTime+=dur;}}catch(e){}},
+  _playDrum(type,time,vol){try{const ac=ensureAudio();if(type==='k'){const o=ac.createOscillator(),g=ac.createGain();o.type='sine';o.frequency.value=150;o.frequency.exponentialRampToValueAtTime(30,time+0.1);g.gain.value=vol*1.5;g.gain.exponentialRampToValueAtTime(0.001,time+0.12);o.connect(g);g.connect(this._masterGain);o.start(time);o.stop(time+0.13);}else if(type==='h'){if(!this._noiseBuffer){this._noiseBuffer=ac.createBuffer(1,ac.sampleRate*0.05,ac.sampleRate);const d=this._noiseBuffer.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;}const s=ac.createBufferSource(),f=ac.createBiquadFilter(),g=ac.createGain();s.buffer=this._noiseBuffer;f.type='highpass';f.frequency.value=7000;g.gain.value=vol;g.gain.exponentialRampToValueAtTime(0.001,time+0.05);s.connect(f);f.connect(g);g.connect(this._masterGain);s.start(time);s.stop(time+0.06);}else if(type==='s'){if(!this._noiseBuffer){this._noiseBuffer=ac.createBuffer(1,ac.sampleRate*0.05,ac.sampleRate);const d=this._noiseBuffer.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;}const s=ac.createBufferSource(),f=ac.createBiquadFilter(),g=ac.createGain();s.buffer=this._noiseBuffer;f.type='bandpass';f.frequency.value=3000;g.gain.value=vol*1.2;g.gain.exponentialRampToValueAtTime(0.001,time+0.1);s.connect(f);f.connect(g);g.connect(this._masterGain);s.start(time);s.stop(time+0.11);const o=ac.createOscillator(),g2=ac.createGain();o.type='sine';o.frequency.value=180;g2.gain.value=vol;g2.gain.exponentialRampToValueAtTime(0.001,time+0.08);o.connect(g2);g2.connect(this._masterGain);o.start(time);o.stop(time+0.09);}}catch(e){}}
+};
+const musicBtn=document.getElementById('musicBtn');
+function updateMusicBtn(){musicBtn.classList.toggle('off',localStorage.getItem('arcade_music')==='0');}
+function toggleMusic(){const off=localStorage.getItem('arcade_music')!=='0';localStorage.setItem('arcade_music',off?'0':'1');updateMusicBtn();if(off)music.stop();else if(gameRunning&&!paused)music.play();}
+musicBtn.addEventListener('click',e=>{e.stopPropagation();toggleMusic();});
+musicBtn.addEventListener('touchend',e=>{e.stopPropagation();e.preventDefault();toggleMusic();});
+updateMusicBtn();
 
 function checkPerf() {
   if (++_fpsFrames < 60) return;
@@ -267,7 +300,7 @@ function flap() {
   if (!gameRunning || paused) return;
   if (deadTimer > 0) return;
   birdVel = FLAP_VEL;
-  beep(440, 0.06);
+  beep(440,0.06,{wave:'square',attack:0.01,pitchEnd:550});
 }
 
 function checkCollision() {
@@ -287,7 +320,8 @@ function checkCollision() {
 function die() {
   gameRunning = false;
   deadTimer = 1;
-  beep(100, 0.4);
+  music.stop();
+  beep(100,0.4,{pitchEnd:50});beepNoise(0.1,0.08,400);
   if (scoreVal > hiScore) {
     hiScore = scoreVal;
     try { localStorage.setItem('flappy_hi', hiScore); } catch(e) {}
@@ -482,6 +516,7 @@ document.addEventListener('keydown', e => {
     return;
   }
   if (e.key === 'p' || e.key === 'P' || e.key === 'Escape') { e.preventDefault(); togglePause(); return; }
+  if (e.key === 'm' || e.key === 'M') { e.preventDefault(); toggleMusic(); return; }
   if (!gameRunning || paused) return;
   switch(e.key) {
     case 'ArrowUp':
@@ -509,8 +544,8 @@ function togglePause() {
   if (!gameRunning) return;
   paused = !paused;
   pauseOv.classList.toggle('hidden', !paused);
-  if (!paused) { lastTime = 0; requestAnimationFrame(gameLoop); }
-  else { pauseSel = 0; updatePauseSel(); }
+  if (!paused) { lastTime = 0; music.resume(); requestAnimationFrame(gameLoop); }
+  else { pauseSel = 0; updatePauseSel(); music.pause(); }
 }
 document.getElementById('pauseBtn').addEventListener('click', e => { e.stopPropagation(); togglePause(); });
 document.getElementById('pauseBtn').addEventListener('touchend', e => { e.stopPropagation(); e.preventDefault(); togglePause(); });
@@ -576,7 +611,7 @@ function gameLoop(time) {
     if (!p.scored && p.x + PIPE_W < BIRD_X) {
       p.scored = true;
       scoreVal++;
-      beep(660, 0.08);
+      beep(660,0.08,{detune:6});
       updateLevel();
       updateUI();
     }
@@ -606,6 +641,7 @@ function startGame() {
   rand = mulberry32(12345);
   updateLevel();
   updateUI(); draw();
+  music.play();
   requestAnimationFrame(gameLoop);
 }
 
