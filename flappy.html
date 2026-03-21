@@ -220,13 +220,18 @@ function beep(freq, duration, volume = 0.08) {
   try {
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     if (audioCtx.state === 'suspended') audioCtx.resume();
-    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
-    o.type = 'sawtooth';
-    o.frequency.value = freq; g.gain.value = volume;
-    o.connect(g); g.connect(audioCtx.destination);
-    o.start();
-    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
-    o.stop(audioCtx.currentTime + duration);
+    // Schedule audio work asynchronously to avoid blocking touch handlers
+    setTimeout(() => {
+      try {
+        const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+        o.type = 'sawtooth';
+        o.frequency.value = freq; g.gain.value = volume;
+        o.connect(g); g.connect(audioCtx.destination);
+        o.start();
+        g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+        o.stop(audioCtx.currentTime + duration);
+      } catch(e) {}
+    }, 0);
   } catch(e) {}
 }
 
@@ -539,7 +544,8 @@ function goMenu() { window.location.href = 'index.html'; }
 function gameLoop(time) {
   if (!gameRunning) { draw(); return; }
   if (paused) return;
-  const dt = Math.min(time - (lastTime || time), 18); // cap at one 60fps frame
+  if (!lastTime) { lastTime = time; requestAnimationFrame(gameLoop); return; }
+  const dt = Math.min(time - lastTime, 50); // cap at 50ms to allow catch-up on dropped frames
   lastTime = time;
   checkPerf();
 
@@ -558,8 +564,12 @@ function gameLoop(time) {
     pipeTimer -= PIPE_SPACING;
   }
 
-  // Remove offscreen pipes
-  pipes = pipes.filter(p => p.x + PIPE_W > -10);
+  // Remove offscreen pipes (in-place to avoid array allocation per frame)
+  let wi = 0;
+  for (let ri = 0; ri < pipes.length; ri++) {
+    if (pipes[ri].x + PIPE_W > -10) pipes[wi++] = pipes[ri];
+  }
+  pipes.length = wi;
 
   // Score — bird passes pipe center
   for (const p of pipes) {
@@ -620,7 +630,7 @@ function resize() {
 window.addEventListener('resize', resize);
 setTimeout(resize, 50); setTimeout(resize, 200); resize();
 
-document.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+canvas.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
 drawBackground();
 </script>
 </body>
