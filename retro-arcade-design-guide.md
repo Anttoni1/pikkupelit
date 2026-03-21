@@ -436,9 +436,12 @@ Game over keyboard navigation (↑↓ + Enter) is added to the main keydown list
 games/
 ├── index.html          ← Main menu
 ├── tetris.html         ← Tetris
+├── invaders.html       ← Space Invaders
 ├── arkanoid.html       ← Arkanoid
-├── pong.html           ← Pong
-└── ...                 ← More games
+├── 2048.html           ← 2048
+├── asteroids.html      ← Asteroids
+├── flappy.html         ← Flappy Bird
+└── puzzle-bobble.html  ← Puzzle Bobble (beta)
 ```
 
 Every game is a standalone HTML file — no shared JS/CSS files. This keeps things simple and each game easy to test and share independently.
@@ -456,7 +459,7 @@ The menu follows the same CRT style. Structure:
 │                      │
 │  ► TETRIS      1250  │  ← Game listing, hi-score on right
 │  ► ARKANOID     890  │     Selected/hover: --amber highlight
-│  ► PONG         ---  │     Tap/click opens game
+│  ► FLAPPY       ---  │     Tap/click opens game
 │                      │     "---" if no hi-score
 └──────────────────────┘
 │     SWIPE ↑↓ SELECT
