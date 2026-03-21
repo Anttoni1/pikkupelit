@@ -76,7 +76,7 @@ Muoto: `pelinimi_hi` — esim. `tetris_hi`, `invaders_hi`, `arkanoid_hi`, `2048_
 Enhanced `beep(freq, duration, opts)` — tukee `{vol, wave, attack, pitchEnd, detune}` tai pelkkä numero (volume). `beepNoise(dur, vol, filterFreq)` percussive-efekteihin. Muista `audioCtx.resume()` — iOS luo AudioContextin suspended-tilassa.
 
 ### Musiikki (MIDI-tyylinen sekvensseri)
-Jokaisessa pelissä on taustamusiikki: pattern-pohjainen sekvensseri Web Audio API:lla. `SONG`-objekti määrittelee melodian, basson, arpeggion ja rummut. `music.play()/stop()/pause()/resume()` — hookit `startGame()`, `togglePause()`, `showGameOver()`. Musiikkitoggle: ♪-nappi topbarissa + M-näppäin. Asetus: `localStorage` avain `arcade_music` (`"0"` = pois, oletus = päällä).
+Jokaisessa pelissä on taustamusiikki: pattern-pohjainen sekvensseri Web Audio API:lla. `SONG`-objekti määrittelee melodian, basson, arpeggion ja rummut. `music.play()/stop()/pause()/resume()` — hookit `startGame()`, `togglePause()`, `showGameOver()`. Musiikkitoggle: ♪-nappi topbarissa + M-näppäin. Asetus: `localStorage` avain `arcade_music` (`"1"` = päällä, oletus = pois).
 
 ## Pelit ja niiden LocalStorage-avaimet
 
