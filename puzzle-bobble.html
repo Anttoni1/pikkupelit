@@ -994,8 +994,18 @@ function winContinue() {
   document.getElementById('winScreen').classList.add('hidden');
   gameRunning = true;
   lastTime = 0;
-  // Continue from level 8+ with max difficulty
-  levelUp();
+  // levelVal is already incremented to 8 by levelUp() that triggered the win;
+  // set up level 8 directly without incrementing again
+  const rows = levelRows(levelVal);
+  numColors = Math.min(2 + levelVal, 6);
+  levelFlash = { text: 'LEVEL ' + levelVal, timer: 3000 };
+  levelIntro = { phase: 'text', delay: 1000, elapsed: 0, rows: rows,
+                 duration: 600 + rows * 80 };
+  beep(880, 0.15, 0.1);
+  setTimeout(() => beep(1100, 0.15, 0.1), 160);
+  shotsLeft = Math.max(5, SHOTS_PER_DROP - Math.floor(levelVal / 3));
+  updateUI();
+  music.play();
   requestAnimationFrame(gameLoop);
 }
 function winRetry() { document.getElementById('winScreen').classList.add('hidden'); startGame(); }
