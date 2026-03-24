@@ -171,7 +171,6 @@ canvas#board{
 const CANVAS_W = 288, CANVAS_H = 480;
 const DISK_CX = 144, DISK_CY = 195;
 const R = 10;             // ball radius
-const DANGER_RADIUS = R * 13.5; // between ring 5 (R*12) and ring 6 (R*14)
 const SHOOTER_X = 144, SHOOTER_Y = 448;
 const BUBBLE_SPEED = 420;
 const AIM_STEP = 0.045;
@@ -181,14 +180,26 @@ const SHOTS_PER_GROWTH = 8;
 const OMEGA_MAX = 4.0;   // rad/s max spin
 const FRICTION = 1.5;    // rad/s² decel
 
-// Ring defs derived from R so the hex layout scales with ball size.
-// r[k] = R*2*(k+1), n[k] = 6*(k+1), off[k] = PI/n[k-1] (half-slot stagger)
-const RING_DEFS = Array.from({length: 7}, (_, k) => ({
-  r:   R * 2 * (k + 1),
-  n:   6 * (k + 1),
-  off: k === 0 ? 0 : Math.PI / (6 * k),
-}));
+// Ring defs: radii calculated so same-ring chord distance = 2R (tight honeycomb),
+// offsets computed for proper inter-ring honeycomb stagger.
+const RING_DEFS = (() => {
+  const defs = [];
+  for (let k = 0; k < 7; k++) {
+    const n = 6 * (k + 1);
+    const r = R / Math.sin(Math.PI / n);
+    let off = 0;
+    if (k > 0) {
+      const rPrev = defs[k - 1].r;
+      const cosD = (rPrev * rPrev + r * r - 4 * R * R) / (2 * rPrev * r);
+      const dTheta = Math.acos(Math.min(1, Math.max(-1, cosD)));
+      off = defs[k - 1].off + (k % 2 === 1 ? 1 : -1) * dTheta;
+    }
+    defs.push({ r, n, off });
+  }
+  return defs;
+})();
 const LAST_SAFE_RING = 5; // ring 6 (index 6) triggers game over
+const DANGER_RADIUS = (RING_DEFS[5].r + RING_DEFS[6].r) / 2;
 
 const COLORS = ['#ff5555','#55aaff','#55ff55','#ffff55','#ff88ff','#ffaa00'];
 
