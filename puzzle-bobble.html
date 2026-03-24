@@ -251,35 +251,35 @@ let _noiseBuf;
 
 function midiHz(n){return 440*Math.pow(2,(n-69)/12);}
 // Puzzle Bobble — cute, bouncy, playful, 135 BPM, F major
-const SONG={bpm:135,stepsPerBeat:4,
+const SONG={bpm:120,stepsPerBeat:4,
   voices:[
-    // Melody — playful bouncy tune
-    {wave:'square',gain:0.035,attack:0.008,release:0.1,notes:[
-      65,0,69,0, 72,0,69,0, 65,0,67,0, 69,0,0,0,
-      67,0,65,0, 64,0,65,0, 67,0,69,0, 72,0,0,0,
-      77,0,76,0, 74,0,72,0, 69,0,67,0, 65,0,0,0,
-      67,0,69,0, 72,0,74,0, 76,0,77,0, 0,0,0,0
+    // Lead melody — Never Gonna Give You Up (A major, intro riff + chorus)
+    {wave:'square',gain:0.04,attack:0.008,release:0.12,notes:[
+      78,0,0,0, 81,0,83,0, 85,0,83,0, 81,0,78,0,
+      76,0,0,0, 78,0,81,0, 78,0,76,0, 74,0,0,0,
+      74,0,76,0, 78,0,81,0, 78,0,76,0, 74,0,0,0,
+      74,0,76,0, 78,0,76,0, 74,0,71,0, 0,0,0,0
     ]},
-    // Bass — bouncy roots
-    {wave:'triangle',gain:0.04,attack:0.01,release:0.08,notes:[
-      41,0,41,0, 41,0,41,0, 45,0,45,0, 45,0,45,0,
-      43,0,43,0, 43,0,43,0, 48,0,48,0, 48,0,48,0,
-      41,0,41,0, 41,0,41,0, 45,0,45,0, 45,0,45,0,
-      43,0,43,0, 48,0,48,0, 41,0,0,0, 0,0,0,0
+    // Bass — pumping A major bass line
+    {wave:'triangle',gain:0.05,attack:0.01,release:0.1,notes:[
+      45,0,45,0, 54,0,54,0, 52,0,52,0, 54,0,54,0,
+      45,0,45,0, 52,0,52,0, 50,0,50,0, 52,0,52,0,
+      45,0,45,0, 54,0,54,0, 52,0,52,0, 54,0,54,0,
+      45,0,45,0, 50,0,50,0, 45,0,45,0, 45,0,0,0
     ]},
-    // Counter melody — cute chirps
-    {wave:'square',gain:0.02,attack:0.005,release:0.05,notes:[
-      77,0,0,77, 0,0,77,0, 76,0,0,76, 0,0,76,0,
-      74,0,0,74, 0,0,74,0, 72,0,0,72, 0,0,72,0,
-      77,0,0,77, 0,0,77,0, 76,0,0,76, 0,0,76,0,
-      74,0,0,74, 0,72,0,74, 77,0,0,0, 0,0,0,0
+    // Counter melody — high arpeggio stabs
+    {wave:'square',gain:0.022,attack:0.005,release:0.06,notes:[
+      85,0,0,85, 0,0,85,0, 88,0,0,88, 0,0,88,0,
+      86,0,0,86, 0,0,86,0, 85,0,0,85, 0,0,85,0,
+      85,0,0,85, 0,0,85,0, 88,0,0,88, 0,0,88,0,
+      86,0,0,86, 0,85,0,83, 81,0,0,0, 0,0,0,0
     ]}
   ],
-  drums:{gain:0.022,pattern:[
-    'k',0,'h','h', 's',0,'h',0, 'k','k','h','h', 's',0,'h',0,
-    'k',0,'h','h', 's',0,'h',0, 'k','k','h','h', 's',0,'h','h',
-    'k',0,'h','h', 's',0,'h',0, 'k','k','h','h', 's',0,'h',0,
-    'k',0,'h','h', 's',0,'h','h', 'k','k','s',0, 'k',0,'h',0
+  drums:{gain:0.04,pattern:[
+    'k','h','h','k', 's','h','k','h', 'k','h','k','h', 's','h','k','h',
+    'k','h','h','k', 's','h','k','h', 'k','h','k','h', 's','h','k','h',
+    'k','h','k','k', 's','h','k','h', 'k','h','k','k', 's','h','k','h',
+    'k','h','k','k', 's','h','k','h', 'k','k','k','h', 's','k','k',0
   ]}
 };
 const music={playing:false,_step:0,_timer:null,_nextTime:0,_stepDur:0,_masterGain:null,_noiseBuffer:null,
