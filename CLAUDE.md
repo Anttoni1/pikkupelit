@@ -29,20 +29,12 @@ Tämä projekti on kokoelma retro-mobiilipelejä. Jokainen peli on yksittäinen 
 - Yksi tiedosto per peli — kaikki HTML, CSS ja JS samassa `.html`-tiedostossa
 - Ainoa sallittu ulkoinen riippuvuus: Google Fonts (`Press Start 2P`)
 
-### Visuaalinen identiteetti (ei neuvoteltavissa)
-```css
-:root {
-  --g: #55aaff;                       /* pääväri — sininen */
-  --gd: #2255aa;                      /* himmennetty sininen — reunat, inaktiiviset */
-  --bg: #000033;                      /* tausta */
-  --glow: rgba(85,170,255,0.12);      /* hehku */
-  --amber: #ff5555;                   /* korostus: pisteet, arvot */
-}
-```
+### Visuaalinen identiteetti
 - Fontti: `'Press Start 2P', monospace`
 - CRT-efektit: scanlines (`::before`, 4px välein, kevyt) + vinjetti (`::after`, kevyt) `body.crt`-luokalla
 - Canvas: `border: 2px solid var(--gd)`, `box-shadow: 0 0 15px var(--glow)`
 - Overlay h1: `color: #ffffff`
+- CSS-muuttujat (`--g`, `--gd`, `--bg`, `--glow`, `--amber`) valitaan pelin teeman mukaan
 
 ### Layout
 ```
@@ -102,7 +94,7 @@ Ennen kuin pidät peliä valmiina:
 
 - [ ] Yksi HTML-tiedosto, ei ulkoisia riippuvuuksia (paitsi Google Fonts)
 - [ ] CRT-efektit `body.crt`-luokalla
-- [ ] Samat CSS-muuttujat (`--g`, `--gd`, `--bg`, `--glow`, `--amber`)
+- [ ] CSS-muuttujat (`--g`, `--gd`, `--bg`, `--glow`, `--amber`) pelin teemaan sopivina
 - [ ] Press Start 2P -fontti
 - [ ] iPhone meta-tagit + `viewport-fit=cover` + safe area insets: body `padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)`, topbar `padding-top: calc(Xpx + env(safe-area-inset-top))`
 - [ ] `100dvh`, ei scrollausta, `touch-action: none`
