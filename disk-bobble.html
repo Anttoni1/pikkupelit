@@ -820,7 +820,7 @@ function drawBall(x, y, color, alpha) {
   ctx.save();
   ctx.globalAlpha = alpha !== undefined ? alpha : 1;
   ctx.beginPath();
-  ctx.arc(x, y, R - 1, 0, Math.PI * 2);
+  ctx.arc(x, y, R - 0.5, 0, Math.PI * 2);
   ctx.fillStyle = color;
   ctx.fill();
   // Highlight
@@ -832,7 +832,7 @@ function drawBall(x, y, color, alpha) {
   // Border
   ctx.globalAlpha = alpha !== undefined ? alpha : 1;
   ctx.beginPath();
-  ctx.arc(x, y, R - 1, 0, Math.PI * 2);
+  ctx.arc(x, y, R - 0.5, 0, Math.PI * 2);
   ctx.strokeStyle = 'rgba(0,0,0,0.4)';
   ctx.lineWidth = 1.5;
   ctx.stroke();
@@ -985,7 +985,7 @@ function drawDisk() {
           ctx.save();
           ctx.globalAlpha = prog * 0.88;
           ctx.beginPath();
-          ctx.arc(wp.x, wp.y, R - 1, 0, Math.PI * 2);
+          ctx.arc(wp.x, wp.y, R - 0.5, 0, Math.PI * 2);
           ctx.fillStyle = '#111';
           ctx.fill();
           ctx.restore();
@@ -1007,7 +1007,7 @@ function drawDisk() {
         ctx.save();
         ctx.globalAlpha = prog * 0.88;
         ctx.beginPath();
-        ctx.arc(x, y, R - 1, 0, Math.PI * 2);
+        ctx.arc(x, y, R - 0.5, 0, Math.PI * 2);
         ctx.fillStyle = '#111';
         ctx.fill();
         ctx.restore();
