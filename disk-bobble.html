@@ -217,7 +217,7 @@ const HEX_ADJ = (() => {
 })();
 
 const LAST_SAFE_RING = 6;  // ring 7 triggers game over
-const DANGER_RADIUS = (LAST_SAFE_RING + 0.5) * 2 * R;  // visual danger circle between ring 6 and 7
+const DANGER_RADIUS = (LAST_SAFE_RING - 0.5) * 2 * R;  // visual warning one ring before game-over zone
 const SNAP_DEATH_DIST = (MAX_HEX_RING + 1) * 2 * R;    // beyond entire grid — instant death safeguard
 
 const COLORS = ['#ff5555','#55aaff','#55ff55','#ffff55','#ff88ff','#ffaa00'];
