@@ -745,9 +745,11 @@ function spawnInboundBalls(count) {
     }
   }
 
-  // No adjacent empty slots — disk is full, trigger game over
+  // No adjacent empty slots — either disk is full (game over) or disk is empty (level just cleared, skip)
   if (candidates.length === 0) {
-    triggerGameOver();
+    const anyBall = slotColors.some(c => c !== null);
+    if (anyBall) triggerGameOver(); // disk full → game over
+    // else: disk is empty because level was just cleared — resetDiskForLevel() is pending, do nothing
     return;
   }
 
