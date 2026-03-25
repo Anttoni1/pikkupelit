@@ -647,10 +647,10 @@ function resetDiskForLevel() {
   slotColors = new Array(HEX_SLOTS.length).fill(null);
   const nc = numColorsForLevel(levelVal);
   const levelColors = COLORS.slice(0, nc);
-  // Fill rings 0-2 (center + first 2 rings = 1+6+12 = 19 balls)
+  // Fill rings 1-2 (skip center, first 2 rings = 6+12 = 18 balls)
   const FILL_RINGS = 2;
   for (let i = 0; i < HEX_SLOTS.length; i++) {
-    if (HEX_SLOTS[i].ring <= FILL_RINGS)
+    if (HEX_SLOTS[i].ring >= 1 && HEX_SLOTS[i].ring <= FILL_RINGS)
       slotColors[i] = levelColors[Math.floor(Math.random() * nc)];
   }
   flyBubble = null;
