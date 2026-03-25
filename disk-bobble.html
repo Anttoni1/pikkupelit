@@ -172,7 +172,7 @@ const CANVAS_W = 288, CANVAS_H = 480;
 const DISK_CX = 144, DISK_CY = 195;
 const R = 12;             // ball radius
 const SHOOTER_X = 144, SHOOTER_Y = 448;
-const BUBBLE_SPEED = 420;
+const BUBBLE_SPEED = 470;
 const AIM_STEP = 0.045;
 const MIN_ANGLE = -(Math.PI - 0.25);
 const MAX_ANGLE = -0.25;
@@ -509,6 +509,27 @@ function randomDiskColor() {
 }
 
 // ── Angular Impulse Physics ──────────────────────────────────────────────────
+// Moment of inertia: fewer/closer balls → less inertia → easier to spin
+function diskInertia() {
+  const BASE = 0.15;  // hub inertia (so empty disk isn't infinitely easy)
+  let I = BASE;
+  for (let i = 0; i < slotColors.length; i++) {
+    if (!slotColors[i]) continue;
+    const s = HEX_SLOTS[i];
+    I += s.lx * s.lx + s.ly * s.ly;  // mr² (m=1 per ball)
+  }
+  return I;
+}
+
+// Precompute full-disk inertia for normalisation
+const FULL_DISK_INERTIA = (() => {
+  let I = 0.15;
+  for (const s of HEX_SLOTS) {
+    if (s.ring <= 4) I += s.lx * s.lx + s.ly * s.ly;
+  }
+  return I;
+})();
+
 function applyAngularImpulse(hx, hy, vx, vy) {
   const dx = hx - DISK_CX, dy = hy - DISK_CY;
   const dist = Math.hypot(dx, dy);
@@ -518,7 +539,10 @@ function applyAngularImpulse(hx, hy, vx, vy) {
   const cross = vx * ny - vy * nx;
   // cross ranges ±BUBBLE_SPEED; normalise to [-1,1] then scale by lever arm
   const maxR = DANGER_RADIUS;
-  const impulse = -(cross / BUBBLE_SPEED) * OMEGA_MAX * 0.8 * (dist / maxR);
+  const rawImpulse = -(cross / BUBBLE_SPEED) * OMEGA_MAX * 0.8 * (dist / maxR);
+  // Scale by inertia ratio: fewer balls → stronger spin
+  const inertiaRatio = diskInertia() / FULL_DISK_INERTIA;
+  const impulse = rawImpulse / Math.max(inertiaRatio, 0.1);
   diskOmega += impulse;
   diskOmega = Math.max(-OMEGA_MAX, Math.min(OMEGA_MAX, diskOmega));
 }
