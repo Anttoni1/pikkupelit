@@ -1397,18 +1397,20 @@ function update(dt) {
       applyAngularImpulse(saved.x, saved.y, saved.vx, saved.vy);
       snapToDisk(saved.x, saved.y, saved.color);
       if (!gameRunning) return;
-      if (levelIntro) break; // level cleared — skip growth spawn & color reassign
-      if (checkGameOver()) { triggerGameOver(); return; }
-      // Shot-based growth: spawn inbound balls after ball has snapped in place
-      if (shotsUntilGrowth <= 0) {
-        shotsUntilGrowth = Math.max(3, SHOTS_PER_GROWTH - (levelVal - 1));
-        const count = 1 + Math.floor(Math.random() * 2); // 1-2 inbound balls
-        spawnInboundBalls(count);
-        if (!gameRunning) return;
+      if (!levelIntro) {
+        // Only do post-shot logic if level wasn't just cleared
+        if (checkGameOver()) { triggerGameOver(); return; }
+        // Shot-based growth: spawn inbound balls after ball has snapped in place
+        if (shotsUntilGrowth <= 0) {
+          shotsUntilGrowth = Math.max(3, SHOTS_PER_GROWTH - (levelVal - 1));
+          const count = 1 + Math.floor(Math.random() * 2); // 1-2 inbound balls
+          spawnInboundBalls(count);
+          if (!gameRunning) return;
+        }
+        currentColor = nextColor;
+        nextColor = randomDiskColor();
+        updateUI();
       }
-      currentColor = nextColor;
-      nextColor = randomDiskColor();
-      updateUI();
     }
 
     // Fly off screen
