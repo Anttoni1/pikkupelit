@@ -573,16 +573,18 @@ function snapToDisk(hx, hy, color) {
   }
 
   if (nearestIdx === -1) {
-    // Empty disk — snap to center slot
-    slotColors[0] = color;
-    checkAndPop(0);
+    // Empty disk — snap to a random ring-1 slot
+    const ring1 = HEX_SLOTS.map((s, i) => i).filter(i => HEX_SLOTS[i].ring === 1);
+    const idx = ring1[Math.floor(Math.random() * ring1.length)];
+    slotColors[idx] = color;
+    checkAndPop(idx);
     return;
   }
 
-  // Find nearest empty neighbor of nearest filled slot
+  // Find nearest empty neighbor of nearest filled slot (never ring 0 — center hub)
   let bestIdx = -1, bestDist = Infinity;
   for (const ni of HEX_ADJ[nearestIdx]) {
-    if (slotColors[ni] !== null) continue;
+    if (slotColors[ni] !== null || HEX_SLOTS[ni].ring === 0) continue;
     const d = Math.hypot(lx - HEX_SLOTS[ni].lx, ly - HEX_SLOTS[ni].ly);
     if (d < bestDist) { bestDist = d; bestIdx = ni; }
   }
@@ -592,7 +594,7 @@ function snapToDisk(hx, hy, color) {
     for (const ni of HEX_ADJ[nearestIdx]) {
       if (!slotColors[ni]) continue;
       for (const ni2 of HEX_ADJ[ni]) {
-        if (slotColors[ni2] !== null) continue;
+        if (slotColors[ni2] !== null || HEX_SLOTS[ni2].ring === 0) continue;
         const d = Math.hypot(lx - HEX_SLOTS[ni2].lx, ly - HEX_SLOTS[ni2].ly);
         if (d < bestDist) { bestDist = d; bestIdx = ni2; }
       }
