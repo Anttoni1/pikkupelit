@@ -647,8 +647,9 @@ function resetDiskForLevel() {
   slotColors = new Array(HEX_SLOTS.length).fill(null);
   const nc = numColorsForLevel(levelVal);
   const levelColors = COLORS.slice(0, nc);
-  // Fill rings 1-2 (skip center, first 2 rings = 6+12 = 18 balls)
-  const FILL_RINGS = 2;
+  // Fill rings 1-N: base 2, +1 per level starting at level 4, capped at 4
+  // (rings 5-6 remain as buffer before ring 7 game-over zone)
+  const FILL_RINGS = Math.min(4, 2 + Math.max(0, levelVal - 3));
   for (let i = 0; i < HEX_SLOTS.length; i++) {
     if (HEX_SLOTS[i].ring >= 1 && HEX_SLOTS[i].ring <= FILL_RINGS)
       slotColors[i] = levelColors[Math.floor(Math.random() * nc)];
