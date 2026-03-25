@@ -217,7 +217,8 @@ const HEX_ADJ = (() => {
 })();
 
 const LAST_SAFE_RING = 6;  // ring 7 triggers game over
-const DANGER_RADIUS = (5 + 0.5) * 2 * R;
+const DANGER_RADIUS = (LAST_SAFE_RING + 0.5) * 2 * R;  // visual danger circle between ring 6 and 7
+const SNAP_DEATH_DIST = (MAX_HEX_RING + 1) * 2 * R;    // beyond entire grid — instant death safeguard
 
 const COLORS = ['#ff5555','#55aaff','#55ff55','#ffff55','#ff88ff','#ffaa00'];
 
@@ -555,9 +556,9 @@ function snapToDisk(hx, hy, color) {
   const lx = dx * cosA - dy * sinA;
   const ly = dx * sinA + dy * cosA;
 
-  // If way beyond outer ring, death ball
+  // If way beyond entire grid, death ball (safeguard for extreme outliers)
   const hitDist = Math.hypot(lx, ly);
-  if (hitDist > DANGER_RADIUS) {
+  if (hitDist > SNAP_DEATH_DIST) {
     deathBall = { localAngle: Math.atan2(ly, lx), r: hitDist, color };
     pendingGameOver = true;
     return;
