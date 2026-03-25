@@ -726,7 +726,7 @@ function checkAndPop(i) {
     levelVal++;
     const fillRings = Math.min(4, 2 + Math.max(0, levelVal - 3));
     levelFlash = { text: 'LEVEL ' + levelVal, timer: 3000 };
-    levelIntro = { phase: 'text', delay: 1000, elapsed: 0, fillRings,
+    levelIntro = { phase: 'text', delay: 500, elapsed: 0, fillRings,
                    duration: 600 + fillRings * 80 };
     flyBubble = null; inboundBalls = []; fallingBalls = [];
     beep(880, 0.15, 0.1);
@@ -1133,12 +1133,12 @@ function drawShooter() {
   ctx.restore();
 
   // Current ball
-  if (!flyBubble && !levelIntro) {
+  if (!flyBubble && (!levelIntro || levelIntro.phase === 'pop')) {
     drawBall(bx, by, currentColor);
   }
 
   // Next ball preview
-  if (!levelIntro) {
+  if (!levelIntro || levelIntro.phase === 'pop') {
   ctx.save();
   ctx.font = '5px "Press Start 2P"';
   ctx.fillStyle = 'rgba(255,200,0,0.5)';
@@ -1150,7 +1150,7 @@ function drawShooter() {
 }
 
 function drawAimLine() {
-  if (flyBubble || levelIntro) return;
+  if (flyBubble || (levelIntro && levelIntro.phase === 'text')) return;
   // Build list of filled ball world positions for collision check
   const filledBalls = [];
   for (let i = 0; i < slotColors.length; i++) {
@@ -1668,7 +1668,7 @@ function startGame() {
   currentColor = COLORS[0]; nextColor = COLORS[1]; // will be set properly by resetDiskForLevel
   const fillRings = Math.min(4, 2 + Math.max(0, levelVal - 3));
   levelFlash = { text: 'LEVEL 1', timer: 3000 };
-  levelIntro = { phase: 'text', delay: 1000, elapsed: 0, fillRings,
+  levelIntro = { phase: 'text', delay: 500, elapsed: 0, fillRings,
                  duration: 600 + fillRings * 80 };
   updateUI();
   draw();
