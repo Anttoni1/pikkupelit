@@ -1133,11 +1133,12 @@ function drawShooter() {
   ctx.restore();
 
   // Current ball
-  if (!flyBubble) {
+  if (!flyBubble && !levelIntro) {
     drawBall(bx, by, currentColor);
   }
 
   // Next ball preview
+  if (!levelIntro) {
   ctx.save();
   ctx.font = '5px "Press Start 2P"';
   ctx.fillStyle = 'rgba(255,200,0,0.5)';
@@ -1145,10 +1146,11 @@ function drawShooter() {
   ctx.fillText('NEXT', R + 10, by - R - 2);
   ctx.restore();
   drawBall(R + 10, by, nextColor, 0.7);
+  }
 }
 
 function drawAimLine() {
-  if (flyBubble) return;
+  if (flyBubble || levelIntro) return;
   // Build list of filled ball world positions for collision check
   const filledBalls = [];
   for (let i = 0; i < slotColors.length; i++) {
