@@ -496,14 +496,18 @@ function dropGrid() {
   // Flip parity: after this, colsInRow(r) == old colsInRow(r-1),
   // so every bubble's visual x-position is unchanged.
   gridParity = 1 - gridParity;
-  // Generate new row 0 (now has the new parity)
+  // Generate new row 0 (now has the new parity) — leave some gaps, avoid center
   for (let c = 0; c < COLS_EVEN; c++) grid[0][c] = null;
   const colors = gridColors();
-  for (let c = 0; c < colsInRow(0); c++) {
+  const cols0 = colsInRow(0);
+  const center = Math.floor(cols0 / 2);
+  for (let c = 0; c < cols0; c++) {
+    // Skip center column and randomly skip ~30% of others
+    if (c === center || Math.random() < 0.3) continue;
     grid[0][c] = colors[Math.floor(Math.random() * colors.length)];
   }
-  // Start slide-in animation: bubbles start one row above their new position
-  dropAnim = { t: 0, duration: 280 };
+  // Start slide-in animation: fast snap from above
+  dropAnim = { t: 0, duration: 140 };
   beep(200, 0.12, 0.1);
   if (checkGameOver()) return;
 }
@@ -684,7 +688,7 @@ function drawGrid() {
   // The data shift already moved rows down by one; the visual offset compensates by
   // starting at -ROW_H (so old rows appear where they were) and easing to 0.
   const t = dropAnim ? Math.min(dropAnim.t, 1) : 1;
-  const ease = 1 - (1 - t) * (1 - t); // ease-out quad
+  const ease = 1 - (1 - t) * (1 - t) * (1 - t); // ease-out cubic — snappier
   const yOff = dropAnim ? -(1 - ease) * ROW_H : 0;
 
   // Level intro pop-in: each row staggers in with a scale+bounce effect
