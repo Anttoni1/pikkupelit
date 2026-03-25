@@ -1397,6 +1397,7 @@ function update(dt) {
       applyAngularImpulse(saved.x, saved.y, saved.vx, saved.vy);
       snapToDisk(saved.x, saved.y, saved.color);
       if (!gameRunning) return;
+      if (levelIntro) break; // level cleared — skip growth spawn & color reassign
       if (checkGameOver()) { triggerGameOver(); return; }
       // Shot-based growth: spawn inbound balls after ball has snapped in place
       if (shotsUntilGrowth <= 0) {
@@ -1445,6 +1446,7 @@ function update(dt) {
       applyAngularImpulse(b.x, b.y, b.vx, b.vy);
       snapToDisk(b.x, b.y, b.color);
       if (!gameRunning) return;
+      if (levelIntro) return; // level cleared — inboundBalls was replaced, stop iterating
       if (checkGameOver()) { triggerGameOver(); return; }
     } else if (b.y > CANVAS_H + R) {
       // Flew off bottom without hitting — just discard
