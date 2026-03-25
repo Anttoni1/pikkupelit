@@ -481,6 +481,7 @@ let gameOverAnim = null; // {elapsed, duration, greyTimes, FADE} — BFS grey wa
 let currentColor, nextColor;
 let shooterAngle = -Math.PI / 2;
 let levelFlash = null; // {text, timer}
+let levelIntro = null; // {phase:'text'|'pop', delay, elapsed, duration}
 let popFlash = null;   // {x, y, timer, count}
 
 // ── Disk helpers ──────────────────────────────────────────────────────────────
@@ -694,6 +695,10 @@ function resetDiskForLevel() {
   updateUI();
 }
 
+function finishLevelIntro() {
+  levelIntro = null;
+}
+
 function checkAndPop(i) {
   const group = findGroup(i);
   if (group.length < 3) return;
@@ -719,11 +724,15 @@ function checkAndPop(i) {
   const anyBall = slotColors.some(b => b !== null);
   if (!anyBall) {
     levelVal++;
-    levelFlash = { text: 'LEVEL ' + levelVal, timer: 1500 };
+    const fillRings = Math.min(4, 2 + Math.max(0, levelVal - 3));
+    levelFlash = { text: 'LEVEL ' + levelVal, timer: 3000 };
+    levelIntro = { phase: 'text', delay: 1000, elapsed: 0, fillRings,
+                   duration: 600 + fillRings * 80 };
+    flyBubble = null; inboundBalls = []; fallingBalls = [];
     beep(880, 0.15, 0.1);
     setTimeout(() => beep(1100, 0.12, 0.09), 150);
     setTimeout(() => beep(1320, 0.18, 0.12), 300);
-    setTimeout(() => resetDiskForLevel(), 800);
+    updateUI();
   }
 }
 
@@ -937,10 +946,30 @@ function drawDisk() {
   ctx.restore();
 
   // Draw balls
+  const introScale = levelIntro && levelIntro.phase === 'pop';
+  const introElapsed = introScale ? levelIntro.elapsed : 0;
+  const ringDelay = 80; // ms stagger between rings
+
   for (let i = 0; i < slotColors.length; i++) {
     if (!slotColors[i]) continue;
     const wp = diskBallWorldPos(i);
-    drawBall(wp.x, wp.y, slotColors[i]);
+    if (introScale) {
+      const ring = HEX_SLOTS[i].ring;
+      const t0 = ring * ringDelay;
+      const prog = Math.max(0, Math.min(1, (introElapsed - t0) / 350));
+      if (prog <= 0) continue;
+      // ease-out back bounce
+      const s = 3.5;
+      const p = prog - 1;
+      const scale = 1 + p * p * ((s + 1) * p + s);
+      ctx.save();
+      ctx.translate(wp.x, wp.y);
+      ctx.scale(scale, scale);
+      drawBall(0, 0, slotColors[i]);
+      ctx.restore();
+    } else {
+      drawBall(wp.x, wp.y, slotColors[i]);
+    }
     // Grey wave overlay during game over animation
     if (gameOverAnim && gameOverAnim.greyTimes[i] !== null && gameOverAnim.greyTimes[i] !== undefined) {
       const prog = Math.max(0, Math.min(1, (gameOverAnim.elapsed - gameOverAnim.greyTimes[i]) / gameOverAnim.FADE));
@@ -1442,6 +1471,23 @@ function update(dt) {
   // Timers
   if (popFlash && popFlash.timer > 0) popFlash.timer -= dt;
   if (levelFlash && levelFlash.timer > 0) levelFlash.timer -= dt;
+
+  // Level intro animation
+  if (levelIntro) {
+    levelIntro.elapsed += dt;
+    if (levelIntro.phase === 'text') {
+      if (levelIntro.elapsed >= levelIntro.delay) {
+        resetDiskForLevel();
+        levelIntro.phase = 'pop';
+        levelIntro.elapsed = 0;
+        beep(330, 0.1, 0.08);
+      }
+    } else if (levelIntro.phase === 'pop') {
+      if (levelIntro.elapsed >= levelIntro.duration) {
+        finishLevelIntro();
+      }
+    }
+  }
 }
 
 // ── Actions ──────────────────────────────────────────────────────────────────
@@ -1450,6 +1496,7 @@ function moveRight() { shooterAngle = Math.min(MAX_ANGLE, shooterAngle + AIM_STE
 
 function tapAction() {
   if (!gameRunning || paused) return;
+  if (levelIntro) return;
   if (flyBubble) return;
   flyBubble = {
     x: SHOOTER_X, y: SHOOTER_Y,
@@ -1607,11 +1654,20 @@ function startGame() {
   document.getElementById('gameOver').classList.add('hidden');
   scoreVal = 0; levelVal = 1; shotCount = 0;
   gameRunning = true; paused = false; lastTime = 0;
-  gameOverAnim = null;
-  levelFlash = null; popFlash = null;
+  gameOverAnim = null; levelFlash = null; levelIntro = null; popFlash = null;
   shooterAngle = -Math.PI / 2;
   try { hiScore = parseInt(localStorage.getItem('puzzlecircle_hi')) || 0; } catch(e) { hiScore = 0; }
-  initDisk();
+  // Start with empty disk — levelIntro will populate and animate it
+  slotColors = new Array(HEX_SLOTS.length).fill(null);
+  flyBubble = null; inboundBalls = []; fallingBalls = []; particles = [];
+  deathBall = null; pendingGameOver = false;
+  diskAngle = 0; diskOmega = 0;
+  shotsUntilGrowth = Math.max(3, SHOTS_PER_GROWTH - (levelVal - 1));
+  currentColor = COLORS[0]; nextColor = COLORS[1]; // will be set properly by resetDiskForLevel
+  const fillRings = Math.min(4, 2 + Math.max(0, levelVal - 3));
+  levelFlash = { text: 'LEVEL 1', timer: 3000 };
+  levelIntro = { phase: 'text', delay: 1000, elapsed: 0, fillRings,
+                 duration: 600 + fillRings * 80 };
   updateUI();
   draw();
   music.play();
