@@ -496,14 +496,23 @@ function dropGrid() {
   // Flip parity: after this, colsInRow(r) == old colsInRow(r-1),
   // so every bubble's visual x-position is unchanged.
   gridParity = 1 - gridParity;
-  // Generate new row 0 (now has the new parity) — leave some gaps, avoid center
+  // Generate new row 0 — only place balls adjacent to existing row-1 bubbles
   for (let c = 0; c < COLS_EVEN; c++) grid[0][c] = null;
   const colors = gridColors();
   const cols0 = colsInRow(0);
-  const center = Math.floor(cols0 / 2);
-  for (let c = 0; c < cols0; c++) {
-    // Skip center column and randomly skip ~30% of others
-    if (c === center || Math.random() < 0.3) continue;
+  // Find which row-0 columns are hex-neighbors of occupied row-1 cells
+  const eligible = new Set();
+  for (let c = 0; c < colsInRow(1); c++) {
+    if (!grid[1][c]) continue;
+    // row-1 neighbors in row-0 (use hexNeighbors logic for row 1 → row 0)
+    const isEven1 = (1 + gridParity) % 2 === 0;
+    const offUp = isEven1 ? [0, -1] : [0, 1]; // col offsets for the row above
+    for (const dc of offUp) {
+      const nc = c + dc;
+      if (nc >= 0 && nc < cols0) eligible.add(nc);
+    }
+  }
+  for (const c of eligible) {
     grid[0][c] = colors[Math.floor(Math.random() * colors.length)];
   }
   // Start slide-in animation: fast snap from above
