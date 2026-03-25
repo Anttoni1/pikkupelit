@@ -542,7 +542,7 @@ function applyAngularImpulse(hx, hy, vx, vy) {
   const rawImpulse = -(cross / BUBBLE_SPEED) * OMEGA_MAX * 0.8 * (dist / maxR);
   // Scale by inertia ratio: fewer balls → stronger spin
   const inertiaRatio = diskInertia() / FULL_DISK_INERTIA;
-  const impulse = rawImpulse / Math.max(inertiaRatio, 0.1);
+  const impulse = rawImpulse / Math.max(inertiaRatio, 0.45);
   diskOmega += impulse;
   diskOmega = Math.max(-OMEGA_MAX, Math.min(OMEGA_MAX, diskOmega));
 }
