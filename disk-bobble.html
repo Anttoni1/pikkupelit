@@ -180,26 +180,44 @@ const SHOTS_PER_GROWTH = 8;
 const OMEGA_MAX = 4.0;   // rad/s max spin
 const FRICTION = 1.5;    // rad/s² decel
 
-// Ring defs: radii calculated so same-ring chord distance = 2R (tight honeycomb),
-// offsets computed for proper inter-ring honeycomb stagger.
-const RING_DEFS = (() => {
-  const defs = [];
-  for (let k = 0; k < 7; k++) {
-    const n = 6 * (k + 1);
-    const r = R / Math.sin(Math.PI / n);
-    let off = 0;
-    if (k > 0) {
-      const rPrev = defs[k - 1].r;
-      const cosD = (rPrev * rPrev + r * r - 4 * R * R) / (2 * rPrev * r);
-      const dTheta = Math.acos(Math.min(1, Math.max(-1, cosD)));
-      off = defs[k - 1].off + (k % 2 === 1 ? 1 : -1) * dTheta;
+// ── Hex grid definition ───────────────────────────────────────────────────────
+// True honeycomb: axial hex coords (q,r), adjacent centers exactly 2R apart
+// Pointy-top orientation: lx = R*(2q+r), ly = R*sqrt(3)*r
+const MAX_HEX_RING = 5;  // rings 0-5 (ring 5 = game-over zone)
+
+const HEX_SLOTS = (() => {
+  const slots = [];
+  const MR = MAX_HEX_RING;
+  for (let q = -MR; q <= MR; q++) {
+    const r1 = Math.max(-MR, -q - MR);
+    const r2 = Math.min(MR, -q + MR);
+    for (let r = r1; r <= r2; r++) {
+      const s = -q - r;
+      const ring = Math.max(Math.abs(q), Math.abs(r), Math.abs(s));
+      const lx = R * (2 * q + r);
+      const ly = R * Math.sqrt(3) * r;
+      slots.push({ lx, ly, ring });
     }
-    defs.push({ r, n, off });
   }
-  return defs;
+  return slots;
 })();
-const LAST_SAFE_RING = 5; // ring 6 (index 6) triggers game over
-const DANGER_RADIUS = (RING_DEFS[5].r + RING_DEFS[6].r) / 2;
+
+// Precompute adjacency: slots within 2R+0.5 are honeycomb neighbors
+const HEX_ADJ = (() => {
+  const adj = HEX_SLOTS.map(() => []);
+  const thresh = 2 * R + 0.5;
+  for (let i = 0; i < HEX_SLOTS.length; i++) {
+    for (let j = i + 1; j < HEX_SLOTS.length; j++) {
+      const d = Math.hypot(HEX_SLOTS[i].lx - HEX_SLOTS[j].lx,
+                           HEX_SLOTS[i].ly - HEX_SLOTS[j].ly);
+      if (d < thresh) { adj[i].push(j); adj[j].push(i); }
+    }
+  }
+  return adj;
+})();
+
+const LAST_SAFE_RING = 4;  // ring 5 triggers game over
+const DANGER_RADIUS = (MAX_HEX_RING + 0.5) * 2 * R;
 
 const COLORS = ['#ff5555','#55aaff','#55ff55','#ffff55','#ff88ff','#ffaa00'];
 
@@ -447,11 +465,11 @@ function checkPerf() {
 }
 
 // ── State ────────────────────────────────────────────────────────────────────
-let rings = [];        // rings[i] = array of length n, each null or color string
+let slotColors = [];   // flat array parallel to HEX_SLOTS, each null or color string
 let diskAngle = 0;     // current rotation offset (radians)
 let diskOmega = 0;     // angular velocity (rad/s)
 let flyBubble = null;  // {x, y, vx, vy, color}
-let inboundBalls = []; // [{x, y, vx, vy, color, targetRing, targetSlot}]
+let inboundBalls = []; // [{x, y, color, speed}]
 let fallingBalls = []; // [{x, y, vx, vy, color, life}]
 let particles = [];
 let scoreVal, hiScore, levelVal, shotCount, shotsUntilGrowth;
@@ -465,12 +483,12 @@ let levelFlash = null; // {text, timer}
 let popFlash = null;   // {x, y, timer, count}
 
 // ── Disk helpers ──────────────────────────────────────────────────────────────
-function diskBallWorldPos(ringIdx, slotIdx) {
-  const def = RING_DEFS[ringIdx];
-  const angle = (slotIdx / def.n) * Math.PI * 2 + (def.off || 0) + diskAngle;
+function diskBallWorldPos(i) {
+  const { lx, ly } = HEX_SLOTS[i];
+  const cos = Math.cos(diskAngle), sin = Math.sin(diskAngle);
   return {
-    x: DISK_CX + def.r * Math.cos(angle),
-    y: DISK_CY + def.r * Math.sin(angle)
+    x: DISK_CX + lx * cos - ly * sin,
+    y: DISK_CY + lx * sin + ly * cos
   };
 }
 
@@ -480,9 +498,8 @@ function initDisk() {
 
 function diskColors() {
   const s = new Set();
-  for (let i = 0; i < rings.length; i++)
-    for (let j = 0; j < rings[i].length; j++)
-      if (rings[i][j]) s.add(rings[i][j]);
+  for (let i = 0; i < slotColors.length; i++)
+    if (slotColors[i]) s.add(slotColors[i]);
   return s.size ? Array.from(s) : COLORS.slice(0, 4);
 }
 
@@ -500,7 +517,7 @@ function applyAngularImpulse(hx, hy, vx, vy) {
   // 2D cross product: vx*ny - vy*nx  (positive = CCW)
   const cross = vx * ny - vy * nx;
   // cross ranges ±BUBBLE_SPEED; normalise to [-1,1] then scale by lever arm
-  const maxR = RING_DEFS[RING_DEFS.length - 1].r;
+  const maxR = DANGER_RADIUS;
   const impulse = -(cross / BUBBLE_SPEED) * OMEGA_MAX * 0.8 * (dist / maxR);
   diskOmega += impulse;
   diskOmega = Math.max(-OMEGA_MAX, Math.min(OMEGA_MAX, diskOmega));
@@ -508,131 +525,97 @@ function applyAngularImpulse(hx, hy, vx, vy) {
 
 // ── Snap Algorithm ───────────────────────────────────────────────────────────
 function snapToDisk(hx, hy, color) {
-  // Determine which ring index the hit radius belongs to
-  const hitDist = Math.hypot(hx - DISK_CX, hy - DISK_CY);
-  let closestRingIdx = 0;
-  let closestRingDiff = Infinity;
-  for (let i = 0; i < rings.length; i++) {
-    const diff = Math.abs(hitDist - RING_DEFS[i].r);
-    if (diff < closestRingDiff) { closestRingDiff = diff; closestRingIdx = i; }
-  }
+  // Convert hit point to disk-local coordinates (un-rotate)
+  const cosA = Math.cos(-diskAngle), sinA = Math.sin(-diskAngle);
+  const dx = hx - DISK_CX, dy = hy - DISK_CY;
+  const lx = dx * cosA - dy * sinA;
+  const ly = dx * sinA + dy * cosA;
 
-  // If ball hit beyond ring 5 (the last defined ring): place as death ball, trigger game over
-  const outermost = rings.length - 1;
-  if (hitDist > RING_DEFS[outermost].r + R) {
-    // Store in disk-local polar coords so it rotates with the disk
-    const localAngle = Math.atan2(hy - DISK_CY, hx - DISK_CX) - diskAngle;
-    deathBall = { localAngle, r: hitDist, color };
+  // If way beyond outer ring, death ball
+  const hitDist = Math.hypot(lx, ly);
+  if (hitDist > DANGER_RADIUS) {
+    deathBall = { localAngle: Math.atan2(ly, lx), r: hitDist, color };
     pendingGameOver = true;
     return;
   }
 
-  // Find the filled ball closest to the hit point, then pick its empty neighbor closest to the hit
-  let nearestFilledR = -1, nearestFilledS = -1, nearestFilledDist = Infinity;
-  for (let i = 0; i < rings.length; i++) {
-    for (let j = 0; j < rings[i].length; j++) {
-      if (!rings[i][j]) continue;
-      const wp = diskBallWorldPos(i, j);
-      const d = Math.hypot(hx - wp.x, hy - wp.y);
-      if (d < nearestFilledDist) { nearestFilledDist = d; nearestFilledR = i; nearestFilledS = j; }
-    }
+  // Find nearest filled slot in local coords
+  let nearestIdx = -1, nearestDist = Infinity;
+  for (let i = 0; i < slotColors.length; i++) {
+    if (!slotColors[i]) continue;
+    const d = Math.hypot(lx - HEX_SLOTS[i].lx, ly - HEX_SLOTS[i].ly);
+    if (d < nearestDist) { nearestDist = d; nearestIdx = i; }
   }
 
-  let bestRing = -1, bestSlot = -1, bestDist = Infinity;
-  if (nearestFilledR !== -1) {
-    // Check all empty neighbors of the nearest filled ball
-    for (const [ni, nj] of ringNeighbors(nearestFilledR, nearestFilledS)) {
-      if (rings[ni][nj] !== null) continue;
-      const wp = diskBallWorldPos(ni, nj);
-      const d = Math.hypot(hx - wp.x, hy - wp.y);
-      if (d < bestDist) { bestDist = d; bestRing = ni; bestSlot = nj; }
-    }
-    // Also check neighbors of neighbors (one hop) in case closest ball is surrounded
-    if (bestRing === -1) {
-      for (const [ni, nj] of ringNeighbors(nearestFilledR, nearestFilledS)) {
-        if (!rings[ni] || !rings[ni][nj]) continue;
-        for (const [ni2, nj2] of ringNeighbors(ni, nj)) {
-          if (rings[ni2][nj2] !== null) continue;
-          const wp = diskBallWorldPos(ni2, nj2);
-          const d = Math.hypot(hx - wp.x, hy - wp.y);
-          if (d < bestDist) { bestDist = d; bestRing = ni2; bestSlot = nj2; }
-        }
+  if (nearestIdx === -1) {
+    // Empty disk — snap to center slot
+    slotColors[0] = color;
+    checkAndPop(0);
+    return;
+  }
+
+  // Find nearest empty neighbor of nearest filled slot
+  let bestIdx = -1, bestDist = Infinity;
+  for (const ni of HEX_ADJ[nearestIdx]) {
+    if (slotColors[ni] !== null) continue;
+    const d = Math.hypot(lx - HEX_SLOTS[ni].lx, ly - HEX_SLOTS[ni].ly);
+    if (d < bestDist) { bestDist = d; bestIdx = ni; }
+  }
+
+  // One hop further if needed
+  if (bestIdx === -1) {
+    for (const ni of HEX_ADJ[nearestIdx]) {
+      if (!slotColors[ni]) continue;
+      for (const ni2 of HEX_ADJ[ni]) {
+        if (slotColors[ni2] !== null) continue;
+        const d = Math.hypot(lx - HEX_SLOTS[ni2].lx, ly - HEX_SLOTS[ni2].ly);
+        if (d < bestDist) { bestDist = d; bestIdx = ni2; }
       }
     }
   }
 
-  if (bestRing === -1) return; // disk completely full
+  if (bestIdx === -1) {
+    // Disk completely full — death
+    deathBall = { localAngle: Math.atan2(ly, lx), r: Math.max(hitDist, DANGER_RADIUS), color };
+    pendingGameOver = true;
+    return;
+  }
 
-  rings[bestRing][bestSlot] = color;
-  checkAndPop(bestRing, bestSlot);
+  slotColors[bestIdx] = color;
+  checkAndPop(bestIdx);
 }
 
 // ── Adjacency & BFS ──────────────────────────────────────────────────────────
-function ringNeighbors(ri, si) {
-  const neighbors = [];
-  const n = RING_DEFS[ri].n;
-
-  // Same ring: wrap-around
-  neighbors.push([ri, (si + 1) % n]);
-  neighbors.push([ri, (si - 1 + n) % n]);
-
-  // Adjacent rings
-  for (const ri2 of [ri - 1, ri + 1]) {
-    if (ri2 < 0 || ri2 >= rings.length) continue;
-    const n2 = RING_DEFS[ri2].n;
-    const off2 = RING_DEFS[ri2].off || 0;
-    // Angular distance threshold — half slot in the denser ring + small margin
-    const thresh = Math.PI / Math.min(n, n2) + 0.15;
-    const myAngle = (si / n) * Math.PI * 2 + (RING_DEFS[ri].off || 0);
-    for (let sj = 0; sj < n2; sj++) {
-      const otherAngle = (sj / n2) * Math.PI * 2 + off2;
-      let diff = Math.abs(myAngle - otherAngle);
-      if (diff > Math.PI) diff = Math.PI * 2 - diff;
-      if (diff < thresh) neighbors.push([ri2, sj]);
-    }
-  }
-  return neighbors;
-}
-
-function findGroup(ri, si) {
-  const color = rings[ri][si];
+function findGroup(i) {
+  const color = slotColors[i];
   if (!color) return [];
-  const visited = new Set();
-  const queue = [[ri, si]];
-  const key = (r, s) => r * 100 + s;
-  visited.add(key(ri, si));
+  const visited = new Set([i]);
+  const queue = [i];
   while (queue.length) {
-    const [r, s] = queue.shift();
-    for (const [nr, ns] of ringNeighbors(r, s)) {
-      const k = key(nr, ns);
-      if (!visited.has(k) && rings[nr] && rings[nr][ns] === color) {
-        visited.add(k);
-        queue.push([nr, ns]);
+    const cur = queue.shift();
+    for (const ni of HEX_ADJ[cur]) {
+      if (!visited.has(ni) && slotColors[ni] === color) {
+        visited.add(ni); queue.push(ni);
       }
     }
   }
-  return [...visited].map(k => [Math.floor(k / 100), k % 100]);
+  return [...visited];
 }
 
-// BFS from ring 0 (connected to hub) — returns Set of "r*100+s" keys
+// BFS from hub (rings 0-1 are anchored to the disk)
 function findConnected() {
   const connected = new Set();
-  const key = (r, s) => r * 100 + s;
   const queue = [];
-  // Seed: all filled slots in ring 0 are anchored to the hub
-  for (let s = 0; s < RING_DEFS[0].n; s++) {
-    if (rings[0] && rings[0][s]) {
-      connected.add(key(0, s));
-      queue.push([0, s]);
+  for (let i = 0; i < HEX_SLOTS.length; i++) {
+    if (HEX_SLOTS[i].ring <= 1 && slotColors[i]) {
+      connected.add(i); queue.push(i);
     }
   }
   while (queue.length) {
-    const [r, s] = queue.shift();
-    for (const [nr, ns] of ringNeighbors(r, s)) {
-      const k = key(nr, ns);
-      if (!connected.has(k) && rings[nr] && rings[nr][ns]) {
-        connected.add(k);
-        queue.push([nr, ns]);
+    const cur = queue.shift();
+    for (const ni of HEX_ADJ[cur]) {
+      if (!connected.has(ni) && slotColors[ni]) {
+        connected.add(ni); queue.push(ni);
       }
     }
   }
@@ -641,18 +624,13 @@ function findConnected() {
 
 function dropFloating() {
   const connected = findConnected();
-  const key = (r, s) => r * 100 + s;
   let dropped = 0;
-  for (let i = 0; i < rings.length; i++) {
-    for (let s = 0; s < rings[i].length; s++) {
-      if (!rings[i][s]) continue;
-      if (!connected.has(key(i, s))) {
-        const wp = diskBallWorldPos(i, s);
-        spawnFallingBall(wp.x, wp.y, rings[i][s]);
-        rings[i][s] = null;
-        dropped++;
-      }
-    }
+  for (let i = 0; i < slotColors.length; i++) {
+    if (!slotColors[i] || connected.has(i)) continue;
+    const wp = diskBallWorldPos(i);
+    spawnFallingBall(wp.x, wp.y, slotColors[i]);
+    slotColors[i] = null;
+    dropped++;
   }
   if (dropped > 0) {
     scoreVal += dropped * 15 * levelVal;
@@ -666,16 +644,14 @@ function numColorsForLevel(lv) {
 }
 
 function resetDiskForLevel() {
-  rings = [];
-  for (let i = 0; i < RING_DEFS.length; i++)
-    rings.push(new Array(RING_DEFS[i].n).fill(null));
+  slotColors = new Array(HEX_SLOTS.length).fill(null);
   const nc = numColorsForLevel(levelVal);
   const levelColors = COLORS.slice(0, nc);
-  const numFilled = Math.min(3, RING_DEFS.length);
-  for (let i = 0; i < numFilled; i++) {
-    const n = RING_DEFS[i].n;
-    for (let j = 0; j < n; j++)
-      rings[i][j] = levelColors[Math.floor(Math.random() * nc)];
+  // Fill rings 0-2 (center + first 2 rings = 1+6+12 = 19 balls)
+  const FILL_RINGS = 2;
+  for (let i = 0; i < HEX_SLOTS.length; i++) {
+    if (HEX_SLOTS[i].ring <= FILL_RINGS)
+      slotColors[i] = levelColors[Math.floor(Math.random() * nc)];
   }
   flyBubble = null;
   inboundBalls = [];
@@ -690,16 +666,16 @@ function resetDiskForLevel() {
   updateUI();
 }
 
-function checkAndPop(ri, si) {
-  const group = findGroup(ri, si);
+function checkAndPop(i) {
+  const group = findGroup(i);
   if (group.length < 3) return;
 
   let cx = 0, cy = 0;
-  for (const [r, s] of group) {
-    const wp = diskBallWorldPos(r, s);
+  for (const idx of group) {
+    const wp = diskBallWorldPos(idx);
     cx += wp.x; cy += wp.y;
-    spawnParticles(wp.x, wp.y, rings[r][s], 5);
-    rings[r][s] = null;
+    spawnParticles(wp.x, wp.y, slotColors[idx], 5);
+    slotColors[idx] = null;
   }
   cx /= group.length; cy /= group.length;
 
@@ -712,7 +688,7 @@ function checkAndPop(ri, si) {
   dropFloating();
 
   // Check if disk is cleared → level up
-  const anyBall = rings.some(ring => ring.some(b => b !== null));
+  const anyBall = slotColors.some(b => b !== null);
   if (!anyBall) {
     levelVal++;
     levelFlash = { text: 'LEVEL ' + levelVal, timer: 1500 };
@@ -753,9 +729,8 @@ function spawnParticles(x, y, color, count) {
 
 // ── Circle Growth ────────────────────────────────────────────────────────────
 function checkGameOver() {
-  // Game over when any ball lands in ring 5 (LAST_SAFE_RING + 1) and isn't popped
-  if (rings[LAST_SAFE_RING + 1] && rings[LAST_SAFE_RING + 1].some(c => c !== null)) return true;
-  return false;
+  // Game over when any ball occupies ring LAST_SAFE_RING+1 (= MAX_HEX_RING = 5)
+  return slotColors.some((c, i) => c !== null && HEX_SLOTS[i].ring > LAST_SAFE_RING);
 }
 
 function spawnInboundBalls(count) {
@@ -763,29 +738,22 @@ function spawnInboundBalls(count) {
 
   // Collect all empty slots that are adjacent to at least one filled ball
   const candidates = [];
-  for (let i = 0; i < rings.length; i++) {
-    for (let s = 0; s < rings[i].length; s++) {
-      if (rings[i][s] !== null) continue; // must be empty
-      // Check if any neighbor is filled
-      const neighbors = ringNeighbors(i, s);
-      if (neighbors.some(([nr, ns]) => rings[nr] && rings[nr][ns])) {
-        candidates.push([i, s]);
-      }
+  for (let i = 0; i < HEX_SLOTS.length; i++) {
+    if (slotColors[i] !== null) continue;
+    if (HEX_ADJ[i].some(ni => slotColors[ni] !== null)) {
+      candidates.push(i);
     }
   }
 
-  // No adjacent empty slots — try adding a ring
+  // No adjacent empty slots — disk is full, trigger game over
   if (candidates.length === 0) {
-    addRing();
-    if (!gameRunning) return;
-    // After adding ring, all its slots are adjacent to outer ring's balls
-    const newRing = rings.length - 1;
-    for (let s = 0; s < rings[newRing].length; s++) candidates.push([newRing, s]);
+    triggerGameOver();
+    return;
   }
 
   for (let b = 0; b < count; b++) {
     if (candidates.length === 0) break;
-    const [targetRing, slot] = candidates[Math.floor(Math.random() * candidates.length)];
+    const slotIdx = candidates[Math.floor(Math.random() * candidates.length)];
     const color = colors[Math.floor(Math.random() * colors.length)];
 
     // Spawn from random screen edge
@@ -798,22 +766,14 @@ function spawnInboundBalls(count) {
 
     inboundBalls.push({
       x: sx, y: sy, color,
-      targetRing, targetSlot: slot,
+      targetSlot: slotIdx,
       speed: 300 + Math.random() * 80
     });
   }
   beep(880, 0.1, { vol: 0.08, wave: 'square', pitchEnd: 440 });
 }
 
-function addRing() {
-  const nextIdx = rings.length;
-  if (nextIdx >= RING_DEFS.length) {
-    triggerGameOver();
-    return;
-  }
-  rings.push(new Array(RING_DEFS[nextIdx].n).fill(null));
-  beep(330, 0.2, { vol: 0.1, wave: 'sawtooth', pitchEnd: 220 });
-}
+// addRing is no longer used — hex grid is fixed size
 
 // ── Draw helpers ──────────────────────────────────────────────────────────────
 function drawBall(x, y, color, alpha) {
@@ -960,36 +920,22 @@ function drawDisk() {
   ctx.stroke();
   ctx.restore();
 
-  // Draw ring outlines (faint) — skip last ring
-  for (let i = 0; i < rings.length - 1; i++) {
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(DISK_CX, DISK_CY, RING_DEFS[i].r, 0, Math.PI * 2);
-    ctx.strokeStyle = 'rgba(255,200,0,0.07)';
-    ctx.lineWidth = 1;
-    ctx.stroke();
-    ctx.restore();
-  }
-
   // Draw balls
-  for (let i = 0; i < rings.length; i++) {
-    const n = RING_DEFS[i].n;
-    for (let j = 0; j < n; j++) {
-      if (!rings[i][j]) continue;
-      const wp = diskBallWorldPos(i, j);
-      drawBall(wp.x, wp.y, rings[i][j]);
-      // Grey wave overlay during game over animation
-      if (gameOverAnim && gameOverAnim.greyTimes[i] && gameOverAnim.greyTimes[i][j] !== null) {
-        const prog = Math.max(0, Math.min(1, (gameOverAnim.elapsed - gameOverAnim.greyTimes[i][j]) / gameOverAnim.FADE));
-        if (prog > 0) {
-          ctx.save();
-          ctx.globalAlpha = prog * 0.88;
-          ctx.beginPath();
-          ctx.arc(wp.x, wp.y, R - 0.5, 0, Math.PI * 2);
-          ctx.fillStyle = '#111';
-          ctx.fill();
-          ctx.restore();
-        }
+  for (let i = 0; i < slotColors.length; i++) {
+    if (!slotColors[i]) continue;
+    const wp = diskBallWorldPos(i);
+    drawBall(wp.x, wp.y, slotColors[i]);
+    // Grey wave overlay during game over animation
+    if (gameOverAnim && gameOverAnim.greyTimes[i] !== null && gameOverAnim.greyTimes[i] !== undefined) {
+      const prog = Math.max(0, Math.min(1, (gameOverAnim.elapsed - gameOverAnim.greyTimes[i]) / gameOverAnim.FADE));
+      if (prog > 0) {
+        ctx.save();
+        ctx.globalAlpha = prog * 0.88;
+        ctx.beginPath();
+        ctx.arc(wp.x, wp.y, R - 0.5, 0, Math.PI * 2);
+        ctx.fillStyle = '#111';
+        ctx.fill();
+        ctx.restore();
       }
     }
   }
@@ -1160,13 +1106,8 @@ function drawAimLine() {
   if (flyBubble) return;
   // Build list of filled ball world positions for collision check
   const filledBalls = [];
-  for (let ri = 0; ri < rings.length; ri++) {
-    for (let si = 0; si < rings[ri].length; si++) {
-      if (rings[ri][si]) {
-        const wp = diskBallWorldPos(ri, si);
-        filledBalls.push(wp);
-      }
-    }
+  for (let i = 0; i < slotColors.length; i++) {
+    if (slotColors[i]) filledBalls.push(diskBallWorldPos(i));
   }
 
   // Find closest ball hit along the full ray from origin, returns {dist, x, y} or null
@@ -1307,36 +1248,33 @@ function triggerGameOver() {
   setTimeout(() => beep(80, 0.8, 0.15), 300);
   beepNoise(0.18, 0.1, 300);
 
-  // BFS grey wave — start from outermost filled ring slot (or ring 0 slot 0 as fallback)
+  // BFS grey wave — start from outermost filled slot
   const STEP = 60, FADE = 100;
-  // Build greyTimes[i][j] = ms delay before this ball starts greying
-  const greyTimes = rings.map(r => new Array(r.length).fill(null));
-  const key = (r, s) => r * 1000 + s;
+  const greyTimes = new Array(HEX_SLOTS.length).fill(null);
   const visited = new Set();
   const queue = [];
 
-  // Seed: find outermost filled ball (the one closest to death)
-  let seedRing = -1, seedSlot = -1;
-  for (let i = rings.length - 1; i >= 0 && seedRing === -1; i--) {
-    for (let j = 0; j < rings[i].length; j++) {
-      if (rings[i][j]) { seedRing = i; seedSlot = j; break; }
+  // Seed: find outermost filled slot (highest ring index)
+  let seedIdx = -1, seedRingMax = -1;
+  for (let i = 0; i < slotColors.length; i++) {
+    if (slotColors[i] && HEX_SLOTS[i].ring > seedRingMax) {
+      seedRingMax = HEX_SLOTS[i].ring; seedIdx = i;
     }
   }
-  if (seedRing === -1) { seedRing = 0; seedSlot = 0; } // fallback
+  if (seedIdx === -1) seedIdx = 0; // fallback
 
-  visited.add(key(seedRing, seedSlot));
-  queue.push([seedRing, seedSlot, 0]);
+  visited.add(seedIdx);
+  queue.push([seedIdx, 0]);
 
   let maxTime = 0;
   while (queue.length) {
-    const [r, s, dist] = queue.shift();
-    if (!rings[r][s]) continue;
-    greyTimes[r][s] = dist * STEP;
-    if (greyTimes[r][s] > maxTime) maxTime = greyTimes[r][s];
-    for (const [nr, ns] of ringNeighbors(r, s)) {
-      const k = key(nr, ns);
-      if (!visited.has(k) && rings[nr] && rings[nr][ns]) {
-        visited.add(k); queue.push([nr, ns, dist + 1]);
+    const [cur, dist] = queue.shift();
+    if (!slotColors[cur]) continue;
+    greyTimes[cur] = dist * STEP;
+    if (greyTimes[cur] > maxTime) maxTime = greyTimes[cur];
+    for (const ni of HEX_ADJ[cur]) {
+      if (!visited.has(ni) && slotColors[ni]) {
+        visited.add(ni); queue.push([ni, dist + 1]);
       }
     }
   }
@@ -1395,20 +1333,14 @@ function update(dt) {
 
     // Hit test against disk balls
     let hit = false;
-    // Test collision against each filled disk ball
-    for (let i = 0; i < rings.length && !hit; i++) {
-      const n = RING_DEFS[i].n;
-      for (let j = 0; j < n && !hit; j++) {
-        if (!rings[i][j]) continue;
-        const wp = diskBallWorldPos(i, j);
-        if (Math.hypot(flyBubble.x - wp.x, flyBubble.y - wp.y) < R * 2) {
-          hit = true;
-        }
-      }
+    for (let i = 0; i < slotColors.length && !hit; i++) {
+      if (!slotColors[i]) continue;
+      const wp = diskBallWorldPos(i);
+      if (Math.hypot(flyBubble.x - wp.x, flyBubble.y - wp.y) < R * 2) hit = true;
     }
 
-    // Also stop at the solid hub (inner ring radius minus ball radius)
-    if (!hit && Math.hypot(flyBubble.x - DISK_CX, flyBubble.y - DISK_CY) < RING_DEFS[0].r) {
+    // Also stop at the solid hub center
+    if (!hit && Math.hypot(flyBubble.x - DISK_CX, flyBubble.y - DISK_CY) < R * 1.5) {
       hit = true;
     }
 
@@ -1433,20 +1365,14 @@ function update(dt) {
     }
   }
 
-  // Inbound balls — fly toward nearest filled disk ball, snap to adjacent empty slot on contact
+  // Inbound balls — fly toward target slot, snap when close
   for (let i = inboundBalls.length - 1; i >= 0; i--) {
     const b = inboundBalls[i];
 
-    // Find nearest filled disk ball to aim at
-    let nearestX = DISK_CX, nearestY = DISK_CY, nearestDist = Infinity;
-    for (let ri = 0; ri < rings.length; ri++) {
-      for (let si = 0; si < rings[ri].length; si++) {
-        if (!rings[ri][si]) continue;
-        const wp = diskBallWorldPos(ri, si);
-        const d = Math.hypot(b.x - wp.x, b.y - wp.y);
-        if (d < nearestDist) { nearestDist = d; nearestX = wp.x; nearestY = wp.y; }
-      }
-    }
+    // Aim toward the target slot's current world position
+    const targetWp = diskBallWorldPos(b.targetSlot);
+    let nearestX = targetWp.x, nearestY = targetWp.y;
+    let nearestDist = Math.hypot(b.x - nearestX, b.y - nearestY);
 
     const dx = nearestX - b.x, dy = nearestY - b.y;
     const dist = Math.hypot(dx, dy);
