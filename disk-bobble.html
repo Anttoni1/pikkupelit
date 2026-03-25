@@ -183,7 +183,7 @@ const FRICTION = 1.5;    // rad/s² decel
 // ── Hex grid definition ───────────────────────────────────────────────────────
 // True honeycomb: axial hex coords (q,r), adjacent centers exactly 2R apart
 // Pointy-top orientation: lx = R*(2q+r), ly = R*sqrt(3)*r
-const MAX_HEX_RING = 5;  // rings 0-5 (ring 5 = game-over zone)
+const MAX_HEX_RING = 7;  // rings 0-7 (ring 7 = game-over zone)
 
 const HEX_SLOTS = (() => {
   const slots = [];
@@ -216,7 +216,7 @@ const HEX_ADJ = (() => {
   return adj;
 })();
 
-const LAST_SAFE_RING = 4;  // ring 5 triggers game over
+const LAST_SAFE_RING = 6;  // ring 7 triggers game over
 const DANGER_RADIUS = (MAX_HEX_RING + 0.5) * 2 * R;
 
 const COLORS = ['#ff5555','#55aaff','#55ff55','#ffff55','#ff88ff','#ffaa00'];
@@ -729,7 +729,7 @@ function spawnParticles(x, y, color, count) {
 
 // ── Circle Growth ────────────────────────────────────────────────────────────
 function checkGameOver() {
-  // Game over when any ball occupies ring LAST_SAFE_RING+1 (= MAX_HEX_RING = 5)
+  // Game over when any ball occupies ring 7 (> LAST_SAFE_RING = 6)
   return slotColors.some((c, i) => c !== null && HEX_SLOTS[i].ring > LAST_SAFE_RING);
 }
 
