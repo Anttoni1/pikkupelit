@@ -1351,6 +1351,13 @@ function update(dt) {
       snapToDisk(saved.x, saved.y, saved.color);
       if (!gameRunning) return;
       if (checkGameOver()) { triggerGameOver(); return; }
+      // Shot-based growth: spawn inbound balls after ball has snapped in place
+      if (shotsUntilGrowth <= 0) {
+        shotsUntilGrowth = Math.max(3, SHOTS_PER_GROWTH - (levelVal - 1));
+        const count = 1 + Math.floor(Math.random() * 2); // 1-2 inbound balls
+        spawnInboundBalls(count);
+        if (!gameRunning) return;
+      }
       currentColor = nextColor;
       nextColor = randomDiskColor();
       updateUI();
@@ -1428,15 +1435,7 @@ function tapAction() {
   };
   beep(440, 0.08, { vol: 0.09, wave: 'square', attack: 0.008 });
   shotCount++;
-
-  // Shot-based growth
   shotsUntilGrowth--;
-  if (shotsUntilGrowth <= 0) {
-    shotsUntilGrowth = Math.max(3, SHOTS_PER_GROWTH - (levelVal - 1));
-    const count = 1 + Math.floor(Math.random() * 2); // 1-2 inbound balls
-    spawnInboundBalls(count);
-    if (!gameRunning) return; // game over
-  }
 
   updateUI();
 }
