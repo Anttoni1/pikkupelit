@@ -470,7 +470,7 @@ let slotColors = [];   // flat array parallel to HEX_SLOTS, each null or color s
 let diskAngle = 0;     // current rotation offset (radians)
 let diskOmega = 0;     // angular velocity (rad/s)
 let flyBubble = null;  // {x, y, vx, vy, color}
-let inboundBalls = []; // [{x, y, color, speed}]
+let inboundBalls = []; // [{x, y, vx, vy, color}]
 let fallingBalls = []; // [{x, y, vx, vy, color, life}]
 let particles = [];
 let scoreVal, hiScore, levelVal, shotCount, shotsUntilGrowth;
@@ -760,31 +760,16 @@ function checkGameOver() {
 }
 
 function spawnInboundBalls(count) {
+  const anyBall = slotColors.some(c => c !== null);
+  if (!anyBall) return; // disk is empty (level just cleared) — skip
+
   const colors = diskColors();
-
-  // Collect all empty slots that are adjacent to at least one filled ball
-  const candidates = [];
-  for (let i = 0; i < HEX_SLOTS.length; i++) {
-    if (slotColors[i] !== null) continue;
-    if (HEX_ADJ[i].some(ni => slotColors[ni] !== null)) {
-      candidates.push(i);
-    }
-  }
-
-  // No adjacent empty slots — either disk is full (game over) or disk is empty (level just cleared, skip)
-  if (candidates.length === 0) {
-    const anyBall = slotColors.some(c => c !== null);
-    if (anyBall) triggerGameOver(); // disk full → game over
-    // else: disk is empty because level was just cleared — resetDiskForLevel() is pending, do nothing
-    return;
-  }
+  const speed = BUBBLE_SPEED;
 
   for (let b = 0; b < count; b++) {
-    if (candidates.length === 0) break;
-    const slotIdx = candidates[Math.floor(Math.random() * candidates.length)];
     const color = colors[Math.floor(Math.random() * colors.length)];
 
-    // Spawn from random screen edge
+    // Spawn from a random screen edge
     let sx, sy;
     const edge = Math.floor(Math.random() * 4);
     if (edge === 0) { sx = Math.random() * CANVAS_W; sy = -R; }
@@ -792,11 +777,12 @@ function spawnInboundBalls(count) {
     else if (edge === 2) { sx = Math.random() * CANVAS_W; sy = CANVAS_H + R; }
     else { sx = -R; sy = Math.random() * CANVAS_H; }
 
-    inboundBalls.push({
-      x: sx, y: sy, color,
-      targetSlot: slotIdx,
-      speed: 300 + Math.random() * 80
-    });
+    // Aim toward disk center with a small random spread
+    const spread = (Math.random() - 0.5) * 0.6; // ±0.3 rad
+    const baseAngle = Math.atan2(DISK_CY - sy, DISK_CX - sx);
+    const angle = baseAngle + spread;
+
+    inboundBalls.push({ x: sx, y: sy, color, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed });
   }
   beep(880, 0.1, { vol: 0.08, wave: 'square', pitchEnd: 440 });
 }
@@ -1400,28 +1386,36 @@ function update(dt) {
     }
   }
 
-  // Inbound balls — fly toward target slot, snap when close
+  // Inbound balls — fly in straight lines, bounce walls, snap on disk hit
   for (let i = inboundBalls.length - 1; i >= 0; i--) {
     const b = inboundBalls[i];
+    b.x += b.vx * sec;
+    b.y += b.vy * sec;
 
-    // Aim toward the target slot's current world position
-    const targetWp = diskBallWorldPos(b.targetSlot);
-    let nearestX = targetWp.x, nearestY = targetWp.y;
-    let nearestDist = Math.hypot(b.x - nearestX, b.y - nearestY);
+    // Wall bounce (left/right)
+    if (b.x - R < 0) { b.x = R; b.vx = Math.abs(b.vx); beep(220, 0.05, 0.07); }
+    if (b.x + R > CANVAS_W) { b.x = CANVAS_W - R; b.vx = -Math.abs(b.vx); beep(220, 0.05, 0.07); }
+    // Top wall bounce
+    if (b.y - R < 0) { b.y = R; b.vy = Math.abs(b.vy); beep(220, 0.05, 0.07); }
 
-    const dx = nearestX - b.x, dy = nearestY - b.y;
-    const dist = Math.hypot(dx, dy);
+    // Hit test against disk balls
+    let hit = false;
+    for (let j = 0; j < slotColors.length && !hit; j++) {
+      if (!slotColors[j]) continue;
+      if (Math.hypot(b.x - diskBallWorldPos(j).x, b.y - diskBallWorldPos(j).y) < R * 2) hit = true;
+    }
+    // Also hit hub center
+    if (!hit && Math.hypot(b.x - DISK_CX, b.y - DISK_CY) < R * 1.5) hit = true;
 
-    if (dist < R * 2) {
-      // Hit a filled ball — snap to nearest empty adjacent slot
+    if (hit) {
       inboundBalls.splice(i, 1);
+      applyAngularImpulse(b.x, b.y, b.vx, b.vy);
       snapToDisk(b.x, b.y, b.color);
       if (!gameRunning) return;
-      const impulse = (Math.random() - 0.5) * 0.6;
-      diskOmega = Math.max(-OMEGA_MAX, Math.min(OMEGA_MAX, diskOmega + impulse));
-    } else {
-      b.x += (dx / dist) * b.speed * sec;
-      b.y += (dy / dist) * b.speed * sec;
+      if (checkGameOver()) { triggerGameOver(); return; }
+    } else if (b.y > CANVAS_H + R) {
+      // Flew off bottom without hitting — just discard
+      inboundBalls.splice(i, 1);
     }
   }
 
