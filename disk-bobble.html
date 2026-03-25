@@ -764,7 +764,7 @@ function spawnInboundBalls(count) {
   if (!anyBall) return; // disk is empty (level just cleared) — skip
 
   const colors = diskColors();
-  const speed = BUBBLE_SPEED * 0.85;
+  const speed = BUBBLE_SPEED;
 
   for (let b = 0; b < count; b++) {
     const color = colors[Math.floor(Math.random() * colors.length)];
