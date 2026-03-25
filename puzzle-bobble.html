@@ -391,14 +391,16 @@ function findFloating() {
 }
 
 function snapBubble(x, y, color) {
-  // Find nearest empty grid cell
+  // Find nearest empty grid cell (skip center of row 0)
   let bestRow = 0, bestCol = 0, bestDist = Infinity;
+  const centerCol0 = Math.floor(colsInRow(0) / 2);
   // only search within valid range
   const rowMin = Math.max(0, Math.floor((y - GRID_Y - R*3) / ROW_H));
   const rowMax = Math.min(MAX_ROWS-1, Math.ceil((y - GRID_Y + R*3) / ROW_H));
   for (let row = rowMin; row <= rowMax; row++) {
     for (let col = 0; col < colsInRow(row); col++) {
       if (grid[row][col]) continue;
+      if (row === 0 && col === centerCol0) continue; // never snap to center of row 0
       const d = Math.hypot(x - bubbleX(col, row), y - bubbleY(row));
       if (d < bestDist) { bestDist = d; bestRow = row; bestCol = col; }
     }
@@ -409,6 +411,7 @@ function snapBubble(x, y, color) {
       if (!grid[row][col]) continue;
       for (const [nr, nc] of hexNeighbors(row, col)) {
         if (grid[nr] && !grid[nr][nc]) {
+          if (nr === 0 && nc === centerCol0) continue; // never snap to center of row 0
           const d = Math.hypot(x - bubbleX(nc, nr), y - bubbleY(nr));
           if (d < bestDist) { bestDist = d; bestRow = nr; bestCol = nc; }
         }
@@ -510,6 +513,19 @@ function dropGrid() {
     for (const dc of offUp) {
       const nc = c + dc;
       if (nc >= 0 && nc < cols0) eligible.add(nc);
+    }
+  }
+  // Fallback: if row 1 was empty (player cleared top), pick a few random positions
+  if (eligible.size === 0) {
+    const centerCol = Math.floor(cols0 / 2);
+    for (let c = 0; c < cols0; c++) {
+      if (c === centerCol) continue;
+      if (Math.random() < 0.5) eligible.add(c);
+    }
+    // Guarantee at least 2 balls
+    while (eligible.size < 2) {
+      const c = Math.floor(Math.random() * cols0);
+      if (c !== Math.floor(cols0 / 2)) eligible.add(c);
     }
   }
   for (const c of eligible) {
