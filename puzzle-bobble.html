@@ -1222,6 +1222,20 @@ document.addEventListener('touchend', e => {
   if (!moved && el < 250 && Math.abs(fdx) < 12 && Math.abs(fdy) < 12) tapAction();
 }, { passive: false });
 
+// ── Mouse ──
+canvas.addEventListener('mousemove', e => {
+  if (!gameRunning || paused) return;
+  const rect = canvas.getBoundingClientRect();
+  const mx = (e.clientX - rect.left) * (canvas.width / rect.width);
+  const my = (e.clientY - rect.top) * (canvas.height / rect.height);
+  const angle = Math.atan2(my - SHOOTER_Y, mx - SHOOTER_X);
+  shooterAngle = Math.max(MIN_ANGLE, Math.min(MAX_ANGLE, angle));
+});
+canvas.addEventListener('mousedown', e => {
+  if (e.button !== 0 || !gameRunning || paused) return;
+  tapAction();
+});
+
 // ── Pause ──────────────────────────────────────────────────────────────────
 const pauseOv = document.getElementById('pauseOverlay');
 let pauseSel = 0;
