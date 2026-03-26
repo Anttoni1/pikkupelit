@@ -1151,6 +1151,19 @@ document.addEventListener('touchend', e => {
   }
 }, { passive: false });
 
+// ── Mouse ──
+canvas.addEventListener('mousemove', e => {
+  if (!gameRunning || paused) return;
+  const rect = canvas.getBoundingClientRect();
+  const scale = CW / rect.width;
+  const mouseX = (e.clientX - rect.left) * scale;
+  paddleX = Math.max(0, Math.min(CW - paddleW, mouseX - paddleW / 2));
+});
+canvas.addEventListener('mousedown', e => {
+  if (e.button !== 0 || !gameRunning || paused) return;
+  tapAction();
+});
+
 // ── Pause ──
 const pauseOv = document.getElementById('pauseOverlay');
 let pauseSel = 0;
