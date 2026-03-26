@@ -1423,8 +1423,12 @@ function update(dt) {
   }
 
   // Inbound balls — fly in straight lines, bounce walls, snap on disk hit
-  for (let i = inboundBalls.length - 1; i >= 0; i--) {
-    const b = inboundBalls[i];
+  // Snapshot array ref: snapToDisk→checkAndPop may reassign inboundBalls on level clear
+  const ib = inboundBalls;
+  for (let i = ib.length - 1; i >= 0; i--) {
+    if (inboundBalls !== ib) break; // array was replaced (level clear)
+    const b = ib[i];
+    if (!b) break; // safety: stale index after array mutation
     b.x += b.vx * sec;
     b.y += b.vy * sec;
 
@@ -1444,7 +1448,7 @@ function update(dt) {
     if (!hit && Math.hypot(b.x - DISK_CX, b.y - DISK_CY) < R * 1.5) hit = true;
 
     if (hit) {
-      inboundBalls.splice(i, 1);
+      ib.splice(i, 1);
       applyAngularImpulse(b.x, b.y, b.vx, b.vy);
       snapToDisk(b.x, b.y, b.color);
       if (!gameRunning) return;
@@ -1452,7 +1456,7 @@ function update(dt) {
       if (checkGameOver()) { triggerGameOver(); return; }
     } else if (b.y > CANVAS_H + R) {
       // Flew off bottom without hitting — just discard
-      inboundBalls.splice(i, 1);
+      ib.splice(i, 1);
     }
   }
 
@@ -1645,8 +1649,13 @@ function gameLoop(time) {
   const dt = Math.min(time - (lastTime || time), 60);
   lastTime = time;
   checkPerf();
-  update(dt);
-  draw();
+  try {
+    update(dt);
+  } catch(e) { console.error('update error:', e); }
+  if (!gameRunning) return; // triggerGameOver was called during update
+  try {
+    draw();
+  } catch(e) { console.error('draw error:', e); }
   if (pendingGameOver) {
     pendingGameOver = false;
     setTimeout(() => triggerGameOver(), 350);
