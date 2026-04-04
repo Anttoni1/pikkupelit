@@ -391,6 +391,7 @@ function findFloating() {
 }
 
 function snapBubble(x, y, color) {
+  invalidateAimPath();
   // Find nearest empty grid cell (skip center of row 0)
   let bestRow = 0, bestCol = 0, bestDist = Infinity;
   const centerCol0 = Math.floor(colsInRow(0) / 2);
@@ -492,6 +493,7 @@ function checkGameOver() {
 }
 // ── Grid management ──────────────────────────────────────────────────────
 function dropGrid() {
+  invalidateAimPath();
   // Shift rows down (before parity flip — row sizes are consistent pre-flip)
   for (let r = MAX_ROWS - 1; r > 0; r--) {
     for (let c = 0; c < COLS_EVEN; c++) grid[r][c] = grid[r-1][c];
@@ -538,6 +540,7 @@ function dropGrid() {
 }
 
 function generateGrid(rows) {
+  invalidateAimPath();
   gridParity = 0;
   grid = [];
   for (let r = 0; r < MAX_ROWS; r++) {
@@ -640,7 +643,11 @@ function spawnFalling(x, y, color) {
 }
 
 // ── Aim line ───────────────────────────────────────────────────────────────
+let _aimPathCache = null;
+let _aimPathDirty = true;
+function invalidateAimPath() { _aimPathDirty = true; }
 function computeAimPath() {
+  if (!_aimPathDirty && _aimPathCache) return _aimPathCache;
   const pts = [[SHOOTER_X, SHOOTER_Y - 4]];
   let x = SHOOTER_X, y = SHOOTER_Y - 4;
   let vx = Math.cos(shooterAngle), vy = Math.sin(shooterAngle);
@@ -681,6 +688,8 @@ function computeAimPath() {
     }
     if (hit) break;
   }
+  _aimPathCache = pts;
+  _aimPathDirty = false;
   return pts;
 }
 // ── Draw ──────────────────────────────────────────────────────────────────
@@ -1040,8 +1049,8 @@ function winContinue() {
 function winRetry() { document.getElementById('winScreen').classList.add('hidden'); startGame(); }
 
 // ── Input: game actions ────────────────────────────────────────────────────
-function moveLeft()  { shooterAngle = Math.max(MIN_ANGLE, shooterAngle - AIM_STEP); }
-function moveRight() { shooterAngle = Math.min(MAX_ANGLE, shooterAngle + AIM_STEP); }
+function moveLeft()  { shooterAngle = Math.max(MIN_ANGLE, shooterAngle - AIM_STEP); invalidateAimPath(); }
+function moveRight() { shooterAngle = Math.min(MAX_ANGLE, shooterAngle + AIM_STEP); invalidateAimPath(); }
 function tapAction() {
   if (flyBubble || levelIntro) return;
   const speed = BUBBLE_SPEED;
@@ -1230,6 +1239,7 @@ canvas.addEventListener('mousemove', e => {
   const my = (e.clientY - rect.top) * (canvas.height / rect.height);
   const angle = Math.atan2(my - SHOOTER_Y, mx - SHOOTER_X);
   shooterAngle = Math.max(MIN_ANGLE, Math.min(MAX_ANGLE, angle));
+  invalidateAimPath();
 });
 canvas.addEventListener('mousedown', e => {
   if (e.button !== 0 || !gameRunning || paused) return;
@@ -1310,7 +1320,7 @@ function startGame() {
   levelIntro = null;
   dropAnim = null;
   gameOverAnim = null;
-  shooterAngle = -Math.PI / 2;
+  shooterAngle = -Math.PI / 2; invalidateAimPath();
   shotsLeft = SHOTS_PER_DROP;
   numColors = 3;
   try { hiScore = parseInt(localStorage.getItem('puzzlebobble_hi')) || 0; } catch(e) { hiScore = 0; }
