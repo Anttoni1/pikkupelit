@@ -392,16 +392,14 @@ function findFloating() {
 
 function snapBubble(x, y, color) {
   invalidateAimPath();
-  // Find nearest empty grid cell (skip center of row 0)
+  // Find nearest empty grid cell
   let bestRow = 0, bestCol = 0, bestDist = Infinity;
-  const centerCol0 = Math.floor(colsInRow(0) / 2);
   // only search within valid range
   const rowMin = Math.max(0, Math.floor((y - GRID_Y - R*3) / ROW_H));
   const rowMax = Math.min(MAX_ROWS-1, Math.ceil((y - GRID_Y + R*3) / ROW_H));
   for (let row = rowMin; row <= rowMax; row++) {
     for (let col = 0; col < colsInRow(row); col++) {
       if (grid[row][col]) continue;
-      if (row === 0 && col === centerCol0) continue; // never snap to center of row 0
       const d = Math.hypot(x - bubbleX(col, row), y - bubbleY(row));
       if (d < bestDist) { bestDist = d; bestRow = row; bestCol = col; }
     }
@@ -412,7 +410,6 @@ function snapBubble(x, y, color) {
       if (!grid[row][col]) continue;
       for (const [nr, nc] of hexNeighbors(row, col)) {
         if (grid[nr] && !grid[nr][nc]) {
-          if (nr === 0 && nc === centerCol0) continue; // never snap to center of row 0
           const d = Math.hypot(x - bubbleX(nc, nr), y - bubbleY(nr));
           if (d < bestDist) { bestDist = d; bestRow = nr; bestCol = nc; }
         }
