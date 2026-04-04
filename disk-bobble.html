@@ -802,29 +802,29 @@ function spawnInboundBalls(count) {
 
 // ── Draw helpers ──────────────────────────────────────────────────────────────
 function drawBall(x, y, color, alpha) {
-  ctx.save();
-  ctx.globalAlpha = alpha !== undefined ? alpha : 1;
+  const a = alpha !== undefined ? alpha : 1;
+  ctx.globalAlpha = a;
   ctx.beginPath();
   ctx.arc(x, y, R - 0.5, 0, Math.PI * 2);
   ctx.fillStyle = color;
   ctx.fill();
   // Highlight
-  ctx.globalAlpha = (alpha !== undefined ? alpha : 1) * 0.45;
+  ctx.globalAlpha = a * 0.45;
   ctx.beginPath();
   ctx.arc(x - R * 0.3, y - R * 0.3, R * 0.28, 0, Math.PI * 2);
   ctx.fillStyle = '#ffffff';
   ctx.fill();
   // Border
-  ctx.globalAlpha = alpha !== undefined ? alpha : 1;
+  ctx.globalAlpha = a;
   ctx.beginPath();
   ctx.arc(x, y, R - 0.5, 0, Math.PI * 2);
   ctx.strokeStyle = 'rgba(0,0,0,0.4)';
   ctx.lineWidth = 1.5;
   ctx.stroke();
-  ctx.restore();
+  ctx.globalAlpha = 1;
 }
 
-let bgCache = null;
+let bgCache = null, diskGlowGrad = null;
 function buildBgCache() {
   const oc = document.createElement('canvas');
   oc.width = CANVAS_W; oc.height = CANVAS_H;
@@ -910,13 +910,15 @@ function drawBackground() {
   if (!bgCache) buildBgCache();
   ctx.drawImage(bgCache, 0, 0);
 
-  // Radial glow behind disk (dynamic, not cached)
+  // Radial glow behind disk (cached)
   if (!lowPerf) {
-    const grad = ctx.createRadialGradient(DISK_CX, DISK_CY, 0, DISK_CX, DISK_CY, 170);
-    grad.addColorStop(0, 'rgba(255,160,40,0.06)');
-    grad.addColorStop(0.5, 'rgba(255,120,20,0.02)');
-    grad.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = grad;
+    if (!diskGlowGrad) {
+      diskGlowGrad = ctx.createRadialGradient(DISK_CX, DISK_CY, 0, DISK_CX, DISK_CY, 170);
+      diskGlowGrad.addColorStop(0, 'rgba(255,160,40,0.06)');
+      diskGlowGrad.addColorStop(0.5, 'rgba(255,120,20,0.02)');
+      diskGlowGrad.addColorStop(1, 'rgba(0,0,0,0)');
+    }
+    ctx.fillStyle = diskGlowGrad;
     ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
   }
 }
@@ -1021,14 +1023,13 @@ function drawFallingBalls() {
 
 function drawParticles() {
   for (const p of particles) {
-    ctx.save();
     ctx.globalAlpha = p.life * 0.9;
     ctx.beginPath();
     ctx.arc(p.x, p.y, p.r * p.life, 0, Math.PI * 2);
     ctx.fillStyle = p.color;
     ctx.fill();
-    ctx.restore();
   }
+  ctx.globalAlpha = 1;
 }
 
 function drawShooter() {
