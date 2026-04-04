@@ -685,27 +685,27 @@ function computeAimPath() {
 }
 // ── Draw ──────────────────────────────────────────────────────────────────
 function drawBubble(x, y, color, alpha) {
-  ctx.save();
-  ctx.globalAlpha = alpha !== undefined ? alpha : 1;
+  const a = alpha !== undefined ? alpha : 1;
   // Fill
+  ctx.globalAlpha = a;
   ctx.beginPath();
   ctx.arc(x, y, R - 1, 0, Math.PI * 2);
   ctx.fillStyle = color;
   ctx.fill();
   // Highlight — simple white circle, no gradient (perf: avoids createRadialGradient per bubble)
-  ctx.globalAlpha = (alpha !== undefined ? alpha : 1) * 0.45;
+  ctx.globalAlpha = a * 0.45;
   ctx.beginPath();
   ctx.arc(x - R * 0.3, y - R * 0.3, R * 0.28, 0, Math.PI * 2);
   ctx.fillStyle = '#ffffff';
   ctx.fill();
   // Border
-  ctx.globalAlpha = alpha !== undefined ? alpha : 1;
+  ctx.globalAlpha = a;
   ctx.beginPath();
   ctx.arc(x, y, R - 1, 0, Math.PI * 2);
   ctx.strokeStyle = 'rgba(0,0,0,0.4)';
   ctx.lineWidth = 1.5;
   ctx.stroke();
-  ctx.restore();
+  ctx.globalAlpha = 1;
 }
 
 function drawGrid() {
@@ -931,14 +931,13 @@ function drawFlyingBubble() {
 
 function drawParticles() {
   for (const p of particles) {
-    ctx.save();
     ctx.globalAlpha = p.life * 0.9;
     ctx.beginPath();
     ctx.arc(p.x, p.y, p.r * p.life, 0, Math.PI * 2);
     ctx.fillStyle = p.color;
     ctx.fill();
-    ctx.restore();
   }
+  ctx.globalAlpha = 1;
 }
 
 function drawFallingBubbles() {
