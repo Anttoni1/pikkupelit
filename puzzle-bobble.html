@@ -1102,7 +1102,12 @@ function update(dt) {
         if (dist < R * 2 - 1) {
           const saved = { ...flyBubble };
           flyBubble = null;
-          snapBubble(saved.x, saved.y, saved.color);
+          // Project attach point: 2R from the hit bubble center toward the flying bubble,
+          // so snapBubble gets an accurate position rather than the (already-overlapping) center.
+          const gx = bubbleX(c, row), gy = bubbleY(row);
+          const dx = saved.x - gx, dy = saved.y - gy;
+          const len = Math.hypot(dx, dy) || 1;
+          snapBubble(gx + dx / len * R * 2, gy + dy / len * R * 2, saved.color);
           snapped = true;
         }
       }
