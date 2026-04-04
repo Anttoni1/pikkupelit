@@ -780,6 +780,7 @@ function drawAimLine() {
   if (pts.length < 2) return;
   ctx.save();
   ctx.setLineDash([4, 7]);
+  ctx.lineDashOffset = -(Date.now() / 30) % 11;
   ctx.strokeStyle = 'rgba(255,200,0,0.35)';
   ctx.lineWidth = 1.5;
   ctx.beginPath();
