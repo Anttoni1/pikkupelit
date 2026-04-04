@@ -671,8 +671,12 @@ function computeAimPath() {
       continue;
     }
     x = nx; y = ny;
-    // Hit ceiling
-    if (y - R <= GRID_Y) { pts.push([x, GRID_Y + R]); break; }
+    // Hit ceiling — use exact intersection x to match game physics
+    if (y - R <= GRID_Y) {
+      const dt = (GRID_Y + R - y) / vy;
+      pts.push([x + vx * dt, GRID_Y + R]);
+      break;
+    }
     // Hit grid bubble
     let hit = false;
     const rowApprox = Math.round((y - GRID_Y) / ROW_H);
@@ -1082,11 +1086,14 @@ function update(dt) {
       beep(220, 0.05, 0.07);
     }
 
-    // Hit ceiling
+    // Hit ceiling — back-calculate exact x at the ceiling boundary to avoid
+    // horizontal drift when the ball overshoots the ceiling within a frame.
     if (flyBubble.y - R <= GRID_Y) {
       const saved = { ...flyBubble };
       flyBubble = null;
-      snapBubble(saved.x, GRID_Y, saved.color);
+      const dt = (GRID_Y + R - saved.y) / saved.vy; // time delta back to exact ceiling contact
+      const exactX = saved.x + saved.vx * dt;
+      snapBubble(exactX, GRID_Y, saved.color);
       return;
     }
 
