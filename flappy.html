@@ -213,10 +213,52 @@ let levelVal, curSpeed, curGap;
 // ── Canvas ─────────────────────────────────────────────────────────────────────
 const canvas = document.getElementById('board');
 const ctx = canvas.getContext('2d');
-// Cache sky gradient — creating gradients every frame is expensive on mobile
-const skyGradient = ctx.createLinearGradient(0, 0, 0, CANVAS_H - GROUND_H);
-skyGradient.addColorStop(0, '#5588ee');
-skyGradient.addColorStop(1, '#99ccff');
+
+// Offscreen sky canvas — static gradient, drawn once
+const skyCanvas = document.createElement('canvas');
+skyCanvas.width = CANVAS_W; skyCanvas.height = CANVAS_H - GROUND_H;
+(function() {
+  const sc = skyCanvas.getContext('2d');
+  const g = sc.createLinearGradient(0, 0, 0, CANVAS_H - GROUND_H);
+  g.addColorStop(0, '#5588ee'); g.addColorStop(1, '#99ccff');
+  sc.fillStyle = g; sc.fillRect(0, 0, CANVAS_W, CANVAS_H - GROUND_H);
+})();
+
+// Offscreen cloud canvas — each cloud baked as a small sprite
+const CLOUD_SPRITES = [{x:20,y:30,w:50},{x:110,y:18,w:40},{x:165,y:50,w:55},{x:60,y:55,w:36}].map(c => {
+  const pad = 4, h = 22;
+  const oc = document.createElement('canvas');
+  oc.width = c.w + pad * 2; oc.height = h + pad;
+  const cc = oc.getContext('2d');
+  cc.translate(pad, pad);
+  const w = c.w;
+  cc.fillStyle = '#aabbdd'; cc.fillRect(1,9,w,8); cc.fillRect(7,3,w-12,8); cc.fillRect(13,-1,w-24,6);
+  cc.fillStyle = '#ffffff'; cc.fillRect(0,8,w,8); cc.fillRect(6,2,w-12,8); cc.fillRect(12,-2,w-24,6);
+  cc.fillStyle = '#ffffff'; cc.fillRect(14,-2,w-28,2);
+  cc.fillStyle = '#ccddee'; cc.fillRect(2,13,w-4,3);
+  cc.fillStyle = '#bbccdd'; cc.fillRect(w-8,8,5,7); cc.fillRect(w-14,3,3,6);
+  return { sprite: oc, baseX: c.x, y: c.y - pad };
+});
+
+// Offscreen ground tile — scrollable, 2× wide so we can loop
+const GROUND_TILE_W = CANVAS_W * 2;
+const groundCanvas = document.createElement('canvas');
+groundCanvas.width = GROUND_TILE_W; groundCanvas.height = GROUND_H;
+(function() {
+  const gc = groundCanvas.getContext('2d');
+  gc.fillStyle = '#228b22'; gc.fillRect(0, 0, GROUND_TILE_W, GROUND_H);
+  gc.fillStyle = '#44cc44'; gc.fillRect(0, 0, GROUND_TILE_W, 4);
+  gc.fillStyle = '#8b5a00'; gc.fillRect(0, 8, GROUND_TILE_W, GROUND_H - 8);
+  gc.fillStyle = '#6b3e00';
+  for (let bx = 0; bx < GROUND_TILE_W; bx += 16) {
+    gc.fillRect(bx, 8, 1, GROUND_H - 8);
+    gc.fillRect(bx + 8, 14, 1, GROUND_H - 14);
+  }
+  gc.fillRect(0, 14, GROUND_TILE_W, 1);
+})();
+
+let cloudOffset = 0; // px, increases each frame for parallax drift
+let groundOffset = 0; // px, scrolls with pipes
 
 // ── Audio ──────────────────────────────────────────────────────────────────────
 let audioCtx;
@@ -343,12 +385,13 @@ function drawBird() {
   // Belly highlight (lighter yellow / cream)
   ctx.fillStyle = '#ffee88';
   ctx.fillRect(-BIRD_W/2 + 2, -BIRD_H/2 + 4, 4, 4);
-  // Wing (darker amber)
+  // Wing (darker amber) — flaps up when ascending, drops when falling
+  const wingY = birdVel < -0.05 ? -BIRD_H/2 : -BIRD_H/2 + 3;
   ctx.fillStyle = '#dd8800';
-  ctx.fillRect(-BIRD_W/2 + 2, -BIRD_H/2 + 2, 5, 3);
+  ctx.fillRect(-BIRD_W/2 + 2, wingY + 2, 5, 3);
   // Wing highlight edge
   ctx.fillStyle = '#ffdd44';
-  ctx.fillRect(-BIRD_W/2 + 2, -BIRD_H/2 + 2, 5, 1);
+  ctx.fillRect(-BIRD_W/2 + 2, wingY + 2, 5, 1);
   // Tail feathers (dark amber, left side)
   ctx.fillStyle = '#bb6600';
   ctx.fillRect(-BIRD_W/2, -BIRD_H/2 + 3, 2, 5);
@@ -396,60 +439,22 @@ function drawPipe(p) {
   ctx.fillStyle = PS; ctx.fillRect(p.x - 4, botY + 8, PIPE_W + 8, 2);
 }
 
-// Cloud positions (stable, generated once)
-const CLOUDS = [{x:20,y:30,w:50},{x:110,y:18,w:40},{x:165,y:50,w:55},{x:60,y:55,w:36}];
-
 function drawBackground() {
-  // Sky gradient (cached — not recreated every frame)
-  ctx.fillStyle = skyGradient;
-  ctx.fillRect(0, 0, CANVAS_W, CANVAS_H - GROUND_H);
-
-  // VGA-style pixel clouds with layered shading
-  for (const c of CLOUDS) {
-    const x = c.x, y = c.y, w = c.w;
-    // 1) Drop shadow — light blue, 1px down+right offset
-    ctx.fillStyle = '#aabbdd';
-    ctx.fillRect(x + 1, y + 1, w, 8);
-    ctx.fillRect(x + 7, y - 5, w - 12, 8);
-    ctx.fillRect(x + 13, y - 9, w - 24, 6);
-    // 2) Main body — white
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(x, y, w, 8);
-    ctx.fillRect(x + 6, y - 6, w - 12, 8);
-    ctx.fillRect(x + 12, y - 10, w - 24, 6);
-    // 3) Pure white highlight on topmost peak
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(x + 14, y - 10, w - 28, 2);
-    // 4) Light grey bottom strip — puffy rounded underside
-    ctx.fillStyle = '#ccddee';
-    ctx.fillRect(x + 2, y + 5, w - 4, 3);
-    // 5) Darker right-side shade on main bump
-    ctx.fillStyle = '#bbccdd';
-    ctx.fillRect(x + w - 8, y, 5, 7);
-    // 6) Inner shadow on mid-level bump right edge
-    ctx.fillStyle = '#bbccdd';
-    ctx.fillRect(x + w - 14, y - 5, 3, 6);
+  // Sky — single drawImage of cached canvas
+  ctx.drawImage(skyCanvas, 0, 0);
+  // Clouds — pre-rendered sprites with parallax drift
+  for (const c of CLOUD_SPRITES) {
+    const x = ((c.baseX - cloudOffset) % (CANVAS_W + c.sprite.width) + CANVAS_W + c.sprite.width) % (CANVAS_W + c.sprite.width) - c.sprite.width;
+    ctx.drawImage(c.sprite, x, c.y);
   }
 }
 
 function drawGround90s() {
   const gy = CANVAS_H - GROUND_H;
-  // Ground base — green platform look
-  ctx.fillStyle = '#228b22';
-  ctx.fillRect(0, gy, CANVAS_W, GROUND_H);
-  // Top bright stripe
-  ctx.fillStyle = '#44cc44';
-  ctx.fillRect(0, gy, CANVAS_W, 4);
-  // Dark bottom
-  ctx.fillStyle = '#8b5a00';
-  ctx.fillRect(0, gy + 8, CANVAS_W, GROUND_H - 8);
-  // Brick pattern
-  ctx.fillStyle = '#6b3e00';
-  for (let bx = 0; bx < CANVAS_W; bx += 16) {
-    ctx.fillRect(bx, gy + 8, 1, GROUND_H - 8);
-    ctx.fillRect(bx + 8, gy + 14, 1, GROUND_H - 14);
-  }
-  ctx.fillRect(0, gy + 14, CANVAS_W, 1);
+  const off = groundOffset % CANVAS_W;
+  // Draw tile twice so seam is never visible
+  ctx.drawImage(groundCanvas, -off, gy);
+  ctx.drawImage(groundCanvas, CANVAS_W - off, gy);
 }
 
 function draw() {
@@ -593,6 +598,10 @@ function gameLoop(time) {
   pipeTimer += dist;
   for (const p of pipes) p.x -= dist;
 
+  // Scroll ground with pipes, drift clouds at 10% speed
+  groundOffset += dist;
+  cloudOffset += dist * 0.1;
+
   // Spawn new pipes
   if (pipeTimer >= PIPE_SPACING) {
     spawnPipe();
@@ -637,6 +646,7 @@ function startGame() {
   pipes = [];
   pipeTimer = PIPE_SPACING - 80; // first pipe comes soon
   deadTimer = 0;
+  cloudOffset = 0; groundOffset = 0;
   levelVal = 0; curSpeed = BASE_PIPE_SPEED; curGap = PIPE_GAP;
   rand = mulberry32(12345);
   updateLevel();
