@@ -333,9 +333,10 @@ function draw(){
   for(let y=0;y<ROWS;y++)for(let x=0;x<COLS;x++)if(grid[y][x])drawBlock(ctx,x,y,grid[y][x],BLK);
   if(!piece)return;
   const gy=ghostY();
-  const ghostColor='rgba(255,255,255,0.2)';
+  ctx.fillStyle='rgba(255,255,255,0.06)';
+  ctx.strokeStyle='rgba(255,255,255,0.35)';ctx.lineWidth=1;
   for(let y=0;y<piece.length;y++)for(let x=0;x<piece[y].length;x++)
-    if(piece[y][x]&&gy+y>=0){ctx.strokeStyle=ghostColor;ctx.lineWidth=1;ctx.strokeRect((px+x)*BLK+2,(gy+y)*BLK+2,BLK-4,BLK-4);}
+    if(piece[y][x]&&gy+y>=0){ctx.fillRect((px+x)*BLK+2,(gy+y)*BLK+2,BLK-4,BLK-4);ctx.strokeRect((px+x)*BLK+2,(gy+y)*BLK+2,BLK-4,BLK-4);}
   for(let y=0;y<piece.length;y++)for(let x=0;x<piece[y].length;x++)
     if(piece[y][x]&&py+y>=0)drawBlock(ctx,px+x,py+y,piece[y][x],BLK);
 }
