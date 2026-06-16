@@ -1414,9 +1414,13 @@ function update(dt) {
       }
     }
 
-    // Fly off screen
+    // Fly off screen — miss: immediately spawn inbound balls as punishment
     if (flyBubble && (flyBubble.y < -R - 20 || flyBubble.y > CANVAS_H + R)) {
       flyBubble = null;
+      shotsUntilGrowth = Math.max(3, SHOTS_PER_GROWTH - (levelVal - 1));
+      const count = 1 + Math.floor(Math.random() * 2);
+      spawnInboundBalls(count);
+      if (!gameRunning) return;
       currentColor = nextColor;
       nextColor = randomDiskColor();
       updateUI();
